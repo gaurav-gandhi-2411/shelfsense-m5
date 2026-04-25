@@ -1,0 +1,14 @@
+{
+  "total_series": 30490,
+  "history_days": 1941,
+  "zero_rate_overall": 67.99776584040612,
+  "zero_rate_hobbies": 77.1491658801913,
+  "zero_rate_foods": 61.77342243360771,
+  "zero_rate_household": 71.60219798280409,
+  "pct_stationary": 89.8989898989899,
+  "snap_impact_all": 11.183473327553894,
+  "snap_impact_foods": 14.96685490351326,
+  "promo_pct": 0.24873116555020733,
+  "lumpy_series": 16724,
+  "smooth_series": 184
+}
