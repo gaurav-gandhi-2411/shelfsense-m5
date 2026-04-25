@@ -77,11 +77,26 @@ def test_build_scales_random_walk():
     assert np.all(scales > 0)
 
 
-def test_build_scales_constant_series():
+def test_build_scales_constant_nonzero_series():
+    # Constant non-zero series: first non-zero found, diffs all 0 → scale=0
     mat = np.ones((3, 100))
     scales = build_scales(mat)
-    # Constant → diff=0 → replaced with 1.0
-    assert np.allclose(scales, 1.0)
+    assert np.allclose(scales, 0.0)
+
+
+def test_build_scales_all_zero_series():
+    mat = np.zeros((3, 100))
+    scales = build_scales(mat)
+    # All-zero → scale=0 (RMSSE will be inf, filtered downstream)
+    assert np.allclose(scales, 0.0)
+
+
+def test_build_scales_leading_zeros_trimmed():
+    # First 50 days are zero, last 50 days are a ramp y_t=t → diffs=1 → scale=1.0
+    mat = np.zeros((1, 100))
+    mat[0, 50:] = np.arange(50, dtype=float)
+    scales = build_scales(mat)
+    assert np.isclose(scales[0], 1.0), f"Expected 1.0, got {scales[0]}"
 
 
 def test_build_scales_known_value():
