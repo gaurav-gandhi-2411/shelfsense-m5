@@ -10,9 +10,11 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 
 | Rank | Model | Family | Score type | WRMSSE | Kaggle LB | Day | Notes |
 |------|-------|--------|------------|--------|-----------|-----|-------|
-| 1 | **LightGBM best (Optuna)** | **LightGBM** | **Full-30490** | **0.5422** | **0.5422 / 0.8956³** | **6** | **tvp=1.499, lr=0.025, 879 iter; best overall** |
-| 2 | LightGBM Tweedie (power=1.1) | LightGBM | Full-30490 | 0.5442 | — | 6 | Handily beats RMSE; 823 iter |
-| 3 | LightGBM RMSE | LightGBM | Full-30490 | 0.5651 | — | 6 | Vanilla regression baseline |
+| 1 | **Blend (0.6×per-cat + 0.4×global), recursive eval** | **LightGBM** | **Full-30490** | **0.5545** | **0.5545 / 0.7126** | **7** | **Best private LB — ensemble diversity beats individual accuracy** |
+| 2 | Global recursive (proper eval period) | LightGBM | Full-30490 | 0.5422 | 0.5422 / 0.8138 | 7 | Recursive eval fixes Day 6 SN28 placeholder; private −0.082 vs Day 6 |
+| 3 | **LightGBM global best (Day 6, val-period only)** | **LightGBM** | **Full-30490** | **0.5422** | **0.5422 / 0.8956³** | **6** | **tvp=1.499, lr=0.025, 879 iter** |
+| 4 | LightGBM Tweedie (power=1.1) | LightGBM | Full-30490 | 0.5442 | — | 6 | Handily beats RMSE; 823 iter |
+| 5 | LightGBM RMSE | LightGBM | Full-30490 | 0.5651 | — | 6 | Vanilla regression baseline |
 | — | Seasonal Naive 28 (1k ref) | Baseline | Sample-1000 | 0.6778 | — | 3 | SN28 on same 1k sample; use as Day 3–4 relative baseline |
 | 4 | ETS | Classical | Sample-1000 | 0.6541 | 0.8377 | 3 | Best sample score; sample improvement too small to move full-catalogue — see note ¹ |
 | 5 | Prophet (cps=0.1) | Prophet | Sample-1000 | 0.6638 | 0.8377 | 4 | Best cps from sweep; private 0.8731 (sample rank ≠ private rank — see note ²) |
@@ -28,6 +30,21 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 | 15 | Naive (last value) | Baseline | Full-30490 | 1.4639 | — | 2 | Repeat last observation |
 | — | SARIMA | Classical | INCOMPLETE | — | — | 3 | OOM crash at 442/1000; see reports/02_classical_methods.md |
 | — | SARIMAX | Classical | NOT RUN | — | — | 3 | Skipped after SARIMA OOM; not worth 8+ hrs compute |
+
+---
+
+## Day 7 — Results Summary
+
+| Finding | Value |
+|---------|-------|
+| Recursive eval gap (global model, 28 steps) | 0.5422 → 0.6019 (+11% — expected for recursive forecasting) |
+| Private LB improvement from fixing eval period | 0.8956 → 0.8138 (−0.082) |
+| Blend private LB improvement over global recursive | 0.8138 → 0.7126 (−0.101) |
+| Best private LB to date | **0.7126** (blend submission) |
+| Per-category tvp (FOODS / HOUSEHOLD / HOBBIES) | 1.438 / 1.555 / 1.402 — HOUSEHOLD highest, not HOBBIES |
+| Per-category val WRMSSE | 0.5726 — **worse than global 0.5422** |
+
+**Key insight:** Per-category models are weaker individually (lose cross-series signal) but add ensemble diversity that improves generalisation on the out-of-window evaluation period. The blend's public score is worse (0.5545 vs 0.5422) but private is better (0.7126 vs 0.8138).
 
 ---
 
@@ -111,7 +128,9 @@ The M5 competition has separate public (validation) and private (evaluation) lea
 | ETS (1k-sample + SN28 fill) | 0.8377 | 0.8698 | Private better than SN28 by 0.0258 |
 | ARIMA (1k-sample + SN28 fill) | 0.8377 | 0.8582 | Best private so far; ARIMA trend model generalises more consistently across full catalogue |
 | Prophet cps=0.1 (1k + SN28 fill) | 0.8377 | 0.8731 | Worse than ETS on private despite better sample score — sample-selection bias |
-| LightGBM best (Optuna) | **0.5422** | 0.8956 | Public exact — evaluator confirmed. Private = SN28 because evaluation rows (d_1942–d_1969) not yet forecasted; see note ³ |
+| LightGBM best (Optuna) | **0.5422** | 0.8956 | Public exact — evaluator confirmed. Private = SN28 because eval rows not forecasted; fixed in Day 7 |
+| LightGBM global recursive | 0.5422 | **0.8138** | Day 7: proper recursive eval forecast; private −0.082 vs Day 6 |
+| **LightGBM blend (Day 7 best)** | 0.5545 | **0.7126** | Ensemble diversity beats individual model accuracy on private LB |
 
 Interpretation: on the public LB (validation period), the 1k-sample models can't distinguish from SN28. On the private LB (true evaluation period), ARIMA and ETS show small private-score improvements — likely because they capture some trend signal that SN28 misses, and the evaluation period differs structurally from the validation period.
 
