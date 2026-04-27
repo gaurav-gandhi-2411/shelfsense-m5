@@ -12,7 +12,7 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 |------|-------|--------|------------|--------|-----------|-----|-------|
 | — | Seasonal Naive 28 (1k ref) | Baseline | Sample-1000 | 0.6778 | — | 3 | SN28 on same 1k sample; use as Day 3–4 relative baseline |
 | 1 | ETS | Classical | Sample-1000 | **0.6541** | **0.8377** | 3 | Best sample score; sample improvement too small to move full-catalogue — see note ¹ |
-| 2 | Prophet (cps=0.1) | Prophet | Sample-1000 | 0.6638 | pending | 4 | Best cps from sweep {0.01, 0.05, 0.1}; multiplicative weekly seasonality + M5 holidays |
+| 2 | Prophet (cps=0.1) | Prophet | Sample-1000 | 0.6638 | **0.8377** | 4 | Best cps from sweep; private 0.8731 (sample rank ≠ private rank — see note ²) |
 | 3 | Prophet (cps=0.05) | Prophet | Sample-1000 | 0.6743 | — | 4 | Default cps; marginal vs cps=0.1 |
 | 4 | Seasonal Naive (28-day) | Baseline | Full-30490 | **0.8377** | **0.8377** | 2 | Best full-catalogue score; Kaggle verified |
 | 5 | ARIMA | Classical | Sample-1000 | 0.7493 | **0.8377** | 3 | Worse than ETS/Prophet on sample; private 0.8582 beats ETS private 0.8698 |
@@ -27,6 +27,8 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 | — | SARIMAX | Classical | NOT RUN | — | — | 3 | Skipped after SARIMA OOM; not worth 8+ hrs compute |
 
 ---
+
+² **Sample rank ≠ private LB rank.** On the 1k sample: ETS (0.6541) > Prophet (0.6638) >> ARIMA (0.7493). On Kaggle private LB: ARIMA (0.8582) > ETS (0.8698) > Prophet (0.8731). The ranking reverses. Reason: the 1k sample is FOODS-top heavy (334 FOODS series out of 1,000), which over-represents the demand regime where ETS and Prophet excel. On the full 30,490-series catalogue, ARIMA's simpler trend model generalises more consistently across all regimes. **Model selection from biased samples is unreliable.** Day 6 LightGBM trains on all 30,490 series — ranking from that point will be trusted over sample-WRMSSE.
 
 ¹ **Why does 1k-sample ETS score 0.8377 (same as SN28) on Kaggle?** ETS improved on 1,000 of 30,490 series (~3.3%). Those 1,000 series — even the FOODS-top stratum — carry insufficient revenue weight to shift the full-catalogue WRMSSE by more than rounding error. To beat SN28 on Kaggle, the model must run on **all 30,490 series**. This is the core motivation for global ML models (Days 6–7): one LightGBM train covers all series simultaneously at a fraction of the per-series compute cost.
 
@@ -87,7 +89,8 @@ The M5 competition has separate public (validation) and private (evaluation) lea
 |-------|-----------|------------|------|
 | Seasonal Naive 28 | 0.8377 | 0.8956 | Day 2 reference |
 | ETS (1k-sample + SN28 fill) | 0.8377 | 0.8698 | Private better than SN28 by 0.0258 |
-| ARIMA (1k-sample + SN28 fill) | 0.8377 | 0.8582 | Private best so far; ARIMA trend model generalises slightly better to evaluation horizon |
+| ARIMA (1k-sample + SN28 fill) | 0.8377 | 0.8582 | Best private so far; ARIMA trend model generalises more consistently across full catalogue |
+| Prophet cps=0.1 (1k + SN28 fill) | 0.8377 | 0.8731 | Worse than ETS on private despite better sample score — sample-selection bias |
 
 Interpretation: on the public LB (validation period), the 1k-sample models can't distinguish from SN28. On the private LB (true evaluation period), ARIMA and ETS show small private-score improvements — likely because they capture some trend signal that SN28 misses, and the evaluation period differs structurally from the validation period.
 
