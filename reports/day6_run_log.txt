@@ -1,0 +1,127 @@
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+============================================================
+DAY 6 -- LightGBM Global Model
+============================================================
+
+[1] Loading features (d_num >= 1000)...
+    Loaded: (28721580, 46)  (5.3s)
+    Memory: 7.86 GB
+    After dropping lag-NaN rows: 28,721,580
+
+[2] Train/val split (train d_num <= 1885, val 1886-1913)...
+    Train: 27,014,140 rows  Val: 853,720 rows
+    Building LightGBM datasets...
+    Dataset built in 0.0s
+
+[3] Loading raw sales/prices/calendar for WRMSSE...
+    Loaded in 4.9s
+    Loading forecast features (d_num 1914-1941)...
+    Forecast features: (853720, 46)
+
+[4] Training RMSE model...
+[100]	valid_0's rmse: 1.91237
+[200]	valid_0's rmse: 1.91097
+    Best iteration: 153  Time: 118s
+    WRMSSE (full 30490 series): 0.5651
+
+[5] Training Tweedie model (variance_power=1.1)...
+[100]	valid_0's tweedie: 13.7804
+[200]	valid_0's tweedie: 13.7787
+[300]	valid_0's tweedie: 13.7782
+[400]	valid_0's tweedie: 13.7781
+[500]	valid_0's tweedie: 13.7778
+[600]	valid_0's tweedie: 13.7776
+[700]	valid_0's tweedie: 13.7775
+[800]	valid_0's tweedie: 13.7775
+    Best iteration: 823  Time: 395s
+    WRMSSE (full 30490 series): 0.5442
+
+    RMSE vs Tweedie: 0.5651 vs 0.5442
+    Best loss for Optuna: tweedie
+
+[6] Optuna search (20 trials, d_num >= 1600)...
+    Optuna train: 8,720,140  val: 853,720 rows
+    Optuna done in 1645s  Best value: 3.8016
+    Best params: {'lr': 0.025, 'num_leaves': 64, 'min_data': 20, 'feat_frac': 0.9, 'bag_frac': 0.9, 'l2': 1.0, 'tvp': 1.4987954906615264}
+
+[7] Retraining best model on full d_num >= 1000...
+[100]	valid_0's tweedie: 3.81392
+[200]	valid_0's tweedie: 3.80347
+[300]	valid_0's tweedie: 3.80151
+[400]	valid_0's tweedie: 3.80077
+[500]	valid_0's tweedie: 3.80022
+[600]	valid_0's tweedie: 3.79974
+[700]	valid_0's tweedie: 3.79951
+[800]	valid_0's tweedie: 3.79922
+[900]	valid_0's tweedie: 3.79914
+    Best iteration: 879  Time: 495s
+    WRMSSE (full 30490 series): 0.5422
+
+[8] Feature importance...
+    Top 20 features (by gain):
+            feature         gain  split
+       roll_mean_28 5.882580e+08   2679
+        roll_mean_7 3.126094e+08   2998
+        roll_std_28 5.658444e+07    552
+       roll_mean_56 4.093571e+07   3371
+         sell_price 1.324830e+07   5453
+      roll_mean_180 1.296353e+07   3399
+       roll_std_180 9.383250e+06   1733
+            weekday 7.343253e+06   3242
+price_relative_mean 5.737182e+06   3045
+       day_of_month 3.626191e+06   2628
+   has_price_change 3.090961e+06    628
+            dept_id 3.063954e+06   3385
+   price_change_pct 2.769610e+06   1370
+       week_of_year 2.399193e+06   3112
+         roll_std_7 1.936657e+06   1575
+              month 1.896112e+06   1377
+        roll_max_28 1.819777e+06    328
+           store_id 1.760758e+06   2809
+         roll_max_7 1.498995e+06    440
+        roll_std_56 1.307285e+06    721
+    Saved: reports/charts/lgbm_feature_importance.png
+
+[9] Per-category WRMSSE breakdown...
+    FOODS: WRMSSE = 0.5204
+    HOUSEHOLD: WRMSSE = 0.5905
+    HOBBIES: WRMSSE = 0.6112
+
+[10] Building Kaggle submissions...
+    Saved: C:\Users\gaura\ml-projects\shelfsense-m5\submissions\lgbm_rmse_submission.csv  (30490 val rows overridden)
+    Saved: C:\Users\gaura\ml-projects\shelfsense-m5\submissions\lgbm_tweedie_submission.csv  (30490 val rows overridden)
+    Saved: C:\Users\gaura\ml-projects\shelfsense-m5\submissions\lgbm_best_submission.csv  (30490 val rows overridden)
+
+    Saved scores: C:\Users\gaura\ml-projects\shelfsense-m5\reports\day6_lgbm_scores.json
+
+============================================================
+DAY 6 SUMMARY
+============================================================
+
+Model             WRMSSE (full 30490)
+  RMSE baseline:  0.5651
+  Tweedie 1.1:    0.5442
+  Best tuned:     0.5422
+
+Best model: loss=tweedie  Optuna best trial: 3.8016
+
+Per-category (best model):
+  FOODS: 0.5204
+  HOUSEHOLD: 0.5905
+  HOBBIES: 0.6112
+
+Top 5 features by gain:
+  roll_mean_28: 588257987
+  roll_mean_7: 312609365
+  roll_std_28: 56584438
+  roll_mean_56: 40935713
+  sell_price: 13248296
+
+Done!

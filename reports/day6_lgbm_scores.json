@@ -1,0 +1,44 @@
+{
+  "rmse": {
+    "wrmsse": 0.5650711749257967,
+    "best_iter": 153
+  },
+  "tweedie": {
+    "wrmsse": 0.5441603417202989,
+    "best_iter": 823
+  },
+  "optuna_best_params": {
+    "lr": 0.025,
+    "num_leaves": 64,
+    "min_data": 20,
+    "feat_frac": 0.9,
+    "bag_frac": 0.9,
+    "l2": 1.0,
+    "tvp": 1.4987954906615264
+  },
+  "optuna_best_val_metric": 3.801633361130154,
+  "best_tuned": {
+    "wrmsse": 0.5422151475129695,
+    "best_iter": 879,
+    "params": {
+      "learning_rate": 0.025,
+      "num_leaves": 64,
+      "min_data_in_leaf": 20,
+      "feature_fraction": 0.9,
+      "bagging_fraction": 0.9,
+      "bagging_freq": 1,
+      "lambda_l2": 1.0,
+      "verbose": -1,
+      "num_threads": 0,
+      "seed": 42,
+      "objective": "tweedie",
+      "metric": "tweedie",
+      "tweedie_variance_power": 1.4987954906615264
+    }
+  },
+  "best_by_category": {
+    "FOODS": 0.520355251808542,
+    "HOUSEHOLD": 0.5905275829719526,
+    "HOBBIES": 0.6111929095216472
+  }
+}
