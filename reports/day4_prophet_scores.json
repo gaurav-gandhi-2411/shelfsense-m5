@@ -1,0 +1,101 @@
+{
+  "sweep": {
+    "0.01": {
+      "method": "prophet",
+      "changepoint_prior_scale": 0.01,
+      "n_series": 1000,
+      "n_jobs": 2,
+      "n_fallbacks": 4,
+      "n_zero_forecasts": 396,
+      "fit_time_per_series_mean": 0.594070545911789,
+      "fit_time_per_series_median": 0.8360341787338257,
+      "fit_time_total": 594.0705459117889,
+      "wall_time_seconds": 299.9692885875702,
+      "wrmsse_sample": 0.7765703056751169,
+      "wrmsse_by_level": {
+        "level_1": 0.6409079597439018,
+        "level_2": 0.66254607573556,
+        "level_3": 0.7034444075690497,
+        "level_4": 0.8272918989828588,
+        "level_5": 0.7830169632649283,
+        "level_6": 0.7962840783520797,
+        "level_7": 0.7477886519281798,
+        "level_8": 0.7804226908267539,
+        "level_9": 0.7554003790641111,
+        "level_10": 0.8566014992656272,
+        "level_11": 0.8809660318122872,
+        "level_12": 0.8841730315560643
+      },
+      "wrmsse_by_category": {
+        "FOODS": 0.6852579890987361,
+        "HOUSEHOLD": 1.8178069352231627,
+        "HOBBIES": 3.2662706580979335
+      }
+    },
+    "0.05": {
+      "method": "prophet",
+      "changepoint_prior_scale": 0.05,
+      "n_series": 1000,
+      "n_jobs": 2,
+      "n_fallbacks": 2,
+      "n_zero_forecasts": 392,
+      "fit_time_per_series_mean": 0.6322791118621827,
+      "fit_time_per_series_median": 0.9201086759567261,
+      "fit_time_total": 632.2791118621826,
+      "wall_time_seconds": 318.3778371810913,
+      "wrmsse_sample": 0.674271348949929,
+      "wrmsse_by_level": {
+        "level_1": 0.42280641435145416,
+        "level_2": 0.5196523960999944,
+        "level_3": 0.6341581608384369,
+        "level_4": 0.6323893129721303,
+        "level_5": 0.6157027595341301,
+        "level_6": 0.6721843918589966,
+        "level_7": 0.6581935657643975,
+        "level_8": 0.7212142810028223,
+        "level_9": 0.7171730420316823,
+        "level_10": 0.7826304769049245,
+        "level_11": 0.8458653005403579,
+        "level_12": 0.8692860854998208
+      },
+      "wrmsse_by_category": {
+        "FOODS": 0.5821529373012863,
+        "HOUSEHOLD": 1.7622231913464768,
+        "HOBBIES": 3.2662706580979335
+      }
+    },
+    "0.1": {
+      "method": "prophet",
+      "changepoint_prior_scale": 0.1,
+      "n_series": 1000,
+      "n_jobs": 2,
+      "n_fallbacks": 2,
+      "n_zero_forecasts": 392,
+      "fit_time_per_series_mean": 0.7029113705158234,
+      "fit_time_per_series_median": 0.9959070682525635,
+      "fit_time_total": 702.9113705158234,
+      "wall_time_seconds": 353.3212010860443,
+      "wrmsse_sample": 0.6637876666398915,
+      "wrmsse_by_level": {
+        "level_1": 0.3802106988147088,
+        "level_2": 0.49881214939073226,
+        "level_3": 0.6273055960850573,
+        "level_4": 0.598421767849651,
+        "level_5": 0.5953642996533216,
+        "level_6": 0.6566744077309135,
+        "level_7": 0.6559387055854806,
+        "level_8": 0.717215914552175,
+        "level_9": 0.7228923581990447,
+        "level_10": 0.783961333445704,
+        "level_11": 0.8493299140138644,
+        "level_12": 0.8793248543580465
+      },
+      "wrmsse_by_category": {
+        "FOODS": 0.574229593678186,
+        "HOUSEHOLD": 1.7377873390236642,
+        "HOBBIES": 3.2662706580979335
+      }
+    }
+  },
+  "best_cps": 0.1
+}
