@@ -1,0 +1,74 @@
+{
+  "sanity_check": {
+    "single_step_wrmsse": 0.5422151475129695,
+    "recursive_val_wrmsse": 0.6019385518079096,
+    "gap": 0.05972340429494005
+  },
+  "per_category": {
+    "FOODS": {
+      "wrmsse_val": 0.5128899794318139,
+      "best_iter": 159,
+      "best_params": {
+        "objective": "tweedie",
+        "metric": "tweedie",
+        "verbose": -1,
+        "num_threads": 0,
+        "seed": 42,
+        "bagging_freq": 1,
+        "learning_rate": 0.05,
+        "num_leaves": 256,
+        "min_data_in_leaf": 50,
+        "feature_fraction": 0.9,
+        "bagging_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "tweedie_variance_power": 1.4380222967871905
+      },
+      "optuna_best_val": 4.880570044275852
+    },
+    "HOUSEHOLD": {
+      "wrmsse_val": 0.7050594289582283,
+      "best_iter": 135,
+      "best_params": {
+        "objective": "tweedie",
+        "metric": "tweedie",
+        "verbose": -1,
+        "num_threads": 0,
+        "seed": 42,
+        "bagging_freq": 1,
+        "learning_rate": 0.025,
+        "num_leaves": 256,
+        "min_data_in_leaf": 20,
+        "feature_fraction": 0.7,
+        "bagging_fraction": 0.9,
+        "lambda_l2": 1.0,
+        "tweedie_variance_power": 1.5554111414974252
+      },
+      "optuna_best_val": 3.312688004957092
+    },
+    "HOBBIES": {
+      "wrmsse_val": 0.6501577928165124,
+      "best_iter": 322,
+      "best_params": {
+        "objective": "tweedie",
+        "metric": "tweedie",
+        "verbose": -1,
+        "num_threads": 0,
+        "seed": 42,
+        "bagging_freq": 1,
+        "learning_rate": 0.075,
+        "num_leaves": 32,
+        "min_data_in_leaf": 200,
+        "feature_fraction": 0.9,
+        "bagging_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "tweedie_variance_power": 1.4017307036387183
+      },
+      "optuna_best_val": 2.8173266764653633
+    }
+  },
+  "full_val_wrmsse": {
+    "global_single_step": 0.5422151475129695,
+    "per_cat_single_step": 0.5726230008670531,
+    "blend_0.6_0.4": 0.5545410064592486
+  }
+}

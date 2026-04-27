@@ -1,0 +1,158 @@
+============================================================
+DAY 7 -- Per-Category LightGBM + Recursive Eval Forecast
+============================================================
+
+[1] Loading features (d_num >= 1000)...
+    Loaded: (28721580, 46)  (8.4s)  Memory: 7.86 GB
+
+    Loading raw CSVs...
+    Loaded in 4.8s
+
+    Loading forecast features (d_1914-1941) from parquet...
+    Forecast features: (853720, 46)
+    Total series: 30,490
+
+[2] Loading Day 6 best global model...
+    Loaded lgbm_best.pkl
+
+[3] Sanity check - recursive forecast on val period (d_1914-d_1941)...
+    d_1914  (0.4s)      d_1915  (0.3s)      d_1916  (0.3s)      d_1917  (0.3s)      d_1918  (0.3s)      d_1919  (0.3s)      d_1920  (0.3s)  
+    d_1921  (0.3s)      d_1922  (0.3s)      d_1923  (0.3s)      d_1924  (0.3s)      d_1925  (0.3s)      d_1926  (0.3s)      d_1927  (0.3s)  
+    d_1928  (0.3s)      d_1929  (0.3s)      d_1930  (0.3s)      d_1931  (0.5s)      d_1932  (0.3s)      d_1933  (0.4s)      d_1934  (0.3s)  
+    d_1935  (0.3s)      d_1936  (0.3s)      d_1937  (0.3s)      d_1938  (0.3s)      d_1939  (0.3s)      d_1940  (0.3s)      d_1941  (0.3s)  
+    Total: 8.4s
+
+    Single-step WRMSSE: 0.5422
+    Recursive    WRMSSE: 0.6019
+    Gap: 0.0597  (expected ~5-15% for 28-step recursive over sparse M5 series)
+
+[4] Per-category LightGBM (FOODS / HOUSEHOLD / HOBBIES)...
+
+  -- FOODS --------------------------------------------------
+    Train: 12,731,820  Val: 402,360  Optuna subset: 2,672,820
+    Optuna (10 trials)...
+    Optuna done in 136s  Best val: 4.8806  tvp=1.438  lr=0.05  leaves=256
+    Retraining FOODS model...
+[100]	valid_0's tweedie: 4.87873
+[200]	valid_0's tweedie: 4.87846
+    Best iter: 159  Time: 94s
+    FOODS WRMSSE (val, single-step): 0.5129
+    Saved lgbm_per_category_FOODS.pkl
+
+  -- HOUSEHOLD --------------------------------------------------
+    Train: 9,276,420  Val: 293,160  Optuna subset: 1,947,420
+    Optuna (10 trials)...
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+    Optuna done in 120s  Best val: 3.3127  tvp=1.555  lr=0.025  leaves=256
+    Retraining HOUSEHOLD model...
+[100]	valid_0's tweedie: 3.31175
+[200]	valid_0's tweedie: 3.30986
+    Best iter: 135  Time: 74s
+    HOUSEHOLD WRMSSE (val, single-step): 0.7051
+    Saved lgbm_per_category_HOUSEHOLD.pkl
+
+  -- HOBBIES --------------------------------------------------
+    Train: 5,005,900  Val: 158,200  Optuna subset: 1,050,900
+    Optuna (10 trials)...
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+    Optuna done in 58s  Best val: 2.8173  tvp=1.402  lr=0.075  leaves=32
+    Retraining HOBBIES model...
+[100]	valid_0's tweedie: 2.81658
+[200]	valid_0's tweedie: 2.81546
+[300]	valid_0's tweedie: 2.81523
+    Best iter: 322  Time: 28s
+    HOBBIES WRMSSE (val, single-step): 0.6502
+    Saved lgbm_per_category_HOBBIES.pkl
+
+[5] Building per-category validation predictions (single-step from parquet)...
+    Per-category WRMSSE (val): 0.5726
+    Blend 0.6/0.4 WRMSSE (val): 0.5545
+    Global single-step WRMSSE (val): 0.5422
+
+[6] Recursive eval forecast (d_1942-d_1969)...
+
+  [6a] Global model eval recursive...
+    d_1942  (0.4s)      d_1943  (0.3s)      d_1944  (0.3s)      d_1945  (0.4s)      d_1946  (0.3s)      d_1947  (0.4s)      d_1948  (0.3s)  
+    d_1949  (0.3s)      d_1950  (0.3s)      d_1951  (0.3s)      d_1952  (0.3s)      d_1953  (0.3s)      d_1954  (0.3s)      d_1955  (0.3s)  
+    d_1956  (0.3s)      d_1957  (0.3s)      d_1958  (0.4s)      d_1959  (0.4s)      d_1960  (0.3s)      d_1961  (0.3s)      d_1962  (0.3s)  
+    d_1963  (0.3s)      d_1964  (0.3s)      d_1965  (0.3s)      d_1966  (0.3s)      d_1967  (0.3s)      d_1968  (0.3s)      d_1969  (0.3s)  
+    Total: 8.5s
+  Done in 8.5s
+
+  [6b] Per-category model eval recursive...
+
+    FOODS (14,370 series):
+    d_1942  (0.1s)      d_1943  (0.1s)      d_1944  (0.1s)      d_1945  (0.1s)      d_1946  (0.1s)      d_1947  (0.1s)      d_1948  (0.1s)  
+    d_1949  (0.1s)      d_1950  (0.1s)      d_1951  (0.1s)      d_1952  (0.1s)      d_1953  (0.1s)      d_1954  (0.1s)      d_1955  (0.1s)  
+    d_1956  (0.1s)      d_1957  (0.1s)      d_1958  (0.1s)      d_1959  (0.1s)      d_1960  (0.1s)      d_1961  (0.1s)      d_1962  (0.1s)  
+    d_1963  (0.1s)      d_1964  (0.1s)      d_1965  (0.1s)      d_1966  (0.1s)      d_1967  (0.1s)      d_1968  (0.1s)      d_1969  (0.1s)  
+    Total: 2.2s
+    FOODS done in 2.2s
+
+    HOUSEHOLD (10,470 series):
+    d_1942  (0.1s)      d_1943  (0.1s)      d_1944  (0.1s)      d_1945  (0.1s)      d_1946  (0.1s)      d_1947  (0.1s)      d_1948  (0.1s)  
+    d_1949  (0.1s)      d_1950  (0.1s)      d_1951  (0.1s)      d_1952  (0.1s)      d_1953  (0.1s)      d_1954  (0.1s)      d_1955  (0.1s)  
+    d_1956  (0.1s)      d_1957  (0.1s)      d_1958  (0.1s)      d_1959  (0.1s)      d_1960  (0.1s)      d_1961  (0.1s)      d_1962  (0.1s)  
+    d_1963  (0.1s)      d_1964  (0.1s)      d_1965  (0.1s)      d_1966  (0.1s)      d_1967  (0.1s)      d_1968  (0.1s)      d_1969  (0.1s)  
+    Total: 1.8s
+    HOUSEHOLD done in 1.8s
+
+    HOBBIES (5,650 series):
+    d_1942  (0.0s)      d_1943  (0.0s)      d_1944  (0.0s)      d_1945  (0.0s)      d_1946  (0.0s)      d_1947  (0.0s)      d_1948  (0.0s)  
+    d_1949  (0.0s)      d_1950  (0.0s)      d_1951  (0.0s)      d_1952  (0.0s)      d_1953  (0.0s)      d_1954  (0.0s)      d_1955  (0.0s)  
+    d_1956  (0.0s)      d_1957  (0.0s)      d_1958  (0.0s)      d_1959  (0.0s)      d_1960  (0.0s)      d_1961  (0.0s)      d_1962  (0.0s)  
+    d_1963  (0.0s)      d_1964  (0.0s)      d_1965  (0.0s)      d_1966  (0.0s)      d_1967  (0.0s)      d_1968  (0.0s)      d_1969  (0.0s)  
+    Total: 0.9s
+    HOBBIES done in 0.9s
+
+[7] Building Kaggle submissions...
+    Saved: C:\Users\gaura\ml-projects\shelfsense-m5\submissions\lgbm_global_recursive.csv  (30490 val + 30490 eval rows)
+    Saved: C:\Users\gaura\ml-projects\shelfsense-m5\submissions\lgbm_per_cat.csv  (30490 val + 30490 eval rows)
+    Saved: C:\Users\gaura\ml-projects\shelfsense-m5\submissions\lgbm_blend.csv  (30490 val + 30490 eval rows)
+
+    Saved scores: C:\Users\gaura\ml-projects\shelfsense-m5\reports\day7_scores.json
+
+[9] Writing reports/06_per_category_models.md...
+    Saved: C:\Users\gaura\ml-projects\shelfsense-m5\reports\06_per_category_models.md
+
+============================================================
+DAY 7 SUMMARY
+============================================================
+
+Sanity check (recursive vs single-step):
+  Single-step: 0.5422  Recursive: 0.6019
+
+Per-category val WRMSSE (single-step):
+  FOODS: 0.5129  (tvp=1.438)
+  HOUSEHOLD: 0.7051  (tvp=1.555)
+  HOBBIES: 0.6502  (tvp=1.402)
+
+Full-catalogue val WRMSSE:
+  Global (Day 6):       0.5422
+  Per-category:         0.5726
+  Blend (0.6/0.4):      0.5545
+
+Submissions built:
+  submissions/lgbm_global_recursive.csv
+  submissions/lgbm_per_cat.csv
+  submissions/lgbm_blend.csv
+
+Done! Submit lgbm_blend.csv to Kaggle for private LB score.
