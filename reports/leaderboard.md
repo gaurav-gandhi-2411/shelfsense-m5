@@ -10,9 +10,9 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 
 | Rank | Model | Family | Score type | WRMSSE | Kaggle LB | Day | Notes |
 |------|-------|--------|------------|--------|-----------|-----|-------|
-| 1 | **LightGBM best (Optuna)** | **LightGBM** | **Full-30490** | **0.5422** | **TBD** | **6** | **tvp=1.499, lr=0.025, 879 iter; best overall** |
-| 2 | LightGBM Tweedie (power=1.1) | LightGBM | Full-30490 | 0.5442 | TBD | 6 | Handily beats RMSE; 823 iter |
-| 3 | LightGBM RMSE | LightGBM | Full-30490 | 0.5651 | TBD | 6 | Vanilla regression baseline |
+| 1 | **LightGBM best (Optuna)** | **LightGBM** | **Full-30490** | **0.5422** | **0.5422 / 0.8956³** | **6** | **tvp=1.499, lr=0.025, 879 iter; best overall** |
+| 2 | LightGBM Tweedie (power=1.1) | LightGBM | Full-30490 | 0.5442 | — | 6 | Handily beats RMSE; 823 iter |
+| 3 | LightGBM RMSE | LightGBM | Full-30490 | 0.5651 | — | 6 | Vanilla regression baseline |
 | — | Seasonal Naive 28 (1k ref) | Baseline | Sample-1000 | 0.6778 | — | 3 | SN28 on same 1k sample; use as Day 3–4 relative baseline |
 | 4 | ETS | Classical | Sample-1000 | 0.6541 | 0.8377 | 3 | Best sample score; sample improvement too small to move full-catalogue — see note ¹ |
 | 5 | Prophet (cps=0.1) | Prophet | Sample-1000 | 0.6638 | 0.8377 | 4 | Best cps from sweep; private 0.8731 (sample rank ≠ private rank — see note ²) |
@@ -41,6 +41,10 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 | **Overall** | **0.5651** | **0.5442** | **0.5422** | SN28 0.8377 | **−0.30 (−35%)** |
 
 **HOBBIES: the key validation.** Classical per-series methods hit a zero-forecast fallback for ~390/1,000 sparse HOBBIES series (WRMSSE=3.27). LightGBM's cross-series learning transfers demand signal from neighbouring items/stores, achieving **0.6112** — a 5× reduction without a single per-series fit.
+
+---
+
+³ **Why LightGBM private (0.8956) = SN28 private (0.8956).** The M5 submission format requires forecasting two non-overlapping 28-day windows: the *validation* period (d_1914–d_1941, public LB) and the *evaluation* period (d_1942–d_1969, private LB). The Day 6 training pipeline forecasted d_1914–d_1941 only. The evaluation rows (d_1942–d_1969) were left as the SN28 base, so the private LB score matches SN28 exactly. The public score (0.5422) is meaningful and exact — confirmed by local evaluator match. Fixing the evaluation-period forecast requires recursive prediction from d_1942 forward using lag/rolling features computed from d_1914–d_1941 actuals. This is addressed in Day 7.
 
 ---
 
@@ -107,6 +111,7 @@ The M5 competition has separate public (validation) and private (evaluation) lea
 | ETS (1k-sample + SN28 fill) | 0.8377 | 0.8698 | Private better than SN28 by 0.0258 |
 | ARIMA (1k-sample + SN28 fill) | 0.8377 | 0.8582 | Best private so far; ARIMA trend model generalises more consistently across full catalogue |
 | Prophet cps=0.1 (1k + SN28 fill) | 0.8377 | 0.8731 | Worse than ETS on private despite better sample score — sample-selection bias |
+| LightGBM best (Optuna) | **0.5422** | 0.8956 | Public exact — evaluator confirmed. Private = SN28 because evaluation rows (d_1942–d_1969) not yet forecasted; see note ³ |
 
 Interpretation: on the public LB (validation period), the 1k-sample models can't distinguish from SN28. On the private LB (true evaluation period), ARIMA and ETS show small private-score improvements — likely because they capture some trend signal that SN28 misses, and the evaluation period differs structurally from the validation period.
 
