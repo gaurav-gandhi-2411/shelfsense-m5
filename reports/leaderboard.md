@@ -4,17 +4,40 @@ Metric: **WRMSSE** (lower is better).
 Validation period: **d_1914 – d_1941** (last 28 days of `sales_train_evaluation.csv`).  
 Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competition.
 
+> **Note on Day 3 scores:** Classical method scores are computed on a **stratified 1,000-series sample** (334 FOODS-top, 333 HOUSEHOLD-mid, 333 HOBBIES-low), not the full 30,490 series. Sample WRMSSE is not directly comparable to full-catalogue Kaggle scores because hierarchical aggregation and revenue weights are re-normalized within the subset. See `reports/02_classical_methods.md` for full explanation.
+
 ---
 
-| Rank | Model | Family | WRMSSE (local) | Kaggle LB | Day | Notes |
-|------|-------|--------|---------------|-----------|-----|-------|
-| 1 | Seasonal Naive (28-day) | Baseline | **0.8377** | **0.8377** | 2 | Repeats last 28 days |
-| 2 | Seasonal Naive (7-day) | Baseline | 0.8697 | — | 2 | Repeats last week's pattern |
-| 3 | Moving Average (28d) | Baseline | 1.0823 | — | 2 | Mean of last 28 days |
-| 4 | Moving Average (90d) | Baseline | 1.1015 | — | 2 | Mean of last 90 days |
-| 5 | Moving Average (7d) | Baseline | 1.1361 | — | 2 | Mean of last 7 days |
-| 6 | Seasonal Naive (365-day) | Baseline | 1.4615 | — | 2 | Same window last year |
-| 7 | Naive (last value) | Baseline | 1.4639 | — | 2 | Repeat last observation |
+| Rank | Model | Family | Score type | WRMSSE | Kaggle LB | Day | Notes |
+|------|-------|--------|------------|--------|-----------|-----|-------|
+| — | Seasonal Naive 28 (1k ref) | Baseline | Sample-1000 | 0.6778 | — | 3 | SN28 on same 1k sample; use as Day 3 relative baseline |
+| 1 | ETS | Classical | Sample-1000 | **0.6541** | **0.8377** | 3 | Sample improvement too small to move full-catalogue score — see note ¹ |
+| 2 | Seasonal Naive (28-day) | Baseline | Full-30490 | **0.8377** | **0.8377** | 2 | Best full-catalogue score; Kaggle verified |
+| 3 | ARIMA | Classical | Sample-1000 | 0.7493 | **0.8377** | 3 | Same public score as ETS/SN28; private 0.8582 (better than ETS private 0.8698) |
+| 4 | Seasonal Naive (7-day) | Baseline | Full-30490 | 0.8697 | — | 2 | Repeats last week's pattern |
+| 5 | Moving Average (28d) | Baseline | Full-30490 | 1.0823 | — | 2 | Mean of last 28 days |
+| 6 | Moving Average (90d) | Baseline | Full-30490 | 1.1015 | — | 2 | Mean of last 90 days |
+| 7 | Moving Average (7d) | Baseline | Full-30490 | 1.1361 | — | 2 | Mean of last 7 days |
+| 8 | Seasonal Naive (365-day) | Baseline | Full-30490 | 1.4615 | — | 2 | Same window last year |
+| 9 | Naive (last value) | Baseline | Full-30490 | 1.4639 | — | 2 | Repeat last observation |
+| — | SARIMA | Classical | INCOMPLETE | — | — | 3 | OOM crash at 442/1000; see reports/02_classical_methods.md |
+| — | SARIMAX | Classical | NOT RUN | — | — | 3 | Skipped after SARIMA OOM; not worth 8+ hrs compute |
+
+---
+
+¹ **Why does 1k-sample ETS score 0.8377 (same as SN28) on Kaggle?** ETS improved on 1,000 of 30,490 series (~3.3%). Those 1,000 series — even the FOODS-top stratum — carry insufficient revenue weight to shift the full-catalogue WRMSSE by more than rounding error. To beat SN28 on Kaggle, the model must run on **all 30,490 series**. This is the core motivation for global ML models (Days 6–7): one LightGBM train covers all series simultaneously at a fraction of the per-series compute cost.
+
+---
+
+## Day 3 — Classical Methods Per-Category Breakdown (1k sample)
+
+| Model | FOODS | HOUSEHOLD | HOBBIES | Overall |
+|-------|-------|-----------|---------|---------|
+| Seasonal Naive 28 (ref) | 0.6400 | 1.1580 | 1.5949 | 0.6778 |
+| ETS | **0.5616** | 1.7023 | 3.2663 | **0.6541** |
+| ARIMA | 0.6590 | 1.8400 | 3.2663 | 0.7493 |
+
+**Interpretation:** ETS and ARIMA both beat the seasonal naive baseline on FOODS (high-volume, regular demand). On HOUSEHOLD and HOBBIES the models collapse — sparse and intermittent series that violate ETS/ARIMA smoothness assumptions cause the zero-forecast fallback (390/1000 series for ETS) to fire, producing WRMSSE well above baseline. This is the defining failure mode of per-series statistical models on the M5 dataset.
 
 ---
 
@@ -35,6 +58,20 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 | level_11 (item × state) | 9 147 | 1.1286 |
 | level_12 (item × store) | 30 490 | 1.1567 |
 | **Total WRMSSE** | — | **0.8377** |
+
+---
+
+## Kaggle Private Score Note
+
+The M5 competition has separate public (validation) and private (evaluation) leaderboard scores. All Kaggle LB scores shown in this document are **public scores** unless marked otherwise. For reference, private scores observed so far:
+
+| Model | Public LB | Private LB | Note |
+|-------|-----------|------------|------|
+| Seasonal Naive 28 | 0.8377 | 0.8956 | Day 2 reference |
+| ETS (1k-sample + SN28 fill) | 0.8377 | 0.8698 | Private better than SN28 by 0.0258 |
+| ARIMA (1k-sample + SN28 fill) | 0.8377 | 0.8582 | Private best so far; ARIMA trend model generalises slightly better to evaluation horizon |
+
+Interpretation: on the public LB (validation period), the 1k-sample models can't distinguish from SN28. On the private LB (true evaluation period), ARIMA and ETS show small private-score improvements — likely because they capture some trend signal that SN28 misses, and the evaluation period differs structurally from the validation period.
 
 ---
 

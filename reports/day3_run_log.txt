@@ -1,0 +1,187 @@
+[Parallel(n_jobs=4)]: Using backend LokyBackend with 4 concurrent workers.
+[Parallel(n_jobs=4)]: Done  10 tasks      | elapsed:    9.4s
+[Parallel(n_jobs=4)]: Done  64 tasks      | elapsed:   58.6s
+[Parallel(n_jobs=4)]: Done 154 tasks      | elapsed:  2.0min
+[Parallel(n_jobs=4)]: Done 280 tasks      | elapsed:  3.6min
+[Parallel(n_jobs=4)]: Done 442 tasks      | elapsed:  5.6min
+[Parallel(n_jobs=4)]: Done 640 tasks      | elapsed:  8.4min
+[Parallel(n_jobs=4)]: Done 874 tasks      | elapsed: 11.5min
+[Parallel(n_jobs=4)]: Done 1000 out of 1000 | elapsed: 13.5min finished
+[Parallel(n_jobs=4)]: Using backend LokyBackend with 4 concurrent workers.
+[Parallel(n_jobs=4)]: Done  10 tasks      | elapsed:  1.4min
+[Parallel(n_jobs=4)]: Done  64 tasks      | elapsed:  7.3min
+[Parallel(n_jobs=4)]: Done 154 tasks      | elapsed: 16.8min
+[Parallel(n_jobs=4)]: Done 280 tasks      | elapsed: 29.9min
+[Parallel(n_jobs=4)]: Done 442 tasks      | elapsed: 42.7min
+[Parallel(n_jobs=4)]: Done 640 tasks      | elapsed: 58.1min
+[Parallel(n_jobs=4)]: Done 874 tasks      | elapsed: 62.9min
+[Parallel(n_jobs=4)]: Done 1000 out of 1000 | elapsed: 64.8min finished
+[Parallel(n_jobs=4)]: Using backend LokyBackend with 4 concurrent workers.
+[Parallel(n_jobs=4)]: Done  10 tasks      | elapsed:  3.9min
+[Parallel(n_jobs=4)]: Done  64 tasks      | elapsed: 29.8min
+[Parallel(n_jobs=4)]: Done 154 tasks      | elapsed: 69.4min
+[Parallel(n_jobs=4)]: Done 280 tasks      | elapsed: 124.7min
+[Parallel(n_jobs=4)]: Done 442 tasks      | elapsed: 183.9min
+============================================================
+DAY 3 — Classical Forecasting Methods
+============================================================
+
+[1] Loading M5 data...
+    sales_train_evaluation: (30490, 1947)
+    calendar: (1969, 14)
+    prices: (6841121, 4)
+    Load time: 4.6s
+
+[2] Selecting stratified 1,000-series sample...
+    FOODS candidates: 14370, sampled: 334
+    FOODS top sales: 19001 – 250502
+    HOUSEHOLD candidates: 10470, sampled: 333
+    HOUSEHOLD sales range: 597 – 654
+    HOBBIES candidates: 5650, sampled: 333
+    HOBBIES low sales: 13 – 91
+    Total sampled: 1000
+    By stratum: {'FOODS_top': 334, 'HOUSEHOLD_mid': 333, 'HOBBIES_low': 333}
+    Saved to C:/Users/gaura/ml-projects/shelfsense-m5\data\processed\sample_1000_series.csv
+    Saved to C:\Users\gaura\ml-projects\shelfsense-m5\reports\sample_1000_series.csv
+
+[3] Preparing subset data...
+    Subset shape: (1000, 1947)
+    Actuals shape: (1000, 28)
+
+[4] Computing Seasonal Naive 28 reference on 1k sample...
+    Seasonal Naive 28 (1k sample): WRMSSE = 0.6778
+    SN28 by category: {'FOODS': 0.6400008922244167, 'HOUSEHOLD': 1.1579832496868427, 'HOBBIES': 1.5949183672219618}
+
+[5] Running classical methods with n_jobs=4...
+    Expected time: ETS ~3min, ARIMA ~20min, SARIMA ~35min, SARIMAX ~50min
+
+  --- ETS ---
+    WRMSSE (1k sample): 0.6541
+    By category: {'FOODS': 0.5615723012554582, 'HOUSEHOLD': 1.702257315688782, 'HOBBIES': 3.2662706580979335}
+    Wall time: 814.1s (0.81s/series)
+    Fallbacks: 0, Zero forecasts: 390
+    Saved: C:/Users/gaura/ml-projects/shelfsense-m5\submissions\ets_sample_submission.csv
+
+  --- ARIMA ---
+    WRMSSE (1k sample): 0.7493
+    By category: {'FOODS': 0.6590469446055199, 'HOUSEHOLD': 1.840042719739002, 'HOBBIES': 3.2662706580979335}
+    Wall time: 3887.4s (3.89s/series)
+    Fallbacks: 0, Zero forecasts: 395
+    Saved: C:/Users/gaura/ml-projects/shelfsense-m5\submissions\arima_sample_submission.csv
+
+  --- SARIMA ---
+Traceback (most recent call last):
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\parallel.py", line 1650, in _get_outputs
+    yield from self._retrieve()
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\parallel.py", line 1754, in _retrieve
+    self._raise_error_fast()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\parallel.py", line 1789, in _raise_error_fast
+    error_job.get_result(self.timeout)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\parallel.py", line 745, in get_result
+    return self._return_or_raise()
+           ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\parallel.py", line 763, in _return_or_raise
+    raise self._result
+joblib.externals.loky.process_executor.TerminatedWorkerError: A worker process managed by the executor was unexpectedly terminated. This could be caused by a segmentation fault while calling the function or by an excessive memory usage causing the Operating System to kill the worker.
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\parallel.py", line 1703, in _get_outputs
+    self._abort()
+    ~~~~~~~~~~~^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\parallel.py", line 1614, in _abort
+    backend.abort_everything(ensure_ready=ensure_ready)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\_parallel_backends.py", line 620, in abort_everything
+    self._workers.terminate(kill_workers=True)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\executor.py", line 87, in terminate
+    self._temp_folder_manager._clean_temporary_resources(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        force=kill_workers, allow_non_empty=True
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\_memmapping_reducer.py", line 615, in _clean_temporary_resources
+    self._clean_temporary_resources(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        context_id, force=force, allow_non_empty=allow_non_empty
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\_memmapping_reducer.py", line 626, in _clean_temporary_resources
+    resource_tracker.unregister(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        os.path.join(temp_folder, filename), "file"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\externals\loky\backend\resource_tracker.py", line 183, in unregister
+    self.ensure_running()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\externals\loky\backend\resource_tracker.py", line 95, in ensure_running
+    if self._check_alive():
+       ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\externals\loky\backend\resource_tracker.py", line 170, in _check_alive
+    self._send("PROBE", "", "")
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\externals\loky\backend\resource_tracker.py", line 197, in _send
+    nbytes = os.write(self._fd, msg)
+OSError: [Errno 22] Invalid argument
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\gaura\ml-projects\shelfsense-m5\scripts\run_day3.py", line 208, in <module>
+    preds, meta = run_batch(
+                  ~~~~~~~~~^
+        method=method,
+        ^^^^^^^^^^^^^^
+    ...<6 lines>...
+        last_train_day=LAST_TRAIN_DAY,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\gaura\ml-projects\shelfsense-m5\src\models\classical.py", line 364, in run_batch
+    results = Parallel(n_jobs=n_jobs, backend="loky", verbose=5)(
+        delayed(_fit_one)(a) for a in args_list
+    )
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\parallel.py", line 2007, in __call__
+    return output if self.return_generator else list(output)
+                                                ~~~~^^^^^^^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\parallel.py", line 1711, in _get_outputs
+    self._terminate_and_reset()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\parallel.py", line 1386, in _terminate_and_reset
+    self._backend.terminate()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\_parallel_backends.py", line 610, in terminate
+    self._workers._temp_folder_manager._clean_temporary_resources(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        context_id=self.parallel._id, force=False
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\_memmapping_reducer.py", line 630, in _clean_temporary_resources
+    resource_tracker.maybe_unlink(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        os.path.join(temp_folder, filename), "file"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\externals\loky\backend\resource_tracker.py", line 188, in maybe_unlink
+    self.ensure_running()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\externals\loky\backend\resource_tracker.py", line 95, in ensure_running
+    if self._check_alive():
+       ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\externals\loky\backend\resource_tracker.py", line 170, in _check_alive
+    self._send("PROBE", "", "")
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users/gaura/anaconda3/Lib/site-packages\joblib\externals\loky\backend\resource_tracker.py", line 197, in _send
+    nbytes = os.write(self._fd, msg)
+OSError: [Errno 22] Invalid argument
