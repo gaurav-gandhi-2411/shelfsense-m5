@@ -10,22 +10,40 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 
 | Rank | Model | Family | Score type | WRMSSE | Kaggle LB | Day | Notes |
 |------|-------|--------|------------|--------|-----------|-----|-------|
-| — | Seasonal Naive 28 (1k ref) | Baseline | Sample-1000 | 0.6778 | — | 3 | SN28 on same 1k sample; use as Day 3 relative baseline |
-| 1 | ETS | Classical | Sample-1000 | **0.6541** | **0.8377** | 3 | Sample improvement too small to move full-catalogue score — see note ¹ |
-| 2 | Seasonal Naive (28-day) | Baseline | Full-30490 | **0.8377** | **0.8377** | 2 | Best full-catalogue score; Kaggle verified |
-| 3 | ARIMA | Classical | Sample-1000 | 0.7493 | **0.8377** | 3 | Same public score as ETS/SN28; private 0.8582 (better than ETS private 0.8698) |
-| 4 | Seasonal Naive (7-day) | Baseline | Full-30490 | 0.8697 | — | 2 | Repeats last week's pattern |
-| 5 | Moving Average (28d) | Baseline | Full-30490 | 1.0823 | — | 2 | Mean of last 28 days |
-| 6 | Moving Average (90d) | Baseline | Full-30490 | 1.1015 | — | 2 | Mean of last 90 days |
-| 7 | Moving Average (7d) | Baseline | Full-30490 | 1.1361 | — | 2 | Mean of last 7 days |
-| 8 | Seasonal Naive (365-day) | Baseline | Full-30490 | 1.4615 | — | 2 | Same window last year |
-| 9 | Naive (last value) | Baseline | Full-30490 | 1.4639 | — | 2 | Repeat last observation |
+| — | Seasonal Naive 28 (1k ref) | Baseline | Sample-1000 | 0.6778 | — | 3 | SN28 on same 1k sample; use as Day 3–4 relative baseline |
+| 1 | ETS | Classical | Sample-1000 | **0.6541** | **0.8377** | 3 | Best sample score; sample improvement too small to move full-catalogue — see note ¹ |
+| 2 | Prophet (cps=0.1) | Prophet | Sample-1000 | 0.6638 | pending | 4 | Best cps from sweep {0.01, 0.05, 0.1}; multiplicative weekly seasonality + M5 holidays |
+| 3 | Prophet (cps=0.05) | Prophet | Sample-1000 | 0.6743 | — | 4 | Default cps; marginal vs cps=0.1 |
+| 4 | Seasonal Naive (28-day) | Baseline | Full-30490 | **0.8377** | **0.8377** | 2 | Best full-catalogue score; Kaggle verified |
+| 5 | ARIMA | Classical | Sample-1000 | 0.7493 | **0.8377** | 3 | Worse than ETS/Prophet on sample; private 0.8582 beats ETS private 0.8698 |
+| 6 | Prophet (cps=0.01) | Prophet | Sample-1000 | 0.7766 | — | 4 | Too stiff; underfit trend on FOODS |
+| 7 | Seasonal Naive (7-day) | Baseline | Full-30490 | 0.8697 | — | 2 | Repeats last week's pattern |
+| 8 | Moving Average (28d) | Baseline | Full-30490 | 1.0823 | — | 2 | Mean of last 28 days |
+| 9 | Moving Average (90d) | Baseline | Full-30490 | 1.1015 | — | 2 | Mean of last 90 days |
+| 10 | Moving Average (7d) | Baseline | Full-30490 | 1.1361 | — | 2 | Mean of last 7 days |
+| 11 | Seasonal Naive (365-day) | Baseline | Full-30490 | 1.4615 | — | 2 | Same window last year |
+| 12 | Naive (last value) | Baseline | Full-30490 | 1.4639 | — | 2 | Repeat last observation |
 | — | SARIMA | Classical | INCOMPLETE | — | — | 3 | OOM crash at 442/1000; see reports/02_classical_methods.md |
 | — | SARIMAX | Classical | NOT RUN | — | — | 3 | Skipped after SARIMA OOM; not worth 8+ hrs compute |
 
 ---
 
 ¹ **Why does 1k-sample ETS score 0.8377 (same as SN28) on Kaggle?** ETS improved on 1,000 of 30,490 series (~3.3%). Those 1,000 series — even the FOODS-top stratum — carry insufficient revenue weight to shift the full-catalogue WRMSSE by more than rounding error. To beat SN28 on Kaggle, the model must run on **all 30,490 series**. This is the core motivation for global ML models (Days 6–7): one LightGBM train covers all series simultaneously at a fraction of the per-series compute cost.
+
+---
+
+## Day 4 — Prophet Per-Category Breakdown (1k sample)
+
+| Model | FOODS | HOUSEHOLD | HOBBIES | Overall |
+|-------|-------|-----------|---------|---------|
+| Seasonal Naive 28 (ref) | 0.6400 | 1.1580 | 1.5949 | 0.6778 |
+| ETS | **0.5616** | 1.7023 | 3.2663 | **0.6541** |
+| Prophet (cps=0.1) | 0.5742 | 1.7378 | 3.2663 | 0.6638 |
+| Prophet (cps=0.05) | 0.5822 | 1.7622 | 3.2663 | 0.6743 |
+| Prophet (cps=0.01) | 0.6853 | 1.8178 | 3.2663 | 0.7766 |
+| ARIMA | 0.6590 | 1.8400 | 3.2663 | 0.7493 |
+
+**Interpretation:** Prophet closes the gap to ETS on FOODS (0.5742 vs 0.5616) — the higher changepoint flexibility better tracks trend changes. HOBBIES score is identical across ETS/ARIMA/Prophet (3.2663) because all three hit the same zero-forecast fallback for the same ~390 sparse series. HOUSEHOLD is where Prophet underperforms ETS: ETS's additive weekly seasonality is a better prior for mid-volume items than Prophet's multiplicative seasonal mode.
 
 ---
 
