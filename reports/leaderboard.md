@@ -10,21 +10,37 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 
 | Rank | Model | Family | Score type | WRMSSE | Kaggle LB | Day | Notes |
 |------|-------|--------|------------|--------|-----------|-----|-------|
+| 1 | **LightGBM best (Optuna)** | **LightGBM** | **Full-30490** | **0.5422** | **TBD** | **6** | **tvp=1.499, lr=0.025, 879 iter; best overall** |
+| 2 | LightGBM Tweedie (power=1.1) | LightGBM | Full-30490 | 0.5442 | TBD | 6 | Handily beats RMSE; 823 iter |
+| 3 | LightGBM RMSE | LightGBM | Full-30490 | 0.5651 | TBD | 6 | Vanilla regression baseline |
 | — | Seasonal Naive 28 (1k ref) | Baseline | Sample-1000 | 0.6778 | — | 3 | SN28 on same 1k sample; use as Day 3–4 relative baseline |
-| 1 | ETS | Classical | Sample-1000 | **0.6541** | **0.8377** | 3 | Best sample score; sample improvement too small to move full-catalogue — see note ¹ |
-| 2 | Prophet (cps=0.1) | Prophet | Sample-1000 | 0.6638 | **0.8377** | 4 | Best cps from sweep; private 0.8731 (sample rank ≠ private rank — see note ²) |
-| 3 | Prophet (cps=0.05) | Prophet | Sample-1000 | 0.6743 | — | 4 | Default cps; marginal vs cps=0.1 |
-| 4 | Seasonal Naive (28-day) | Baseline | Full-30490 | **0.8377** | **0.8377** | 2 | Best full-catalogue score; Kaggle verified |
-| 5 | ARIMA | Classical | Sample-1000 | 0.7493 | **0.8377** | 3 | Worse than ETS/Prophet on sample; private 0.8582 beats ETS private 0.8698 |
-| 6 | Prophet (cps=0.01) | Prophet | Sample-1000 | 0.7766 | — | 4 | Too stiff; underfit trend on FOODS |
-| 7 | Seasonal Naive (7-day) | Baseline | Full-30490 | 0.8697 | — | 2 | Repeats last week's pattern |
-| 8 | Moving Average (28d) | Baseline | Full-30490 | 1.0823 | — | 2 | Mean of last 28 days |
-| 9 | Moving Average (90d) | Baseline | Full-30490 | 1.1015 | — | 2 | Mean of last 90 days |
-| 10 | Moving Average (7d) | Baseline | Full-30490 | 1.1361 | — | 2 | Mean of last 7 days |
-| 11 | Seasonal Naive (365-day) | Baseline | Full-30490 | 1.4615 | — | 2 | Same window last year |
-| 12 | Naive (last value) | Baseline | Full-30490 | 1.4639 | — | 2 | Repeat last observation |
+| 4 | ETS | Classical | Sample-1000 | 0.6541 | 0.8377 | 3 | Best sample score; sample improvement too small to move full-catalogue — see note ¹ |
+| 5 | Prophet (cps=0.1) | Prophet | Sample-1000 | 0.6638 | 0.8377 | 4 | Best cps from sweep; private 0.8731 (sample rank ≠ private rank — see note ²) |
+| 6 | Prophet (cps=0.05) | Prophet | Sample-1000 | 0.6743 | — | 4 | Default cps; marginal vs cps=0.1 |
+| 7 | Seasonal Naive (28-day) | Baseline | Full-30490 | 0.8377 | 0.8377 | 2 | Best full-catalogue classical score; Kaggle verified |
+| 8 | ARIMA | Classical | Sample-1000 | 0.7493 | 0.8377 | 3 | Worse than ETS/Prophet on sample; private 0.8582 beats ETS private 0.8698 |
+| 9 | Prophet (cps=0.01) | Prophet | Sample-1000 | 0.7766 | — | 4 | Too stiff; underfit trend on FOODS |
+| 10 | Seasonal Naive (7-day) | Baseline | Full-30490 | 0.8697 | — | 2 | Repeats last week's pattern |
+| 11 | Moving Average (28d) | Baseline | Full-30490 | 1.0823 | — | 2 | Mean of last 28 days |
+| 12 | Moving Average (90d) | Baseline | Full-30490 | 1.1015 | — | 2 | Mean of last 90 days |
+| 13 | Moving Average (7d) | Baseline | Full-30490 | 1.1361 | — | 2 | Mean of last 7 days |
+| 14 | Seasonal Naive (365-day) | Baseline | Full-30490 | 1.4615 | — | 2 | Same window last year |
+| 15 | Naive (last value) | Baseline | Full-30490 | 1.4639 | — | 2 | Repeat last observation |
 | — | SARIMA | Classical | INCOMPLETE | — | — | 3 | OOM crash at 442/1000; see reports/02_classical_methods.md |
 | — | SARIMAX | Classical | NOT RUN | — | — | 3 | Skipped after SARIMA OOM; not worth 8+ hrs compute |
+
+---
+
+## Day 6 — LightGBM Per-Category Breakdown (full 30,490 series)
+
+| Category | RMSE model | Tweedie (1.1) | Best tuned | Classical best (1k sample) | LightGBM improvement |
+|----------|-----------|--------------|-----------|---------------------------|---------------------|
+| FOODS | — | — | **0.5204** | ETS 0.5616 | −0.04 |
+| HOUSEHOLD | — | — | **0.5905** | ETS 1.7023 | **−1.11** |
+| HOBBIES | — | — | **0.6112** | ETS 3.2663 | **−2.65** |
+| **Overall** | **0.5651** | **0.5442** | **0.5422** | SN28 0.8377 | **−0.30 (−35%)** |
+
+**HOBBIES: the key validation.** Classical per-series methods hit a zero-forecast fallback for ~390/1,000 sparse HOBBIES series (WRMSSE=3.27). LightGBM's cross-series learning transfers demand signal from neighbouring items/stores, achieving **0.6112** — a 5× reduction without a single per-series fit.
 
 ---
 
