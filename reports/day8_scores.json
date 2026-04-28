@@ -1,0 +1,20 @@
+{
+  "day8_recursive_v2": {
+    "sanity_check": {
+      "single_step_wrmsse": 0.5422151475129695,
+      "v2_recursive_wrmsse": 0.6019380484168549,
+      "gap_absolute": 0.059722900903885434,
+      "gap_pct": 11.01461314347676
+    },
+    "val_wrmsse": {
+      "global_single_step": 0.5422151475129695,
+      "percat_single_step": 0.5726230008670531,
+      "blend_0.6_0.4": 0.5545410064592486
+    },
+    "submissions": {
+      "lgbm_v2_global": "submit for public LB comparison",
+      "lgbm_v2_percat": "per-category val + recursive eval",
+      "lgbm_v2_blend": "RECOMMENDED \u2014 blend val + blend recursive eval"
+    }
+  }
+}

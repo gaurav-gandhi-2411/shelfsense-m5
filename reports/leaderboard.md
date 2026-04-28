@@ -10,7 +10,8 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 
 | Rank | Model | Family | Score type | WRMSSE | Kaggle LB | Day | Notes |
 |------|-------|--------|------------|--------|-----------|-----|-------|
-| 1 | **Blend (0.6×per-cat + 0.4×global), recursive eval** | **LightGBM** | **Full-30490** | **0.5545** | **0.5545 / 0.7126** | **7** | **Best private LB — ensemble diversity beats individual accuracy** |
+| 1 | **Blend (0.6×per-cat + 0.4×global), v2 recursive eval** | **LightGBM** | **Full-30490** | **0.5545** | **0.5545 / 0.7126** | **8** | **v2 rewrite confirms v1 was correct; identical score — gap is structural, not a bug** |
+| — | Blend (0.6×per-cat + 0.4×global), v1 recursive eval | LightGBM | Full-30490 | 0.5545 | 0.5545 / 0.7126 | 7 | Same score as Day 8 v2 — v1 feature math was already correct |
 | 2 | Global recursive (proper eval period) | LightGBM | Full-30490 | 0.5422 | 0.5422 / 0.8138 | 7 | Recursive eval fixes Day 6 SN28 placeholder; private −0.082 vs Day 6 |
 | 3 | **LightGBM global best (Day 6, val-period only)** | **LightGBM** | **Full-30490** | **0.5422** | **0.5422 / 0.8956³** | **6** | **tvp=1.499, lr=0.025, 879 iter** |
 | 4 | LightGBM Tweedie (power=1.1) | LightGBM | Full-30490 | 0.5442 | — | 6 | Handily beats RMSE; 823 iter |
@@ -30,6 +31,23 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 | 15 | Naive (last value) | Baseline | Full-30490 | 1.4639 | — | 2 | Repeat last observation |
 | — | SARIMA | Classical | INCOMPLETE | — | — | 3 | OOM crash at 442/1000; see reports/02_classical_methods.md |
 | — | SARIMAX | Classical | NOT RUN | — | — | 3 | Skipped after SARIMA OOM; not worth 8+ hrs compute |
+
+---
+
+## Day 8 — Recursive Forecast v2 Audit
+
+| Finding | Value |
+|---------|-------|
+| v2 recursive WRMSSE (val period, global model) | 0.6019 — **identical to v1** |
+| Single-step WRMSSE | 0.5422 |
+| Recursive-vs-single-step gap | 0.0597 (11.0%) |
+| Kaggle public LB (v2 blend) | 0.5545 — identical to Day 7 |
+| Kaggle private LB (v2 blend) | 0.7126 — identical to Day 7 |
+| v1 bugs found | **None** — original implementation was mathematically correct |
+
+**Key finding:** The 11% recursive gap is not a bug — it is structural. Each of 28 recursive steps introduces error that propagates forward as lag/rolling features. With 68% zero rate across M5 series, a 10-12% gap over 28 steps is expected and correct. Eliminating this gap requires direct multi-horizon training (Day 9), not a recursive rewrite.
+
+**v2 improvements** (auditability, not accuracy): exact day-index lookup via `searchsorted` instead of buffer-position arithmetic; rolling window uses boolean mask over day_cols instead of slice from buffer right edge; single `predict_horizon()` entry point with consistent API.
 
 ---
 
