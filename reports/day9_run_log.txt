@@ -1,0 +1,115 @@
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+============================================================
+DAY 9 -- Multi-Horizon LightGBM (28 models)
+============================================================
+
+[1] Loading training data (d_num 1000-1913)...
+    Rows: 27,867,860  (19.5s)
+
+    Loading raw CSVs...
+    Loaded in 5.4s
+
+[2] Loading inference origins (d_1913 and d_1941)...
+    Val origin (d_1913): 30,490 series
+    Eval origin (d_1941): 30,490 series
+
+[3] Optuna (15 trials) on h=14...
+    Optuna train: 8,293,280  val: 853,720
+    Done in 915s  Best: 3.8652
+    Best params: {'lr': 0.075, 'num_leaves': 256, 'min_data': 200, 'feat_frac': 0.7, 'bag_frac': 0.9, 'l2': 0.0, 'tvp': 1.4985332301261105}
+
+[4] Training 28 models (h=1..28)...
+  h= 1: loaded from checkpoint  C:\Users\gaura\ml-projects\shelfsense-m5\data\models\multi_horizon\h_01.pkl
+  h= 2: loaded from checkpoint  C:\Users\gaura\ml-projects\shelfsense-m5\data\models\multi_horizon\h_02.pkl
+  h= 3: loaded from checkpoint  C:\Users\gaura\ml-projects\shelfsense-m5\data\models\multi_horizon\h_03.pkl
+  h= 4: loaded from checkpoint  C:\Users\gaura\ml-projects\shelfsense-m5\data\models\multi_horizon\h_04.pkl
+  h= 5: loaded from checkpoint  C:\Users\gaura\ml-projects\shelfsense-m5\data\models\multi_horizon\h_05.pkl
+  h= 6: loaded from checkpoint  C:\Users\gaura\ml-projects\shelfsense-m5\data\models\multi_horizon\h_06.pkl
+  h= 7: iter= 101  val=3.8441  305s  saved
+  h= 8: iter= 114  val=3.8460  325s  saved
+  h= 9: iter= 127  val=3.8488  399s  saved
+  h=10: iter=  87  val=3.8512  282s  saved
+  h=11: iter= 132  val=3.8532  393s  saved
+  h=12: iter=  85  val=3.8560  260s  saved
+  h=13: iter= 134  val=3.8576  357s  saved
+  h=14: iter= 106  val=3.8604  343s  saved
+  h=15: iter= 109  val=3.8632  338s  saved
+  h=16: iter=  86  val=3.8650  263s  saved
+  h=17: iter= 111  val=3.8663  331s  saved
+  h=18: iter= 130  val=3.8683  396s  saved
+  h=19: iter=  86  val=3.8709  253s  saved
+  h=20: iter=  82  val=3.8727  268s  saved
+  h=21: iter= 124  val=3.8745  322s  saved
+  h=22: iter= 167  val=3.8762  392s  saved
+  h=23: iter=  94  val=3.8778  286s  saved
+  h=24: iter=  79  val=3.8808  367s  saved
+  h=25: iter=  85  val=3.8825  269s  saved
+  h=26: iter= 100  val=3.8825  351s  saved
+  h=27: iter= 131  val=3.8836  275s  saved
+  h=28: iter=  44  val=3.8903  169s  saved
+
+    All 28 models trained in 126.1 min
+
+[5] Val WRMSSE (multi-horizon from origin d_1913)...
+    Inference done in 3.1s
+
+    Multi-horizon WRMSSE (origin d_1913): 0.7156
+    Single-step WRMSSE (oracle, Day 6/7):        0.5422  [reference]
+    Recursive WRMSSE (Day 8 v2):                 0.6019  [reference]
+    Gap vs oracle:      +0.1734
+    Gap vs recursive:   +0.1137
+
+    Per-horizon MAE (origin d_1913):
+      h       MAE  |    h       MAE  |    h       MAE  |    h       MAE
+       1    0.9152 |    8    1.0157 |   15    1.0660 |   22    1.0325
+       2    0.8621 |    9    1.0212 |   16    0.9824 |   23    0.9670
+       3    0.8685 |   10    0.9836 |   17    1.0134 |   24    0.9374
+       4    0.8818 |   11    0.9911 |   18    0.9929 |   25    0.9395
+       5    0.9819 |   12    1.0497 |   19    1.0617 |   26    1.0149
+       6    1.0999 |   13    1.1934 |   20    1.2039 |   27    1.1613
+       7    1.1406 |   14    1.1342 |   21    1.2809 |   28    1.2225
+
+[6] Eval predictions (multi-horizon from origin d_1941)...
+    Eval inference done in 2.6s
+
+[7] Loading single-step val predictions (d_1914-1941)...
+    Single-step WRMSSE (check): 0.5422
+
+[8] Building submission...
+    Saved: mh_global.csv  (30490 val + 30490 eval rows)
+    Saved: mh_blend.csv  (30490 val + 30490 eval rows)
+    mh_blend.csv = 0.5 x multi-horizon + 0.5 x Day8-blend (eval rows only)
+
+    Saved: C:\Users\gaura\ml-projects\shelfsense-m5\reports\day9_scores.json
+
+[10] Writing reports/09_multi_horizon.md...
+    Saved: reports/09_multi_horizon.md
+
+============================================================
+DAY 9 SUMMARY
+============================================================
+
+Optuna (h=14, 15 trials):  best=3.8652
+Final params:  lr=0.075  leaves=256  tvp=1.499
+
+Val WRMSSE (multi-horizon from origin d_1913):
+  Multi-horizon: 0.7156
+  Oracle (ref):  0.5422
+  Recursive ref: 0.6019
+  vs oracle: +0.1734  vs recursive: +0.1137
+
+Submissions built:
+  submissions/mh_global.csv   — multi-horizon eval (RECOMMEND SUBMIT)
+  submissions/mh_blend.csv    — 0.5×MH + 0.5×Day8 blend (submit second)
+
+To submit:
+  kaggle competitions submit -c m5-forecasting-accuracy -f submissions/mh_global.csv -m "Day 9: multi-horizon 28 direct models"
+
+Done!
