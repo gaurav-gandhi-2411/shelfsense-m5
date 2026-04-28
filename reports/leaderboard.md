@@ -10,6 +10,8 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 
 | Rank | Model | Family | Score type | WRMSSE | Kaggle LB | Day | Notes |
 |------|-------|--------|------------|--------|-----------|-----|-------|
+| — | Multi-horizon 28 models (from origin d_1913) | LightGBM | Full-30490 | 0.7156 | pending | 9 | WORSE than recursive — single-origin feature staleness dominates over compounding-error elimination; see Day 9 note |
+| — | Multi-horizon blend (0.5×MH + 0.5×Day8 eval) | LightGBM | Full-30490 | — | pending | 9 | Ensemble diversity candidate; private LB pending |
 | 1 | **Blend (0.6×per-cat + 0.4×global), v2 recursive eval** | **LightGBM** | **Full-30490** | **0.5545** | **0.5545 / 0.7126** | **8** | **v2 rewrite confirms v1 was correct; identical score — gap is structural, not a bug** |
 | — | Blend (0.6×per-cat + 0.4×global), v1 recursive eval | LightGBM | Full-30490 | 0.5545 | 0.5545 / 0.7126 | 7 | Same score as Day 8 v2 — v1 feature math was already correct |
 | 2 | Global recursive (proper eval period) | LightGBM | Full-30490 | 0.5422 | 0.5422 / 0.8138 | 7 | Recursive eval fixes Day 6 SN28 placeholder; private −0.082 vs Day 6 |
@@ -31,6 +33,26 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 | 15 | Naive (last value) | Baseline | Full-30490 | 1.4639 | — | 2 | Repeat last observation |
 | — | SARIMA | Classical | INCOMPLETE | — | — | 3 | OOM crash at 442/1000; see reports/02_classical_methods.md |
 | — | SARIMAX | Classical | NOT RUN | — | — | 3 | Skipped after SARIMA OOM; not worth 8+ hrs compute |
+
+---
+
+## Day 9 — Multi-Horizon Direct Training (28 Models)
+
+| Finding | Value |
+|---------|-------|
+| Multi-horizon val WRMSSE (origin d_1913) | **0.7156** — worse than recursive |
+| Recursive v2 val WRMSSE | 0.6019 |
+| Single-step oracle | 0.5422 |
+| Gap vs recursive | +0.1137 (multi-horizon is worse) |
+| Optuna best params (h=14) | lr=0.075, leaves=256, tvp=1.499 |
+| Total training time | 126.1 min (28 models, h=7..28 newly trained) |
+| Submissions | mh_global.csv (val=SS, eval=MH), mh_blend.csv (eval=0.5×MH+0.5×Day8) |
+
+**Why multi-horizon underperformed recursive on the val period:**
+
+Each model_h predicts sales[d+h] using features at a single origin point (d_1913). For h=1 this is fine — features at d_1913 predict d_1914. But for h=28, the model uses lag_7 = sales[d_1906], lag_28 = sales[d_1885], roll_mean_7 of d_1907-1913 — all 28 days stale relative to the target d_1941. Recursive forecasting, while compounding prediction error, at least keeps rolling/lag features refreshed at every step with the most recent (predicted) values. Feature staleness for far horizons is a more damaging problem than error compounding for this dataset.
+
+**What to try instead (Day 10+):** Rather than a single origin, use a rolling-window evaluation where each horizon h uses the features available h days before the target — exactly what the oracle does. This is equivalent to using the actual feature parquet at each day rather than a frozen origin.
 
 ---
 
