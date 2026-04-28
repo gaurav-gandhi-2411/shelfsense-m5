@@ -1,0 +1,310 @@
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+[LightGBM] [Fatal] Reducing `min_data_in_leaf` with `feature_pre_filter=true` may cause unexpected behaviour for features that were pre-filtered by the larger `min_data_in_leaf`.
+You need to set `feature_pre_filter=false` to dynamically change the `min_data_in_leaf`.
+============================================================
+DAY 10 -- Per-Store LightGBM (10 models)
+============================================================
+
+[1] Loading training data (d_num 1000-1913)...
+    Rows: 27,867,860  (10.3s)
+
+    Loading raw CSVs...
+    Loaded in 5.3s
+
+    Stores: ['CA_1', 'CA_2', 'CA_3', 'CA_4', 'TX_1', 'TX_2', 'TX_3', 'WI_1', 'WI_2', 'WI_3']
+
+[2] Loading inference data (d_1914-1941 for val single-step)...
+    Val parquet: (853720, 44)  (30,490 series)
+
+    Loading global model (Day 6)...
+    Global single-step WRMSSE (reference): 0.5422
+
+[3] Training per-store models (10 stores, 15 Optuna trials each)...
+
+  CA_1:
+    Train: 2,786,786  Val: 85,372
+    Optuna done in 161s  best=3.9170
+    Params: lr=0.1 leaves=64 tvp=1.520
+[500]	valid_0's tweedie: 3.95107
+[1000]	valid_0's tweedie: 3.93055
+[1500]	valid_0's tweedie: 3.91473
+[2000]	valid_0's tweedie: 3.89984
+[2500]	valid_0's tweedie: 3.88746
+[3000]	valid_0's tweedie: 3.87577
+    Train done in 172s  iter=2999  val=3.8758
+
+  CA_2:
+    Train: 2,786,786  Val: 85,372
+    Optuna done in 202s  best=4.0641
+    Params: lr=0.025 leaves=32 tvp=1.536
+[500]	valid_0's tweedie: 4.07439
+[1000]	valid_0's tweedie: 4.06554
+[1500]	valid_0's tweedie: 4.05966
+[2000]	valid_0's tweedie: 4.05467
+[2500]	valid_0's tweedie: 4.05011
+[3000]	valid_0's tweedie: 4.04609
+    Train done in 217s  iter=3000  val=4.0461
+
+  CA_3:
+    Train: 2,786,786  Val: 85,372
+    Optuna done in 267s  best=4.4917
+    Params: lr=0.025 leaves=256 tvp=1.583
+[500]	valid_0's tweedie: 4.52391
+[1000]	valid_0's tweedie: 4.50222
+[1500]	valid_0's tweedie: 4.48406
+[2000]	valid_0's tweedie: 4.46901
+[2500]	valid_0's tweedie: 4.45505
+[3000]	valid_0's tweedie: 4.44253
+    Train done in 309s  iter=3000  val=4.4425
+
+  CA_4:
+    Train: 2,786,786  Val: 85,372
+    Optuna done in 194s  best=3.1447
+    Params: lr=0.1 leaves=64 tvp=1.446
+[500]	valid_0's tweedie: 3.17129
+[1000]	valid_0's tweedie: 3.15417
+[1500]	valid_0's tweedie: 3.13936
+[2000]	valid_0's tweedie: 3.12566
+[2500]	valid_0's tweedie: 3.11338
+[3000]	valid_0's tweedie: 3.10221
+    Train done in 231s  iter=3000  val=3.1022
+
+  TX_1:
+    Train: 2,786,786  Val: 85,372
+    Optuna done in 301s  best=3.2299
+    Params: lr=0.025 leaves=256 tvp=1.494
+[500]	valid_0's tweedie: 3.26597
+[1000]	valid_0's tweedie: 3.24407
+[1500]	valid_0's tweedie: 3.22436
+[2000]	valid_0's tweedie: 3.20756
+[2500]	valid_0's tweedie: 3.19115
+[3000]	valid_0's tweedie: 3.17546
+    Train done in 304s  iter=3000  val=3.1755
+
+  TX_2:
+    Train: 2,786,786  Val: 85,372
+    Optuna done in 187s  best=3.6176
+    Params: lr=0.075 leaves=32 tvp=1.512
+[500]	valid_0's tweedie: 3.63598
+[1000]	valid_0's tweedie: 3.62494
+[1500]	valid_0's tweedie: 3.61592
+[2000]	valid_0's tweedie: 3.60834
+[2500]	valid_0's tweedie: 3.60135
+[3000]	valid_0's tweedie: 3.59541
+    Train done in 110s  iter=3000  val=3.5954
+
+  TX_3:
+    Train: 2,786,786  Val: 85,372
+    Optuna done in 211s  best=3.5349
+    Params: lr=0.1 leaves=256 tvp=1.627
+[500]	valid_0's tweedie: 3.64743
+[1000]	valid_0's tweedie: 3.57007
+[1500]	valid_0's tweedie: 3.50886
+[2000]	valid_0's tweedie: 3.45735
+[2500]	valid_0's tweedie: 3.41119
+[3000]	valid_0's tweedie: 3.37045
+    Train done in 180s  iter=3000  val=3.3704
+
+  WI_1:
+    Train: 2,786,786  Val: 85,372
+    Optuna done in 223s  best=3.6983
+    Params: lr=0.075 leaves=128 tvp=1.523
+[500]	valid_0's tweedie: 3.73759
+[1000]	valid_0's tweedie: 3.71292
+[1500]	valid_0's tweedie: 3.68966
+[2000]	valid_0's tweedie: 3.66993
+[2500]	valid_0's tweedie: 3.65159
+[3000]	valid_0's tweedie: 3.63275
+    Train done in 246s  iter=3000  val=3.6327
+
+  WI_2:
+    Train: 2,786,786  Val: 85,372
+    Optuna done in 246s  best=3.8176
+    Params: lr=0.1 leaves=256 tvp=1.570
+[500]	valid_0's tweedie: 3.8989
+[1000]	valid_0's tweedie: 3.83934
+[1500]	valid_0's tweedie: 3.79272
+[2000]	valid_0's tweedie: 3.74976
+[2500]	valid_0's tweedie: 3.71158
+[3000]	valid_0's tweedie: 3.67806
+    Train done in 183s  iter=3000  val=3.6781
+
+  WI_3:
+    Train: 2,786,786  Val: 85,372
+    Optuna done in 190s  best=3.4569
+    Params: lr=0.1 leaves=128 tvp=1.543
+[500]	valid_0's tweedie: 3.51016
+[1000]	valid_0's tweedie: 3.47405
+[1500]	valid_0's tweedie: 3.44315
+[2000]	valid_0's tweedie: 3.41756
+[2500]	valid_0's tweedie: 3.39536
+[3000]	valid_0's tweedie: 3.37135
+    Train done in 143s  iter=3000  val=3.3713
+
+    All 10 store models ready.
+
+[4] Val WRMSSE — per-store single-step (d_1914-1941)...
+    Global single-step WRMSSE:     0.5422
+    Per-store single-step WRMSSE:  0.6140
+    Blend 0.6/0.4 WRMSSE:          0.5737
+
+[5] Eval recursive — per-store (d_1942-1969)...
+    History: d_num range [1742, 1941]
+
+    CA_1 (3,049 series):
+    d_1942  (0.2s)      d_1943  (0.1s)      d_1944  (0.1s)      d_1945  (0.1s)      d_1946  (0.1s)      d_1947  (0.1s)      d_1948  (0.1s)  
+    d_1949  (0.1s)      d_1950  (0.1s)      d_1951  (0.1s)      d_1952  (0.1s)      d_1953  (0.1s)      d_1954  (0.1s)      d_1955  (0.1s)  
+    d_1956  (0.1s)      d_1957  (0.1s)      d_1958  (0.1s)      d_1959  (0.1s)      d_1960  (0.1s)      d_1961  (0.1s)      d_1962  (0.1s)  
+    d_1963  (0.1s)      d_1964  (0.1s)      d_1965  (0.1s)      d_1966  (0.1s)      d_1967  (0.1s)      d_1968  (0.1s)      d_1969  (0.1s)  
+    Total: 2.7s
+    CA_1 done in 20.9s
+
+    CA_2 (3,049 series):
+    d_1942  (0.2s)      d_1943  (0.1s)      d_1944  (0.1s)      d_1945  (0.1s)      d_1946  (0.1s)      d_1947  (0.1s)      d_1948  (0.1s)  
+    d_1949  (0.1s)      d_1950  (0.1s)      d_1951  (0.1s)      d_1952  (0.1s)      d_1953  (0.1s)      d_1954  (0.1s)      d_1955  (0.1s)  
+    d_1956  (0.1s)      d_1957  (0.1s)      d_1958  (0.1s)      d_1959  (0.1s)      d_1960  (0.1s)      d_1961  (0.1s)      d_1962  (0.1s)  
+    d_1963  (0.1s)      d_1964  (0.1s)      d_1965  (0.1s)      d_1966  (0.1s)      d_1967  (0.1s)      d_1968  (0.1s)      d_1969  (0.1s)  
+    Total: 2.4s
+    CA_2 done in 21.6s
+
+    CA_3 (3,049 series):
+    d_1942  (0.2s)      d_1943  (0.1s)      d_1944  (0.1s)      d_1945  (0.1s)      d_1946  (0.1s)      d_1947  (0.1s)      d_1948  (0.1s)  
+    d_1949  (0.1s)      d_1950  (0.1s)      d_1951  (0.1s)      d_1952  (0.1s)      d_1953  (0.1s)      d_1954  (0.1s)      d_1955  (0.1s)  
+    d_1956  (0.1s)      d_1957  (0.1s)      d_1958  (0.1s)      d_1959  (0.1s)      d_1960  (0.1s)      d_1961  (0.1s)      d_1962  (0.1s)  
+    d_1963  (0.1s)      d_1964  (0.1s)      d_1965  (0.1s)      d_1966  (0.1s)      d_1967  (0.1s)      d_1968  (0.1s)      d_1969  (0.1s)  
+    Total: 3.3s
+    CA_3 done in 21.7s
+
+    CA_4 (3,049 series):
+    d_1942  (0.2s)      d_1943  (0.1s)      d_1944  (0.1s)      d_1945  (0.1s)      d_1946  (0.1s)      d_1947  (0.1s)      d_1948  (0.1s)  
+    d_1949  (0.1s)      d_1950  (0.1s)      d_1951  (0.1s)      d_1952  (0.1s)      d_1953  (0.1s)      d_1954  (0.1s)      d_1955  (0.1s)  
+    d_1956  (0.1s)      d_1957  (0.1s)      d_1958  (0.1s)      d_1959  (0.1s)      d_1960  (0.1s)      d_1961  (0.1s)      d_1962  (0.1s)  
+    d_1963  (0.1s)      d_1964  (0.1s)      d_1965  (0.1s)      d_1966  (0.1s)      d_1967  (0.1s)      d_1968  (0.1s)      d_1969  (0.1s)  
+    Total: 2.3s
+    CA_4 done in 20.5s
+
+    TX_1 (3,049 series):
+    d_1942  (0.2s)      d_1943  (0.1s)      d_1944  (0.1s)      d_1945  (0.1s)      d_1946  (0.1s)      d_1947  (0.1s)      d_1948  (0.1s)  
+    d_1949  (0.1s)      d_1950  (0.1s)      d_1951  (0.1s)      d_1952  (0.1s)      d_1953  (0.1s)      d_1954  (0.1s)      d_1955  (0.1s)  
+    d_1956  (0.1s)      d_1957  (0.1s)      d_1958  (0.1s)      d_1959  (0.1s)      d_1960  (0.1s)      d_1961  (0.1s)      d_1962  (0.1s)  
+    d_1963  (0.1s)      d_1964  (0.1s)      d_1965  (0.1s)      d_1966  (0.1s)      d_1967  (0.1s)      d_1968  (0.1s)      d_1969  (0.1s)  
+    Total: 3.6s
+    TX_1 done in 22.0s
+
+    TX_2 (3,049 series):
+    d_1942  (0.2s)      d_1943  (0.1s)      d_1944  (0.1s)      d_1945  (0.1s)      d_1946  (0.1s)      d_1947  (0.1s)      d_1948  (0.1s)  
+    d_1949  (0.1s)      d_1950  (0.1s)      d_1951  (0.1s)      d_1952  (0.1s)      d_1953  (0.1s)      d_1954  (0.1s)      d_1955  (0.1s)  
+    d_1956  (0.1s)      d_1957  (0.1s)      d_1958  (0.1s)      d_1959  (0.1s)      d_1960  (0.1s)      d_1961  (0.1s)      d_1962  (0.1s)  
+    d_1963  (0.1s)      d_1964  (0.1s)      d_1965  (0.1s)      d_1966  (0.1s)      d_1967  (0.1s)      d_1968  (0.1s)      d_1969  (0.1s)  
+    Total: 2.0s
+    TX_2 done in 20.4s
+
+    TX_3 (3,049 series):
+    d_1942  (0.2s)      d_1943  (0.1s)      d_1944  (0.1s)      d_1945  (0.1s)      d_1946  (0.1s)      d_1947  (0.1s)      d_1948  (0.1s)  
+    d_1949  (0.1s)      d_1950  (0.1s)      d_1951  (0.1s)      d_1952  (0.1s)      d_1953  (0.1s)      d_1954  (0.1s)      d_1955  (0.1s)  
+    d_1956  (0.1s)      d_1957  (0.1s)      d_1958  (0.1s)      d_1959  (0.1s)      d_1960  (0.1s)      d_1961  (0.1s)      d_1962  (0.1s)  
+    d_1963  (0.1s)      d_1964  (0.1s)      d_1965  (0.1s)      d_1966  (0.1s)      d_1967  (0.1s)      d_1968  (0.1s)      d_1969  (0.1s)  
+    Total: 3.0s
+    TX_3 done in 21.0s
+
+    WI_1 (3,049 series):
+    d_1942  (0.2s)      d_1943  (0.1s)      d_1944  (0.1s)      d_1945  (0.1s)      d_1946  (0.1s)      d_1947  (0.1s)      d_1948  (0.1s)  
+    d_1949  (0.1s)      d_1950  (0.1s)      d_1951  (0.1s)      d_1952  (0.1s)      d_1953  (0.1s)      d_1954  (0.1s)      d_1955  (0.1s)  
+    d_1956  (0.1s)      d_1957  (0.1s)      d_1958  (0.1s)      d_1959  (0.1s)      d_1960  (0.1s)      d_1961  (0.1s)      d_1962  (0.1s)  
+    d_1963  (0.1s)      d_1964  (0.1s)      d_1965  (0.1s)      d_1966  (0.1s)      d_1967  (0.1s)      d_1968  (0.1s)      d_1969  (0.1s)  
+    Total: 3.0s
+    WI_1 done in 21.4s
+
+    WI_2 (3,049 series):
+    d_1942  (0.2s)      d_1943  (0.1s)      d_1944  (0.1s)      d_1945  (0.1s)      d_1946  (0.1s)      d_1947  (0.1s)      d_1948  (0.1s)  
+    d_1949  (0.1s)      d_1950  (0.1s)      d_1951  (0.1s)      d_1952  (0.1s)      d_1953  (0.1s)      d_1954  (0.1s)      d_1955  (0.1s)  
+    d_1956  (0.1s)      d_1957  (0.1s)      d_1958  (0.1s)      d_1959  (0.1s)      d_1960  (0.1s)      d_1961  (0.1s)      d_1962  (0.1s)  
+    d_1963  (0.1s)      d_1964  (0.1s)      d_1965  (0.1s)      d_1966  (0.1s)      d_1967  (0.1s)      d_1968  (0.1s)      d_1969  (0.1s)  
+    Total: 3.2s
+    WI_2 done in 21.2s
+
+    WI_3 (3,049 series):
+    d_1942  (0.2s)      d_1943  (0.1s)      d_1944  (0.1s)      d_1945  (0.1s)      d_1946  (0.1s)      d_1947  (0.1s)      d_1948  (0.1s)  
+    d_1949  (0.1s)      d_1950  (0.1s)      d_1951  (0.1s)      d_1952  (0.1s)      d_1953  (0.1s)      d_1954  (0.1s)      d_1955  (0.1s)  
+    d_1956  (0.1s)      d_1957  (0.1s)      d_1958  (0.1s)      d_1959  (0.1s)      d_1960  (0.1s)      d_1961  (0.1s)      d_1962  (0.1s)  
+    d_1963  (0.1s)      d_1964  (0.1s)      d_1965  (0.1s)      d_1966  (0.1s)      d_1967  (0.1s)      d_1968  (0.1s)      d_1969  (0.1s)  
+    Total: 2.5s
+    WI_3 done in 21.6s
+
+[5b] Global recursive eval (for blend)...
+    d_1942  (0.4s)      d_1943  (0.4s)      d_1944  (0.4s)      d_1945  (0.4s)      d_1946  (0.4s)      d_1947  (0.4s)      d_1948  (0.4s)  
+    d_1949  (0.4s)      d_1950  (0.4s)      d_1951  (0.3s)      d_1952  (0.4s)      d_1953  (0.4s)      d_1954  (0.4s)      d_1955  (0.4s)  
+    d_1956  (0.4s)      d_1957  (0.4s)      d_1958  (0.4s)      d_1959  (0.4s)      d_1960  (0.4s)      d_1961  (0.4s)      d_1962  (0.4s)  
+    d_1963  (0.4s)      d_1964  (0.4s)      d_1965  (0.4s)      d_1966  (0.4s)      d_1967  (0.4s)      d_1968  (0.4s)      d_1969  (0.5s)  
+    Total: 10.4s
+    Global recursive done in 33.9s
+
+[6] Building submissions...
+    Saved: per_store_only.csv  (30490 val + 30490 eval rows)
+    Saved: per_store_blend.csv  (30490 val + 30490 eval rows)
+
+    Saved: C:\Users\gaura\ml-projects\shelfsense-m5\reports\day10_scores.json
+
+============================================================
+DAY 10 SUMMARY
+============================================================
+
+Val WRMSSE (single-step, 30490 series):
+  Global:    0.5422
+  Per-store: 0.6140  (worse than global)
+  Blend:     0.5737
+
+Per-store Optuna params:
+  CA_1: lr=0.1  leaves=64  tvp=1.520  iter=2999
+  CA_2: lr=0.025  leaves=32  tvp=1.536  iter=3000
+  CA_3: lr=0.025  leaves=256  tvp=1.583  iter=3000
+  CA_4: lr=0.1  leaves=64  tvp=1.446  iter=3000
+  TX_1: lr=0.025  leaves=256  tvp=1.494  iter=3000
+  TX_2: lr=0.075  leaves=32  tvp=1.512  iter=3000
+  TX_3: lr=0.1  leaves=256  tvp=1.627  iter=3000
+  WI_1: lr=0.075  leaves=128  tvp=1.523  iter=3000
+  WI_2: lr=0.1  leaves=256  tvp=1.570  iter=3000
+  WI_3: lr=0.1  leaves=128  tvp=1.543  iter=3000
+
+Submissions built:
+  submissions/per_store_only.csv  — per-store val + recursive eval
+  submissions/per_store_blend.csv — 0.6×per-store + 0.4×global blend
+
+To submit:
+  kaggle competitions submit -c m5-forecasting-accuracy -f submissions/per_store_only.csv -m "Day 10: per-store LightGBM (10 models)"
+  kaggle competitions submit -c m5-forecasting-accuracy -f submissions/per_store_blend.csv -m "Day 10: blend 0.6x per-store + 0.4x global recursive"
+
+Done!

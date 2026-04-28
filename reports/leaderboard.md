@@ -12,6 +12,8 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 |------|-------|--------|------------|--------|-----------|-----|-------|
 | 1 | **MH blend (0.5×multi-horizon + 0.5×Day8 recursive, eval rows)** | **LightGBM** | **Full-30490** | **0.5422** | **0.5422 / 0.5854** | **9** | **Best private LB to date — multi-horizon eliminates compounding error on eval period; val WRMSSE 0.7156 was misleading (see Day 9 note)** |
 | 2 | Multi-horizon global (28 direct models, eval) | LightGBM | Full-30490 | 0.5422 | 0.5422 / 0.6095 | 9 | −0.1031 private vs Day 8 recursive; pure MH eval rows, SS val rows |
+| — | **Per-store blend (0.6×per-store + 0.4×global recursive)** | **LightGBM** | **Full-30490** | **0.5737** | **pending** | **10** | **Val worse than global (+0.0315); private LB pending — expect diversity gain (same Day 7 pattern)** |
+| — | Per-store only (10 models, recursive eval) | LightGBM | Full-30490 | 0.6140 | pending | 10 | Val worse than global (+0.0718); all stores hit 3000-iter cap (underfitting) |
 | 3 | **Blend (0.6×per-cat + 0.4×global), v2 recursive eval** | **LightGBM** | **Full-30490** | **0.5545** | **0.5545 / 0.7126** | **8** | **Prev best private — now surpassed by Day 9** |
 | — | Blend (0.6×per-cat + 0.4×global), v1 recursive eval | LightGBM | Full-30490 | 0.5545 | 0.5545 / 0.7126 | 7 | Same score as Day 8 v2 — v1 feature math was already correct |
 | 2 | Global recursive (proper eval period) | LightGBM | Full-30490 | 0.5422 | 0.5422 / 0.8138 | 7 | Recursive eval fixes Day 6 SN28 placeholder; private −0.082 vs Day 6 |
@@ -54,6 +56,42 @@ The val WRMSSE (0.7156) measured multi-horizon from a single origin (d_1913) aga
 The correct comparison is multi-horizon vs recursive, both starting from d_1941 on the private LB eval period (d_1942-1969). Recursive accumulates 27 steps of compounding prediction error; multi-horizon uses model_h on clean d_1941 actual features. Multi-horizon wins by 0.103 on this fair comparison (0.6095 vs 0.8138 for global recursive), and the blend wins by 0.127 (0.5854 vs 0.7126).
 
 **Key insight:** Val WRMSSE from single origin is a biased estimator of private LB quality. The benefit of multi-horizon (eliminating compounding error) only shows up on the eval period — where no real oracle features exist and the comparison is against recursive's noisy accumulated predictions.
+
+---
+
+## Day 10 — Per-Store LightGBM (10 Models)
+
+| Finding | Value |
+|---------|-------|
+| Per-store val WRMSSE | 0.6140 — worse than global (same pattern as Day 7 per-category) |
+| Per-store blend val WRMSSE | 0.5737 |
+| Global reference val WRMSSE | 0.5422 |
+| Per-store Kaggle scores | pending |
+| Total training time | ~38 min (10 stores × Optuna 15 trials + 3000 rounds) |
+| All stores hit iteration cap | Yes (3000 rounds, no early stopping) → underfitting |
+
+**Per-store Optuna params (notable variation):**
+
+| Store | lr | leaves | tvp | val_tweedie |
+|-------|----|--------|-----|-------------|
+| CA_1 | 0.100 | 64 | 1.520 | 3.876 |
+| CA_2 | 0.025 | 32 | 1.536 | 4.046 |
+| CA_3 | 0.025 | 256 | 1.583 | 4.443 |
+| CA_4 | 0.100 | 64 | 1.446 | 3.102 |
+| TX_1 | 0.025 | 256 | 1.494 | 3.176 |
+| TX_2 | 0.075 | 32 | 1.512 | 3.595 |
+| TX_3 | 0.100 | 256 | **1.627** | 3.371 |
+| WI_1 | 0.075 | 128 | 1.523 | 3.633 |
+| WI_2 | 0.100 | 256 | 1.570 | 3.678 |
+| WI_3 | 0.100 | 128 | 1.543 | 3.371 |
+
+**Key finding — tvp range 1.45–1.63:** The global model used tvp=1.499 (a cross-store average). Per-store Optuna reveals that TX_3 (1.627) and CA_3 (1.583) have significantly heavier compound tails than CA_4 (1.446) and TX_1 (1.494). A single global tvp cannot simultaneously satisfy all stores — structural demand heterogeneity that per-store models capture.
+
+**Hardest vs easiest stores:** CA_3 (val=4.44) is the hardest — Optuna selected max-complexity params (256 leaves, low lr) but still hit the iteration cap. CA_4 (val=3.10) is easiest — light params converge quickly. State-level pattern: CA stores have widest variance (3.10–4.44), TX and WI are more uniform (3.18–3.68).
+
+**Val WRMSSE worse than global (expected):** Per-store models train on 2.79M rows vs 27.9M for global. Smaller dataset loses cross-series transfer — the same item sold in CA_1 and TX_2 has correlated demand, but per-store models can't see across the boundary. Global tree splits on store_id already handle store heterogeneity without sacrificing cross-store signal.
+
+**Private LB hypothesis:** Day 7 confirmed that per-category models (val +0.03 worse) added diversity worth −0.101 on private LB. Per-store val delta is +0.072 — larger individual weakness, potentially larger diversity benefit. Private LB pending Kaggle submission.
 
 ---
 
