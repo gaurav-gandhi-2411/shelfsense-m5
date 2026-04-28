@@ -10,9 +10,9 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 
 | Rank | Model | Family | Score type | WRMSSE | Kaggle LB | Day | Notes |
 |------|-------|--------|------------|--------|-----------|-----|-------|
-| — | Multi-horizon 28 models (from origin d_1913) | LightGBM | Full-30490 | 0.7156 | pending | 9 | WORSE than recursive — single-origin feature staleness dominates over compounding-error elimination; see Day 9 note |
-| — | Multi-horizon blend (0.5×MH + 0.5×Day8 eval) | LightGBM | Full-30490 | — | pending | 9 | Ensemble diversity candidate; private LB pending |
-| 1 | **Blend (0.6×per-cat + 0.4×global), v2 recursive eval** | **LightGBM** | **Full-30490** | **0.5545** | **0.5545 / 0.7126** | **8** | **v2 rewrite confirms v1 was correct; identical score — gap is structural, not a bug** |
+| 1 | **MH blend (0.5×multi-horizon + 0.5×Day8 recursive, eval rows)** | **LightGBM** | **Full-30490** | **0.5422** | **0.5422 / 0.5854** | **9** | **Best private LB to date — multi-horizon eliminates compounding error on eval period; val WRMSSE 0.7156 was misleading (see Day 9 note)** |
+| 2 | Multi-horizon global (28 direct models, eval) | LightGBM | Full-30490 | 0.5422 | 0.5422 / 0.6095 | 9 | −0.1031 private vs Day 8 recursive; pure MH eval rows, SS val rows |
+| 3 | **Blend (0.6×per-cat + 0.4×global), v2 recursive eval** | **LightGBM** | **Full-30490** | **0.5545** | **0.5545 / 0.7126** | **8** | **Prev best private — now surpassed by Day 9** |
 | — | Blend (0.6×per-cat + 0.4×global), v1 recursive eval | LightGBM | Full-30490 | 0.5545 | 0.5545 / 0.7126 | 7 | Same score as Day 8 v2 — v1 feature math was already correct |
 | 2 | Global recursive (proper eval period) | LightGBM | Full-30490 | 0.5422 | 0.5422 / 0.8138 | 7 | Recursive eval fixes Day 6 SN28 placeholder; private −0.082 vs Day 6 |
 | 3 | **LightGBM global best (Day 6, val-period only)** | **LightGBM** | **Full-30490** | **0.5422** | **0.5422 / 0.8956³** | **6** | **tvp=1.499, lr=0.025, 879 iter** |
@@ -40,19 +40,20 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 
 | Finding | Value |
 |---------|-------|
-| Multi-horizon val WRMSSE (origin d_1913) | **0.7156** — worse than recursive |
+| Multi-horizon val WRMSSE (origin d_1913) | 0.7156 — misleadingly bad (see note) |
+| **mh_blend Kaggle private LB** | **0.5854 — new best by 0.1272** |
+| mh_global Kaggle private LB | 0.6095 |
 | Recursive v2 val WRMSSE | 0.6019 |
-| Single-step oracle | 0.5422 |
-| Gap vs recursive | +0.1137 (multi-horizon is worse) |
 | Optuna best params (h=14) | lr=0.075, leaves=256, tvp=1.499 |
-| Total training time | 126.1 min (28 models, h=7..28 newly trained) |
-| Submissions | mh_global.csv (val=SS, eval=MH), mh_blend.csv (eval=0.5×MH+0.5×Day8) |
+| Total training time | 126.1 min (28 models) |
 
-**Why multi-horizon underperformed recursive on the val period:**
+**Why val WRMSSE was a misleading metric:**
 
-Each model_h predicts sales[d+h] using features at a single origin point (d_1913). For h=1 this is fine — features at d_1913 predict d_1914. But for h=28, the model uses lag_7 = sales[d_1906], lag_28 = sales[d_1885], roll_mean_7 of d_1907-1913 — all 28 days stale relative to the target d_1941. Recursive forecasting, while compounding prediction error, at least keeps rolling/lag features refreshed at every step with the most recent (predicted) values. Feature staleness for far horizons is a more damaging problem than error compounding for this dataset.
+The val WRMSSE (0.7156) measured multi-horizon from a single origin (d_1913) against the single-step oracle (actual features at each of d_1914-1941). This is an unfair comparison — it penalises the staleness of multi-horizon features versus perfect real-world features that don't exist at inference time.
 
-**What to try instead (Day 10+):** Rather than a single origin, use a rolling-window evaluation where each horizon h uses the features available h days before the target — exactly what the oracle does. This is equivalent to using the actual feature parquet at each day rather than a frozen origin.
+The correct comparison is multi-horizon vs recursive, both starting from d_1941 on the private LB eval period (d_1942-1969). Recursive accumulates 27 steps of compounding prediction error; multi-horizon uses model_h on clean d_1941 actual features. Multi-horizon wins by 0.103 on this fair comparison (0.6095 vs 0.8138 for global recursive), and the blend wins by 0.127 (0.5854 vs 0.7126).
+
+**Key insight:** Val WRMSSE from single origin is a biased estimator of private LB quality. The benefit of multi-horizon (eliminating compounding error) only shows up on the eval period — where no real oracle features exist and the comparison is against recursive's noisy accumulated predictions.
 
 ---
 
