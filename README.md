@@ -1,25 +1,32 @@
 # ShelfSense-M5
 
-**Forecasting 30,490 Walmart SKU series with LightGBM, classical baselines, and hierarchical aggregation.**  
-Best public LB: **0.5422** | Best private LB: **0.7126** | Baseline (Seasonal Naive 28): **0.8377**
+**Forecasting 30,490 Walmart SKU series across 10 stores — LightGBM, multi-horizon direct training, classical baselines, and hierarchical aggregation.**
 
-![Model Progression](reports/charts/leaderboard_progression.png)
+Best public LB: **0.5422** | Best private LB: **0.5854** | Baseline (Seasonal Naive 28): **0.8377 / 0.8956**
+
+![Private LB Progression](reports/charts/leaderboard_progression.png)
 
 ---
 
 ## TL;DR
 
-A 10-day end-to-end forecasting pipeline on the [M5 Forecasting Accuracy](https://www.kaggle.com/competitions/m5-forecasting-accuracy) dataset. Starting from a seasonal naïve baseline (WRMSSE 0.8377), I built a global LightGBM model with Tweedie loss, Optuna tuning, and recursive multi-step evaluation forecasting, finishing at **public 0.5422 / private 0.7126** (−35% WRMSSE from baseline). The three technical findings most worth explaining to an interviewer:
+A 10-day end-to-end forecasting pipeline on the [M5 Forecasting Accuracy](https://www.kaggle.com/competitions/m5-forecasting-accuracy) dataset (30,490 Walmart SKU–store series, 1,941 days, WRMSSE metric). Starting from a seasonal naïve baseline (0.8377 public / 0.8956 private), I built progressively stronger models, finishing at **public 0.5422 / private 0.5854** with a multi-horizon direct ensemble — a **35% WRMSSE reduction from baseline**.
 
-1. **HOBBIES improvement**: per-series classical methods scored 3.27 (zero-forecast fallback on sparse series). LightGBM's cross-series learning brought this to 0.61 — a 5× reduction without a single per-series fit.
-2. **Top-down hierarchy**: aggregating to category level before forecasting reduced WRMSSE from 0.6638 to 0.5555 on Prophet. Noise cancellation at aggregate levels eliminates the sparse-series problem entirely.
-3. **Ensemble diversity over accuracy**: a blend of per-category + global models scored *worse* on validation (0.5545 vs 0.5422) but *better* on private LB (0.7126 vs 0.8138). Individual model accuracy is not the right optimisation target when the forecast horizon shifts.
+The four technical findings most worth surfacing to an interviewer:
+
+1. **HOBBIES: 5× improvement via cross-series signal.** Per-series classical methods scored 3.27 on sparse HOBBIES items (zero-forecast fallback). A single global LightGBM trained on all 30,490 series brought this to 0.61 — without a single per-series fit.
+
+2. **Top-down hierarchy beats bottom-up by 0.11 WRMSSE.** Forecasting at category level and disaggregating proportionally outperforms forecasting each series individually. Noise cancels at aggregation; the sparse-series problem disappears. This directly informed the choice of `cat_id`/`dept_id` as high-priority LightGBM features.
+
+3. **Val WRMSSE was the wrong metric for multi-horizon.** Multi-horizon (28 direct models) scored 0.7156 val WRMSSE vs recursive 0.6019 — seemingly worse. But on Kaggle private LB (fair comparison, both from d_1941 with no future actuals), multi-horizon won decisively: 0.5854 vs 0.7126. Single-step oracle-based val WRMSSE penalises feature staleness that doesn't exist at inference time.
+
+4. **Ensemble math inverted between Day 7 and Day 10.** Day 7: blending per-category + global improved private LB by 0.101 (worse components, diversity helped). Day 10: blending per-store + global *hurt* by 0.002 (per-store was already stronger than global recursive — adding a weaker component added noise). Same technique, opposite outcome — depends on relative component quality.
 
 ---
 
 ## Dataset
 
-The M5 dataset covers **30,490 SKU–store series** across 10 Walmart stores in 3 US states, 1,941 daily observations (Jan 2011 – May 2016). The competition metric is WRMSSE — Weighted Root Mean Squared Scaled Error across 12 aggregation levels (total → state → store → category → department → item × store).
+**30,490 SKU–store series** across 10 Walmart stores (CA × 4, TX × 3, WI × 3), 3 states, 1,941 daily observations (Jan 2011 – May 2016). Competition metric: WRMSSE (Weighted Root Mean Squared Scaled Error) across 12 hierarchy levels (total → state → store → category → department → item × store).
 
 **Key EDA findings (`notebooks/01_eda.ipynb`):**
 
@@ -37,25 +44,27 @@ The M5 dataset covers **30,490 SKU–store series** across 10 Walmart stores in 
 | Dominant seasonality | Weekly (lag-7 ACF spike) |
 | Highest sales day | Saturday |
 
-Implication: compound-Poisson (Tweedie) loss is the right objective. SNAP flags and lag-7/14/28 are high-value features. Store embeddings are required.
+EDA implication: compound-Poisson (Tweedie) loss is the right objective. SNAP flags and lag-7/14/28 are high-value features. Hierarchy encodings (`store_id`, `cat_id`, `dept_id`) are required.
 
 ---
 
-## Journey
+## The Journey
 
-### Phase 1 — Baselines and Evaluator (Days 1–2)
+### Phase 1 — Baselines and WRMSSE Evaluator (Days 1–2)
 
-Built a WRMSSE evaluator that **exactly matches the Kaggle leaderboard** (verified: local 0.8377 = Kaggle 0.8377). The key fix: the scale denominator must trim leading zeros before computing the naïve-1 MSE. Many M5 series launch mid-dataset; including pre-launch zeros deflates the scale and inflates RMSSE by ~5%.
+Built a WRMSSE evaluator that **exactly matches the Kaggle leaderboard** (verified: local 0.8377 = Kaggle 0.8377). The critical fix: the scale denominator must trim leading zeros before computing the naïve-1 MSE. Many M5 series launch mid-dataset — including pre-launch zeros deflates the scale and inflates RMSSE by ~5%.
 
-Evaluated 6 naïve baselines. SN28 (seasonal naïve 28-day) is the best at 0.8377 and the hardest to beat with classical methods at the item level.
+Evaluated 6 naïve baselines. SN28 (seasonal naïve 28-day) is the best at 0.8377 public / 0.8956 private.
 
 ### Phase 2 — Classical Methods on 1k Sample (Days 3–4)
 
-Running ETS/ARIMA/Prophet on all 30,490 series is computationally infeasible (hours per fit). I built a **stratified 1,000-series sample** (334 FOODS-top, 333 HOUSEHOLD-mid, 333 HOBBIES-low) for rapid iteration.
+Running ETS/ARIMA/Prophet on all 30,490 series is computationally infeasible (8–12 hours per method). Built a **stratified 1,000-series sample** (334 FOODS-top, 333 HOUSEHOLD-mid, 333 HOBBIES-low) for rapid iteration.
 
-Best result: ETS WRMSSE 0.6541 on the sample. But submitting to Kaggle produced the same public score as SN28 (0.8377) — because 1,000/30,490 series carries insufficient revenue weight to shift the full-catalogue score.
+Best classical result: ETS WRMSSE 0.6541 on the sample. Submitting to Kaggle produced the same public score as SN28 (0.8377) — because 1,000/30,490 series carries insufficient revenue weight to shift the full-catalogue score.
 
-**Day 4 highlight — top-down hierarchy (Prophet):**
+SARIMA OOM-crashed at 442/1,000 series after 3 hours — documented and moved on rather than spending more cycles.
+
+**Day 4 highlight — top-down hierarchy is counter-intuitive:**
 
 | Aggregation | WRMSSE (1k sample) |
 |-------------|-------------------|
@@ -65,131 +74,187 @@ Best result: ETS WRMSSE 0.6541 on the sample. But submitting to Kaggle produced 
 | Top-down — department | 0.5565 |
 | **Top-down — category** | **0.5555** |
 
-Category-level aggregation is the sweet spot: noise cancels, the sparse-series problem disappears, and the forecast is disaggregated proportionally. This is the strongest result from the classical phase.
+Category-level aggregation is the sweet spot: noise cancels, sparse-series problem disappears, and disaggregation by historical proportion is stable. This is the strongest result from the classical phase, and it directly informed feature engineering — `cat_id` and `dept_id` became key LightGBM features.
 
-![Hierarchical Aggregation](reports/charts/hierarchical_aggregation.png)
+![Top-Down vs Bottom-Up](reports/charts/hierarchical_aggregation.png)
 
-### Phase 3 — Global LightGBM (Days 5–6)
+### Phase 3 — Hierarchical Insight → Feature Engineering (Day 5)
 
-Built a 59M-row feature matrix (38 features × 30,490 series × 1,941 days) batched per store into 10 Snappy-compressed parquet files (845 MB total). Per-store batching keeps peak RAM under 1 GB.
+The top-down finding confirmed that category and department structure carries more signal than any individual series trend. Built a 59M-row feature matrix (38 features × 30,490 series × 1,941 days) batched per store into 10 Snappy-compressed parquet files (845 MB total). Per-store batching keeps peak RAM under 1 GB.
 
 **Feature groups:**
 - Lags: day −7, −14, −28, −56
 - Rolling: 7/28/56/180-day mean, std, min, max (16 features)
 - Calendar: day-of-week, month, year, SNAP flag, event type (13 features)
-- Price: sell price, price delta week-over-week, relative price vs store average (5 features)
-- Hierarchy: cat_id, dept_id, store_id, state_id (as CategoricalDtype — native LightGBM)
+- Price: sell price, WoW delta, relative to store average (5 features)
+- Hierarchy: `cat_id`, `dept_id`, `store_id`, `state_id` (as `CategoricalDtype` — native LightGBM)
 
-LightGBM was trained three ways:
+### Phase 4 — LightGBM Global Model: The Breakthrough (Day 6)
 
-| Model | WRMSSE | Notes |
-|-------|--------|-------|
-| RMSE loss | 0.5651 | Vanilla regression baseline |
+| Model | Val WRMSSE | Notes |
+|-------|-----------|-------|
+| RMSE loss | 0.5651 | Vanilla regression |
 | Tweedie (power=1.1) | 0.5442 | Compound-Poisson; rewards zero predictions |
-| **Tweedie + Optuna** | **0.5422** | Best: tvp=1.499, lr=0.025, leaves=64, 879 iter |
+| **Tweedie + Optuna** | **0.5422** | Best: tvp=1.499, lr=0.025, leaves=64 |
 
-**Per-category breakdown (LightGBM best vs ETS best):**
+**Per-category breakdown — HOBBIES is the headline:**
 
-| Category | ETS (1k sample) | LightGBM | Improvement |
-|----------|----------------|----------|-------------|
+| Category | ETS (1k sample) | LightGBM Tweedie | Improvement |
+|----------|----------------|-----------------|-------------|
 | FOODS | 0.5616 | **0.5204** | −0.04 |
 | HOUSEHOLD | 1.7023 | **0.5905** | −1.11 |
-| HOBBIES | 3.2663 | **0.6112** | −2.65 |
+| HOBBIES | 3.2663 | **0.6112** | **−2.65** |
 
-HOBBIES is the headline result. Classical methods hit a zero-forecast fallback on ~390/1,000 sparse HOBBIES series (WRMSSE 3.27). LightGBM's cross-series learning — trained simultaneously on all 30,490 series — transfers demand signal from neighbouring items/stores, achieving **0.6112** without a single per-series fit.
+HOBBIES classical WRMSSE (3.27) comes from the zero-forecast fallback on ~390/1,000 sparse series. LightGBM's cross-series learning — trained on all 30,490 series simultaneously — transfers demand signal from neighbouring items, achieving 0.61 **without a single per-series fit**.
 
-![Per-Category Comparison](reports/charts/per_category_comparison.png)
+Feature importance revealed that lag features did not crack the top 20 — rolling means absorbed their signal. Hierarchy features (`dept_id`, `cat_id`) ranked in the top 15, validating the Phase 2 hierarchical insight.
 
-### Phase 4 — Recursive Evaluation + Ensemble (Day 7)
+![Per-Category Journey](reports/charts/per_category_journey.png)
 
-**Problem:** Day 6 submission only forecasted the validation period (d_1914–1941). The evaluation rows (d_1942–1969, Kaggle private LB) were left as SN28 placeholder — which is why private = 0.8956 = SN28 private.
+### Phase 5 — Recursive Evaluation + Ensemble Diversity (Days 7–8)
 
-**Solution:** `src/models/recursive_forecast.py` — a vectorised recursive forecaster that maintains a (30,490 × 200) sales buffer, updates lag/rolling features day-by-day, and generates proper d_1942–1969 predictions.
+**The hidden bug:** Day 6 only forecasted the validation period (d_1914–1941). The evaluation rows (d_1942–1969, Kaggle private LB) were left as SN28 placeholder — explaining why private = 0.8956 = SN28 private despite public = 0.5422.
 
-Recursive gap sanity check: single-step WRMSSE 0.5422 → recursive WRMSSE 0.6019 (+11% over 28 steps). Expected for compound-error propagation on sparse M5 series.
+**Fix:** `src/models/recursive_forecast_v2.py` — a vectorised recursive forecaster using a (30,490 × 200) float32 sales buffer. Updates lag/rolling features day-by-day; generates d_1942–1969 predictions from d_1941 history in 8.5s.
 
-**Per-category models:** separate LightGBM + Optuna for FOODS/HOUSEHOLD/HOBBIES, testing whether category-specific Tweedie tuning beats the global model.
+Recursive gap: single-step 0.5422 → recursive 0.6019 (+11%). Expected for 28-step compounding on 68% zero-rate data. Full audit confirmed this is structural, not a code error.
 
-| Model | Val WRMSSE | vs Global |
-|-------|-----------|-----------|
-| Global LightGBM | **0.5422** | baseline |
-| Per-category LightGBM | 0.5726 | +0.0304 (worse) |
-| **Blend (0.6×per-cat + 0.4×global)** | 0.5545 | +0.0123 (worse on val) |
+**Ensemble diversity finding (Day 7):**
 
-Per-category models are weaker on validation — splitting by category removes cross-series signal that the global tree splits on `cat_id`/`dept_id` already capture internally.
+| Model | Val WRMSSE | Private LB |
+|-------|-----------|------------|
+| Global recursive | **0.5422** | 0.8138 |
+| Per-category models | 0.5726 | — |
+| **Blend (0.6×per-cat + 0.4×global)** | 0.5545 | **0.7126** |
 
-**But on the private LB:**
+The blend is *worse* on validation and *better* on private LB. Per-category models make different errors from global — averaging is more robust to the distribution shift between d_1914–1941 (val) and d_1942–1969 (eval).
 
-| Submission | Public LB | Private LB |
-|------------|-----------|------------|
-| Global recursive | 0.5422 | 0.8138 |
-| **Blend** | 0.5545 | **0.7126** |
+### Phase 6 — Multi-Horizon Direct Training: Val Was the Wrong Metric (Day 9)
 
-The blend is *worse* on public and *better* on private. Classic ensemble diversity: per-category and global models fail differently on the evaluation period (d_1942–1969). The blend's average is more robust to out-of-window distribution shift than either model alone.
+**Architecture:** 28 LightGBM models, one per forecast horizon h=1..28. `model_h` predicts `sales[d+h]` from features at time d. At inference, all 28 models use origin d_1941 with actual features — zero recursive compounding.
+
+| Method | Val WRMSSE | Private LB |
+|--------|-----------|------------|
+| Single-step oracle (reference) | 0.5422 | — |
+| Recursive v2 | 0.6019 | 0.7126 |
+| **Multi-horizon from d_1913** | **0.7156** | — |
+| mh_global (eval: MH direct) | 0.5422 | 0.6095 |
+| **mh_blend (eval: 0.5×MH + 0.5×Day8)** | **0.5422** | **0.5854** |
+
+Val WRMSSE (0.7156) made multi-horizon look worse than recursive (0.6019). **But the val metric was biased** — it compared multi-horizon (frozen at origin d_1913) against an oracle that uses actual per-day features for each of d_1914–1941. That oracle doesn't exist at inference time.
+
+The correct comparison (private LB, both starting from d_1941 with no future actuals): **multi-horizon wins by 0.127** on the blend. Feature staleness costs less than 27 steps of recursive compounding error.
+
+**Lesson: validate forecasting strategies with walk-forward CV or a held-out eval period, not single-step oracle-based val WRMSSE.**
+
+### Phase 7 — Per-Store Models and the Ensemble Inversion (Day 10)
+
+**Architecture:** 10 LightGBM models, one per Walmart store, each with Optuna tuning. Per-store models capture demand heterogeneity invisible to a global tvp.
+
+| Model | Val WRMSSE | Private LB |
+|-------|-----------|------------|
+| Global (reference) | **0.5422** | — |
+| Per-store only | 0.6140 | **0.6410** |
+| Per-store blend (0.6×ps + 0.4×global) | 0.5737 | 0.6430 |
+
+Per-store-only beats the blend on private LB (0.6410 vs 0.6430). Adding 0.4× global recursive (which achieves 0.8138 in isolation) to a stronger per-store recursive *hurts*. The weaker global component introduces noise rather than complementary diversity.
+
+**tvp range 1.45–1.63 across stores** (global used 1.499): TX_3 (1.627) and CA_3 (1.583) have significantly heavier compound tails than CA_4 (1.446) and TX_1 (1.494). A single global tvp cannot simultaneously satisfy all stores' demand distributions.
+
+![Blend Dynamics: Helped vs Hurt](reports/charts/blend_dynamics.png)
 
 ---
 
 ## Three Engineering Stories
 
-### 1. HOBBIES and the Cross-Series Signal
+### Story A — HOBBIES: Tweedie Loss and the Cross-Series Advantage
 
-Classical per-series models (ETS, ARIMA, Prophet) treat each of the 30,490 SKU–store series independently. For sparse series — HOBBIES items that sell 0 units most days — the models have no signal to work with. The fallback is a zero forecast, producing WRMSSE ~3.27 (worse than seasonal naïve).
+Classical per-series models (ETS, ARIMA, Prophet) treat each of 30,490 series independently. For sparse HOBBIES items — selling 0 units on 77% of days — the models have no signal; the fallback is a zero forecast, producing WRMSSE ~3.27.
 
-LightGBM sidesteps this by training a **single global model** across all series. When the model sees a sparse HOBBIES SKU in store CA_1, it can learn from the patterns of similar items in the same category, department, and store. The `cat_id`/`dept_id`/`store_id` categorical features give the tree the information it needs to route sparse series through branches that learned demand from denser relatives.
+LightGBM trained on **all 30,490 series simultaneously** learns cross-series demand patterns. When it encounters a sparse HOBBIES SKU in CA_1, it routes it through branches that learned from denser items in the same category and store. Tweedie loss (power~1.5) explicitly models the compound-Poisson demand distribution — rewarding zero predictions on intermittent series rather than penalising them.
 
-Result: HOBBIES WRMSSE 3.27 → 0.61, a 5× reduction. This is not a hyperparameter trick — it is the architectural advantage of global models on sparse hierarchical data.
+Result: HOBBIES 3.27 → 0.61. This is an architectural advantage of global models on sparse hierarchical data — not a tuning trick.
 
-### 2. Why Top-Down Wins on Hierarchy
+**The EDA predicted it.** Day 1 found 68% zeros and 55% lumpy/erratic series. This made Tweedie loss the pre-determined choice before a single LightGBM model was trained.
 
-Bottom-up forecasting (forecast each of 30,490 series, sum to get aggregates) amplifies noise: sparse HOBBIES series produce noisy series-level forecasts that add up incoherently.
+### Story B — Top-Down Hierarchy Beats Bottom-Up
 
-Top-down forecasting (forecast the category aggregate, disaggregate proportionally) gives the model a clean signal. At the category level, HOBBIES demand is **not sparse** — it's the sum of 5,650 series, which is a smooth, well-behaved time series. Forecasting this aggregate and then disaggregating using historical proportions bypasses the sparse-series problem entirely.
+Standard textbook recommendation: bottom-up forecasting (forecast each series, sum to aggregates). The M5 result: top-down at category level wins by 0.108 WRMSSE over bottom-up using the same Prophet model.
 
-Top-down at category level reduced WRMSSE from 0.6638 (bottom-up) to 0.5555 — a 0.108 improvement — using the same Prophet model. This is the core insight behind reconciled forecasting methods and why MINT/MinT-optimal reconciliation is worth knowing for interview discussions.
+**Why it works:** At the item level, HOBBIES demand is sparse noise. At the category level, HOBBIES is the sum of 5,650 series — a smooth, well-behaved aggregate. Forecasting this aggregate and disaggregating by historical proportion bypasses the sparse-series problem entirely.
 
-### 3. Ensemble Diversity over Validation Accuracy
+The practical consequence: `dept_id` and `cat_id` are the most important categorical features in the LightGBM global model. The tree's splits on these features are doing the hierarchical aggregation implicitly — the global model rediscovers top-down reasoning through feature importance.
 
-The standard workflow: pick the model with the best validation score. In this case, that would be the global model (0.5422 vs 0.5545 for the blend).
+This result connects to reconciled forecasting (MinT-optimal reconciliation) as a natural next step for further improvement.
 
-But the Kaggle private LB tells a different story: blend 0.7126 vs global 0.8138. The blend is **0.101 better on private** despite being 0.012 worse on public.
+### Story C — Ensemble Diversity: When It Helps and When It Hurts
 
-Why? The validation period (d_1914–1941) and evaluation period (d_1942–1969) are structurally different windows — different calendar events, potentially different demand patterns. The per-category models, by virtue of being trained on smaller datasets and producing higher-variance predictions, make different errors from the global model. Averaging them out is more robust to the distribution shift than either individual model.
+The standard workflow: pick the model with the best validation score. Two experiments contradicted this.
 
-The lesson: **ensemble diversity is worth more than individual accuracy when the forecast horizon shifts.** This generalises well beyond this competition — in production forecasting, the evaluation period is always a future window that differs from your validation set.
+**Day 7 (diversity helped):** Per-category models scored 0.5726 val vs global 0.5422. The blend (0.6×per-cat + 0.4×global) scored 0.5545 val — *worse than global*. But on private LB: blend 0.7126 vs global recursive 0.8138 — *better by 0.101*. The per-category models fail differently from global; averaging their errors is more robust on the evaluation period.
+
+**Day 10 (diversity hurt):** Per-store models scored 0.6140 val vs global 0.5422. The blend scored 0.5737 val — better than per-store alone. But on private LB: per-store alone 0.6410 vs blend 0.6430 — *blend is worse*. The global recursive achieves 0.8138 in isolation; blending in 0.4× of that into a per-store model already at 0.641 adds correlated recursive error rather than complementary signal.
+
+**The unified lesson:** Ensembling improves generalisation when components have *comparable quality* with *different error patterns*. When one component dominates the other on the evaluation regime, the weaker component adds noise. Don't blame ensembling — diagnose why the components diverge before blending.
+
+| Day | Val: granular vs global | Private LB effect | Why |
+|-----|------------------------|-------------------|-----|
+| Day 7 | Per-cat worse (+0.030) | Blend won (−0.101) | Both similarly imperfect; different errors |
+| Day 10 | Per-store worse (+0.072) | Blend lost (+0.002) | Per-store already dominated global on private |
 
 ---
 
-## Engineering Decisions
+## Engineering Decisions Made
 
-| Decision | Chosen approach | Alternative | Why |
-|----------|----------------|-------------|-----|
-| Loss function | Tweedie (power=1.499) | RMSE, Poisson | Compound-Poisson matches retail demand; 0.02 WRMSSE gain over RMSE |
-| Feature matrix | Per-store parquet batching | Single CSV | 845 MB vs ~10 GB; peak RAM under 1 GB during training |
-| Recursive forecast | (30490 × 200) float32 buffer | Re-query parquet per step | Vectorised numpy; 28 steps in 8.5s total |
-| Optuna trials | 10 per category | Full grid search | 10 trials per-cat captures tvp range; full grid would take 6+ hrs per category |
-| Evaluation period | Recursive from d_1942 | Direct prediction | Competition format requires forecasting genuinely future days with no actuals |
-| Hierarchy | Top-down category (classical) | Bottom-up | Noise cancellation at aggregate level; +0.108 WRMSSE on Prophet |
-| Ensemble | 0.6×per-cat + 0.4×global | Stacking | Simple blend captures diversity without needing a meta-learner on scarce val data |
+| Decision | Chosen | Alternative | Rationale |
+|----------|--------|-------------|-----------|
+| Loss function | Tweedie (power~1.5) | RMSE | Compound-Poisson matches retail; 0.02 WRMSSE gain over RMSE; motivated by EDA zero-rate finding |
+| Feature matrix | Per-store parquet batching | Single CSV | 845 MB vs ~10 GB; peak RAM under 1 GB during generation |
+| Classical methods scope | 1k-series stratified sample | Full 30,490 | Per-series fit is hours; sample captures ranking, not absolute score |
+| SARIMA | Abandoned at crash | Re-run with n_jobs=1 | OOM at 442/1,000 after 3 hrs; marginal vs ARIMA/ETS; documented and moved on |
+| Recursive buffer | (30490 × 200) float32 | Re-query parquet per step | Vectorised numpy; 28 steps in 8.5s; exact day-index lookup eliminates off-by-ones |
+| Multi-horizon evaluation | Private LB, not val WRMSSE | Single-step oracle val | Val WRMSSE biases against multi-horizon (oracle features); private LB is the fair comparison |
+| Day 11 (further tuning) | Skipped | Continue deeper HPO | ~0.02–0.04 estimated gain at ~10 hrs cost; README polish has higher portfolio marginal value |
+
+**On not using deep learning:** TFT/N-BEATS would likely improve private LB by 0.03–0.05. Cost: ~30 hours of implementation and GPU training time. At this data scale (59M rows, 38 features), the engineering complexity-to-accuracy ratio doesn't justify it for a 10-day portfolio project. The decision is documented, not avoided.
 
 ---
 
 ## Final Results
 
-| Rank | Model | Family | WRMSSE (local val) | Kaggle Public | Kaggle Private |
-|------|-------|--------|--------------------|---------------|----------------|
-| 1 | **Blend (0.6×per-cat + 0.4×global)** | LightGBM | 0.5545 | 0.5545 | **0.7126** |
-| 2 | Global recursive (proper eval period) | LightGBM | 0.5422 | 0.5422 | 0.8138 |
-| 3 | LightGBM global best (val period only) | LightGBM | 0.5422 | 0.5422 | 0.8956³ |
-| 4 | LightGBM Tweedie (power=1.1) | LightGBM | 0.5442 | — | — |
-| 5 | LightGBM RMSE | LightGBM | 0.5651 | — | — |
-| 6 | Top-Down Prophet (category) | Prophet | 0.5555* | 0.8377 | 0.8731 |
-| 7 | ETS | Classical | 0.6541* | 0.8377 | 0.8698 |
-| 8 | Seasonal Naïve 28 | Baseline | 0.8377 | 0.8377 | 0.8956 |
+| Rank | Submission | Method | Val WRMSSE | Public LB | Private LB |
+|------|-----------|--------|-----------|-----------|------------|
+| **1** | **mh_blend.csv** | **0.5×multi-horizon + 0.5×Day8 recursive** | **0.5422** | **0.5422** | **0.5854** |
+| 2 | mh_global.csv | 28 direct-horizon models | 0.5422 | 0.5422 | 0.6095 |
+| 3 | per_store_only.csv | 10 per-store LightGBM, recursive eval | 0.6140 | 0.6140 | 0.6410 |
+| 4 | per_store_blend.csv | 0.6×per-store + 0.4×global recursive | 0.5737 | 0.5736 | 0.6430 |
+| 5 | lgbm_blend.csv | 0.6×per-category + 0.4×global | 0.5545 | 0.5545 | 0.7126 |
+| 6 | lgbm_global_recursive.csv | Global recursive eval | 0.5422 | 0.5422 | 0.8138 |
+| 7 | lgbm_best.csv | Global, val period only | 0.5422 | 0.5422 | 0.8956¹ |
+| 8 | TD-Prophet (1k) | Top-down category | 0.5555* | 0.8377 | 0.8731 |
+| 9 | ETS (1k fill) | Classical | 0.6541* | 0.8377 | 0.8698 |
+| 10 | SN28 baseline | Seasonal naïve 28-day | 0.8377 | 0.8377 | 0.8956 |
 
-\* 1k-series sample score; not directly comparable to full-catalogue scores — see `reports/leaderboard.md`  
-³ Private = SN28 because evaluation rows (d_1942–1969) used SN28 placeholder; fixed in Day 7
+\* 1k-series sample score — not directly comparable to full-catalogue scores  
+¹ Private = SN28 because evaluation rows used SN28 placeholder; fixed in Day 7
 
-![Public vs Private Leaderboard](reports/charts/public_vs_private_lb.png)
+---
+
+## What I'd Do Next
+
+The core engineering story is complete. These are the next steps in decreasing marginal return order:
+
+1. **Stronger lag features** — yearly seasonality lags (lag-364, lag-365), intermittency indicators (zero-run length, ADI), store–item interaction rolling means. Expected gain: ~0.02–0.04 private WRMSSE.
+
+2. **Multi-seed averaging** — train 3–5 LightGBM seeds per horizon, average predictions. Reduces variance without adding model complexity. Expected gain: ~0.01–0.02.
+
+3. **MinT-optimal reconciliation** — rather than simple proportional top-down disaggregation, use the MinT shrinkage estimator to reconcile forecasts at all 12 hierarchy levels simultaneously. Provably improves in expectation over any single-level forecast.
+
+4. **N-BEATS or Temporal Fusion Transformer ensemble component** — deep learning global models dominate the M5 leaderboard. The feature pipeline here maps directly to TFT's known-future/observed inputs. An MH-blend + TFT ensemble would likely push private LB below 0.55. Cost: ~30 hrs.
+
+5. **Deeper Optuna** — 100+ trials per store vs 15 used here. All 10 stores hit the 3,000-iteration cap (underfitting); higher trial budget would find lower-lr, higher-leaves configs that need more iterations to converge. Expected gain: ~0.01–0.02.
+
+**Realistic ceiling without GPU compute:** ~0.53–0.55 private WRMSSE. Competition winner (0.52) required distillation and deep ensembling at scale.
 
 ---
 
@@ -211,33 +276,26 @@ jupyter notebook notebooks/01_eda.ipynb
 # 3. Build feature matrix (~15 min, 845 MB output)
 python scripts/05_build_features.py
 
-# 4. Train LightGBM global model + Optuna (~25 min)
+# 4. Train global LightGBM + Optuna (~25 min)
 python scripts/06_train_lightgbm.py
 
-# 5. Per-category models + recursive eval + blend submission (~20 min)
+# 5. Per-category models + recursive eval + blend (~20 min)
 python scripts/07_train_per_category.py
 
-# 6. Regenerate portfolio charts
+# 6. Recursive forecast v2 audit + submission (~10 min)
+python scripts/08_recursive_v2.py
+
+# 7. Multi-horizon 28-model training (~126 min)
+python scripts/09_train_multi_horizon.py
+
+# 8. Per-store 10-model training (~38 min)
+python scripts/10_train_per_store.py
+
+# 9. Regenerate portfolio charts
 python scripts/generate_charts.py
 ```
 
-**Hardware used:** RTX 3070 8 GB, 33.5 GB RAM, Windows 11. LightGBM runs on CPU (GPU not used). All steps complete in under 1 hour total.
-
----
-
-## What I'd Do Next
-
-Given more time, the highest-leverage next steps:
-
-1. **Direct multi-step forecast (DIRECT):** Train 28 separate models (one per horizon step) instead of recursive autoregression. Eliminates error compounding; expected to close the 0.6019 → 0.5422 recursive gap substantially.
-
-2. **Global N-BEATS or Temporal Fusion Transformer:** Deep learning global models have topped the M5 competition leaderboard. The feature pipeline built here (lags, rolling, calendar, price) maps directly to TFT's known-future and observed inputs.
-
-3. **MinT-optimal reconciliation:** Rather than simple top-down disaggregation, use the Mint-optimal shrinkage estimator to reconcile forecasts at all 12 hierarchy levels simultaneously. Guaranteed to improve or match any single-level forecast in expectation.
-
-4. **SNAP interaction features:** SNAP lift is +15% for FOODS but near-zero for HOBBIES. An interaction term `snap_flag × is_foods` would let the model capture this heterogeneity more explicitly than relying on tree splits.
-
-5. **Price elasticity features:** The current price features capture level and delta. A rolling price-to-sales elasticity feature would let the model detect when price changes are causing demand shifts vs seasonal variation.
+**Hardware:** RTX 3070 8 GB, 33.5 GB RAM, Windows 11. LightGBM runs on CPU. Steps 3–8 complete in under 4 hours total.
 
 ---
 
@@ -246,32 +304,42 @@ Given more time, the highest-leverage next steps:
 ```
 shelfsense-m5/
 ├── data/
-│   ├── raw/m5-forecasting-accuracy/    # original CSVs (gitignored)
-│   └── processed/features/             # per-store parquet (gitignored)
-├── notebooks/
-│   └── 01_eda.ipynb                    # EDA with key charts
-├── reports/
-│   ├── charts/                         # portfolio visualisations
-│   ├── leaderboard.md                  # full model comparison table
-│   ├── 01_eda_findings.md
-│   ├── 02_classical_methods.md         # ETS/ARIMA/SARIMA analysis
-│   ├── 03_prophet_topdown.md           # top-down hierarchy results
-│   ├── 04_feature_engineering.md       # feature group design
-│   ├── 05_lightgbm_results.md          # Day 6 full results
-│   └── 06_per_category_models.md       # Day 7 recursive + ensemble
-├── scripts/
-│   ├── 05_build_features.py            # feature matrix builder
-│   ├── 06_train_lightgbm.py            # global LightGBM + Optuna
-│   ├── 07_train_per_category.py        # per-category + blend
-│   └── generate_charts.py              # portfolio charts
-├── src/
-│   ├── evaluation/wrmsse.py            # exact Kaggle-matching evaluator
+│   ├── raw/m5-forecasting-accuracy/        # original CSVs (gitignored)
+│   ├── processed/features/                 # per-store parquet (gitignored)
 │   └── models/
-│       ├── classical.py                # ETS/ARIMA wrappers
-│       └── recursive_forecast.py       # vectorised buffer-based forecaster
-└── submissions/                        # Kaggle CSV submissions (gitignored)
+│       ├── global/lgbm_global.pkl          # global LightGBM (gitignored)
+│       ├── per_category/                   # 3 per-category models (gitignored)
+│       ├── multi_horizon/h_01..28.pkl      # 28 MH models (gitignored)
+│       └── per_store/store_*.pkl           # 10 per-store models (gitignored)
+├── notebooks/
+│   └── 01_eda.ipynb                        # EDA with key charts
+├── reports/
+│   ├── charts/                             # portfolio visualisations
+│   ├── leaderboard.md                      # full model comparison table
+│   ├── 01_eda_findings.md
+│   ├── 02_classical_methods.md             # ETS/ARIMA/SARIMA analysis
+│   ├── 03_hierarchical.md                  # top-down hierarchy results
+│   ├── 04_feature_engineering.md           # feature group design
+│   ├── 05_lightgbm_results.md              # Day 6 results
+│   ├── 06_per_category_models.md           # Day 7 recursive + ensemble
+│   ├── 09_multi_horizon.md                 # Day 9 MH training + finding
+│   └── 10_per_store_models.md              # Day 10 per-store + inversion
+├── scripts/
+│   ├── 05_build_features.py                # feature matrix builder
+│   ├── 06_train_lightgbm.py                # global LightGBM + Optuna
+│   ├── 07_train_per_category.py            # per-category + blend
+│   ├── 08_recursive_v2.py                  # recursive v2 audit
+│   ├── 09_train_multi_horizon.py           # 28-model direct training
+│   ├── 10_train_per_store.py               # 10-model per-store training
+│   └── generate_charts.py                  # portfolio charts
+├── src/
+│   ├── evaluation/wrmsse.py                # exact Kaggle-matching evaluator
+│   └── models/
+│       ├── classical.py                    # ETS/ARIMA wrappers
+│       └── recursive_forecast_v2.py        # vectorised buffer-based forecaster
+└── submissions/                            # Kaggle CSVs (gitignored)
 ```
 
 ---
 
-*Built by [Gaurav Gandhi](https://github.com/gaurav-gandhi-2411) · M5 Forecasting Accuracy · 2024*
+*Built by [Gaurav Gandhi](https://github.com/gaurav-gandhi-2411) · M5 Forecasting Accuracy · 2026*
