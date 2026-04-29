@@ -1,4 +1,4 @@
-# Sample Selection for Day 3 Classical Methods Evaluation
+# Sample Selection for Classical Methods Evaluation
 
 ## Overview
 
@@ -28,13 +28,13 @@ Rather than sampling uniformly at random (which would be dominated by FOODS, the
 
 ## Important Caveat: Sample WRMSSE vs Full-Dataset WRMSSE
 
-Scores computed on this 1,000-series subset are **not directly comparable** to full-dataset WRMSSE values from Day 2. Differences arise because:
+Scores computed on this 1,000-series subset are **not directly comparable** to full-catalogue WRMSSE values. Differences arise because:
 
 - The hierarchical aggregation is computed only over the 1,000 sampled series (not all 30,490)
 - Revenue weights are re-normalized within the subset
 - Aggregate levels (level 1–9) reflect only the sampled series' totals
 
-To enable relative comparison, the Day 3 leaderboard includes the **Seasonal Naive 28 WRMSSE computed on the same 1,000-series subset** as a reference point. This makes the "delta vs best baseline" meaningful even though the absolute scores differ from Day 2.
+To enable relative comparison, the leaderboard includes the **Seasonal Naive 28 WRMSSE computed on the same 1,000-series subset** as a reference point. This makes the "delta vs best baseline" meaningful even though the absolute scores differ from the full-catalogue baseline.
 
 ## Files
 

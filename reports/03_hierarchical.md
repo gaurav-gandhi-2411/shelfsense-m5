@@ -1,4 +1,4 @@
-# Day 4 — Hierarchical Forecasting Analysis
+# Hierarchical Forecasting Analysis
 
 ## Overview
 
@@ -12,7 +12,7 @@ This document reports the bottom-up vs top-down comparison using Prophet (cps=0.
 
 Fit Prophet independently on each of the 1,000 base series (item × store). Forecasts are aggregated by summing — but since WRMSSE is computed at each level separately, the BU score reflects the quality of base-series predictions propagated upward.
 
-**Hyperparameters:** cps=0.1 (best from Day 4 sweep), multiplicative weekly seasonality, M5 holidays.
+**Hyperparameters:** cps=0.1 (best from changepoint sweep), multiplicative weekly seasonality, M5 holidays.
 
 ### Top-Down (TD)
 
@@ -75,7 +75,7 @@ The optimal grouping aligns with M5's natural demand structure: within-category 
 
 ---
 
-## Implications for Global ML Models (Days 6–7)
+## Implications for Global ML Models
 
 The top-down result is the clearest signal in the project so far:
 
@@ -83,7 +83,7 @@ The top-down result is the clearest signal in the project so far:
 2. **Grouped models may beat per-series models.** A LightGBM model trained per category (one model for FOODS, one for HOUSEHOLD, one for HOBBIES) might outperform a single global model — the category boundary is the strongest natural grouping.
 3. **Proportion shares are a strong disaggregation baseline.** When reconciling hierarchical forecasts (Winsorized sum-product), using last-28-day shares as the disaggregation prior is simple and effective.
 
-The practical priority for Day 6 LightGBM: include `cat_id` and `dept_id` as categorical features, and consider training per-category if the global model doesn't capture the category-level patterns well.
+The practical priority for LightGBM: include `cat_id` and `dept_id` as categorical features, and consider training per-category if the global model doesn't capture the category-level patterns well.
 
 ---
 

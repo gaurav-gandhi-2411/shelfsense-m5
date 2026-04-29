@@ -1,4 +1,4 @@
-# Day 9 — Multi-Horizon LightGBM (28 Direct-Horizon Models)
+# Multi-Horizon LightGBM (28 Direct-Horizon Models)
 
 ## Overview
 
@@ -16,7 +16,7 @@ is possible.
 | Component | Configuration |
 |-----------|---------------|
 | Models | 28 (one per horizon h=1..28) |
-| Features | Same 38 features as Day 6 global (all available at time d) |
+| Features | Same 38 features as global model (all available at time d) |
 | Target | `df.groupby("id")["sales"].shift(-h)` |
 | Train rows | `d_num in [FEAT_START=1000, VAL_START-h-1]` |
 | Val rows | `d_num in [VAL_START-h, LAST_TRAIN-h]` (targets in d_1886..d_1913) |
@@ -46,8 +46,8 @@ is possible.
 
 | Method | WRMSSE | vs oracle |
 |--------|--------|-----------|
-| Single-step oracle (Day 6/7, actual features each day) | 0.5422 | 0 (reference) |
-| Recursive v2 (Day 8) | 0.6019 | +0.0597 |
+| Single-step oracle (actual features each day) | 0.5422 | 0 (reference) |
+| Recursive v2 | 0.6019 | +0.0597 |
 | **Multi-horizon from origin d_1913** | **0.7156** | **+0.1734** |
 
 Multi-horizon is **worse than recursive by 0.1137**. Reason: see engineering finding below.
@@ -58,9 +58,9 @@ Multi-horizon is **worse than recursive by 0.1137**. Reason: see engineering fin
 
 | Submission | Public LB | Private LB | vs prev best |
 |------------|-----------|------------|--------------|
-| mh_blend.csv (val=SS, eval=0.5×MH+0.5×Day8) | 0.5422 | **0.5854** | **−0.1272** |
+| mh_blend.csv (val=SS, eval=0.5×MH+0.5×recursive) | 0.5422 | **0.5854** | **−0.1272** |
 | mh_global.csv (val=SS, eval=MH-direct) | 0.5422 | 0.6095 | −0.1031 |
-| Day 8 blend (prev best) | 0.5545 | 0.7126 | — |
+| Recursive blend (prev best) | 0.5545 | 0.7126 | — |
 
 ---
 
@@ -96,7 +96,7 @@ inference time — an unfair comparison.
 |-------|-----------|----------------|
 | mh_blend | **0.5854** | New best — MH clean origin beats recursive compounding |
 | mh_global | 0.6095 | Pure MH; −0.103 vs global recursive |
-| Day 8 blend (prev best) | 0.7126 | 27-step compounding from d_1941 |
+| Recursive blend (prev best) | 0.7126 | 27-step compounding from d_1941 |
 
 On the eval period (private LB), both approaches start from d_1941. Multi-horizon uses
 model_h with clean actual features at d_1941 to directly predict d_1941+h. Recursive
