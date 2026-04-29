@@ -20,7 +20,7 @@ Key findings worth understanding before reading further:
 
 3. **Val WRMSSE was the wrong metric for multi-horizon.** Multi-horizon (28 direct models) scored 0.7156 val WRMSSE vs recursive 0.6019 — seemingly worse. On Kaggle private LB (fair comparison: both from d_1941, no future actuals), multi-horizon won by 0.127. Single-step oracle-based val WRMSSE penalises feature staleness that doesn't exist at inference time.
 
-4. **Ensemble diversity inverted between Day 7 and Day 10.** Day 7: blending per-category + global improved private LB by 0.101 — components were comparably imperfect, different error patterns. Day 10: blending per-store + global *hurt* by 0.002 — per-store already outperformed global recursive on the eval period, so adding the weaker component introduced noise. Same technique, opposite outcome, different relative component quality.
+4. **Ensemble diversity inverted across experiments.** Per-category + global blend improved private LB by 0.101 — components were comparably imperfect, different error patterns. Per-store + global *hurt* by 0.002 — per-store already outperformed global recursive on the eval period, so adding the weaker component introduced noise. Same technique, opposite outcome, different relative component quality.
 
 ---
 
@@ -50,13 +50,13 @@ EDA implication: compound-Poisson (Tweedie) loss is the right objective. SNAP fl
 
 ## The Journey
 
-### Phase 1 — Baselines and WRMSSE Evaluator (Days 1–2)
+### Baselines and WRMSSE Evaluator
 
 Built a WRMSSE evaluator that **exactly matches the Kaggle leaderboard** (verified: local 0.8377 = Kaggle 0.8377). The critical fix: the scale denominator must trim leading zeros before computing the naïve-1 MSE. Many M5 series launch mid-dataset — including pre-launch zeros deflates the scale and inflates RMSSE by ~5%.
 
 Evaluated 6 naïve baselines. SN28 (seasonal naïve 28-day) is the best at 0.8377 public / 0.8956 private.
 
-### Phase 2 — Classical Methods on 1k Sample (Days 3–4)
+### Classical Methods on 1k Sample
 
 Running ETS/ARIMA/Prophet on all 30,490 series is computationally infeasible (8–12 hours per method). Built a **stratified 1,000-series sample** (334 FOODS-top, 333 HOUSEHOLD-mid, 333 HOBBIES-low) for rapid iteration.
 
@@ -64,7 +64,7 @@ Best classical result: ETS WRMSSE 0.6541 on the sample. Submitting to Kaggle pro
 
 SARIMA was killed by joblib's worker pool at 442/1,000 series after 3 hours of fitting. Switching to sequential fitting would have taken ~12 hours for the remaining 558 series alone. At that point ETS and ARIMA had already shown that per-series classical methods weren't competitive on sparse HOBBIES series regardless of model order — the sparse-series failure mode is structural, not a tuning issue. Rerunning SARIMA would produce the same zero-forecast fallback on the same ~390 series. Documented the crash honestly rather than presenting incomplete results or spending more cycles on a dead end.
 
-**Day 4 highlight — top-down hierarchy is counter-intuitive:**
+**Top-down hierarchy — counter-intuitive result:**
 
 | Aggregation | WRMSSE (1k sample) |
 |-------------|-------------------|
@@ -78,7 +78,7 @@ Category-level aggregation is the sweet spot: noise cancels, sparse-series probl
 
 ![Top-Down vs Bottom-Up](reports/charts/hierarchical_aggregation.png)
 
-### Phase 3 — Hierarchical Insight → Feature Engineering (Day 5)
+### Hierarchical Insight → Feature Engineering
 
 The top-down finding confirmed that category and department structure carries more signal than any individual series trend. Built a 59M-row feature matrix (38 features × 30,490 series × 1,941 days) batched per store into 10 Snappy-compressed parquet files (845 MB total). Per-store batching keeps peak RAM under 1 GB.
 
@@ -89,9 +89,9 @@ The top-down finding confirmed that category and department structure carries mo
 - Price: sell price, WoW delta, relative to store average (5 features)
 - Hierarchy: `cat_id`, `dept_id`, `store_id`, `state_id` (as `CategoricalDtype` — native LightGBM)
 
-### Phase 4 — LightGBM Global Model (Day 6)
+### LightGBM Global Model
 
-By Day 5 it was clear that classical methods couldn't close the gap. Per-series fitting is computationally infeasible at 30k series, and the variance across demand regimes (FOODS vs HOBBIES) makes any single global classical model impractical. LightGBM offered three things classical methods couldn't: native handling of mixed categorical and continuous features without preprocessing, simultaneous training across all series so sparse HOBBIES items can borrow signal from denser FOODS neighbours, and the Tweedie objective — designed for zero-inflated count data, well-documented in retail demand forecasting literature (and used by several top-10 M5 finishers).
+After exploring classical methods, it was clear they couldn't close the gap. Per-series fitting is computationally infeasible at 30k series, and the variance across demand regimes (FOODS vs HOBBIES) makes any single global classical model impractical. LightGBM offered three things classical methods couldn't: native handling of mixed categorical and continuous features without preprocessing, simultaneous training across all series so sparse HOBBIES items can borrow signal from denser FOODS neighbours, and the Tweedie objective — designed for zero-inflated count data, well-documented in retail demand forecasting literature (and used by several top-10 M5 finishers).
 
 | Model | Val WRMSSE | Notes |
 |-------|-----------|-------|
@@ -113,15 +113,15 @@ Feature importance revealed that lag features did not crack the top 20 — rolli
 
 ![Per-Category Journey](reports/charts/per_category_journey.png)
 
-### Phase 5 — Recursive Evaluation + Ensemble Diversity (Days 7–8)
+### Recursive Evaluation + Ensemble Diversity
 
-After Day 6, the public LB showed 0.5422 — a genuine improvement. But the private LB showed 0.8956, identical to the SN28 baseline from Day 2. That's a signal worth investigating: either the model generalises to nothing on the eval period, or something is wrong with the submission. Investigation showed the latter. The training pipeline only forecasted d_1914–1941 (the validation window); the evaluation rows (d_1942–1969, private LB) were left filled with SN28 baseline. Until those rows were forecasted properly, none of the modelling work could move the private LB.
+After the global LightGBM training, the public LB showed 0.5422 — a genuine improvement. But the private LB showed 0.8956, identical to the SN28 baseline. That's a signal worth investigating: either the model generalises to nothing on the eval period, or something is wrong with the submission. Investigation showed the latter. The training pipeline only forecasted d_1914–1941 (the validation window); the evaluation rows (d_1942–1969, private LB) were left filled with SN28 baseline. Until those rows were forecasted properly, none of the modelling work could move the private LB.
 
 **Fix:** `src/models/recursive_forecast_v2.py` — a vectorised recursive forecaster using a (30,490 × 200) float32 sales buffer. Updates lag/rolling features day-by-day; generates d_1942–1969 predictions from d_1941 history in 8.5s.
 
 Recursive gap: single-step 0.5422 → recursive 0.6019 (+11%). Expected for 28-step compounding on 68% zero-rate data. Full audit confirmed this is structural, not a code error.
 
-**Ensemble diversity finding (Day 7):**
+**Ensemble diversity finding (per-category + global):**
 
 | Model | Val WRMSSE | Private LB |
 |-------|-----------|------------|
@@ -131,7 +131,7 @@ Recursive gap: single-step 0.5422 → recursive 0.6019 (+11%). Expected for 28-s
 
 The blend is *worse* on validation and *better* on private LB. Per-category models make different errors from global — averaging is more robust to the distribution shift between d_1914–1941 (val) and d_1942–1969 (eval).
 
-### Phase 6 — Multi-Horizon Direct Training (Day 9)
+### Multi-Horizon Direct Training
 
 The recursive gap (0.5422 → 0.6019, +11%) is structural: each of 28 steps introduces prediction error that propagates into the next step's lag features. The alternative is direct multi-horizon training — one model per forecast horizon, each predicting `sales[d+h]` directly from features at time d. No recursion, no compounding. The cost is feature staleness: at inference from d_1941, `model_h=28` sees `lag_7 = sales[d_1934]`, 28 days old. The question was whether staleness costs more or less than recursive compounding on this dataset.
 
@@ -143,7 +143,7 @@ The recursive gap (0.5422 → 0.6019, +11%) is structural: each of 28 steps intr
 | Recursive v2 | 0.6019 | 0.7126 |
 | **Multi-horizon from d_1913** | **0.7156** | — |
 | mh_global (eval: MH direct) | 0.5422 | 0.6095 |
-| **mh_blend (eval: 0.5×MH + 0.5×Day8)** | **0.5422** | **0.5854** |
+| **mh_blend (eval: 0.5×MH + 0.5×recursive)** | **0.5422** | **0.5854** |
 
 Val WRMSSE (0.7156) made multi-horizon look worse than recursive (0.6019). **But the val metric was biased** — it compared multi-horizon (frozen at origin d_1913) against an oracle that uses actual per-day features for each of d_1914–1941. That oracle doesn't exist at inference time.
 
@@ -151,7 +151,7 @@ The correct comparison (private LB, both starting from d_1941 with no future act
 
 **Lesson: validate forecasting strategies with walk-forward CV or a held-out eval period, not single-step oracle-based val WRMSSE.**
 
-### Phase 7 — Per-Store Models and the Ensemble Inversion (Day 10)
+### Per-Store Models and the Ensemble Inversion
 
 **Architecture:** 10 LightGBM models, one per Walmart store, each with Optuna tuning. Per-store models capture demand heterogeneity invisible to a global tvp.
 
@@ -195,16 +195,16 @@ This result connects to reconciled forecasting (MinT-optimal reconciliation) as 
 
 Two experiments with the same blending technique produced opposite outcomes.
 
-**Day 7 (diversity helped):** Per-category models scored 0.5726 val vs global 0.5422 — individually worse. The blend (0.6×per-cat + 0.4×global) scored 0.5545 val, also worse. But on private LB: blend 0.7126 vs global recursive 0.8138 — better by 0.101. Per-category models, trained on smaller datasets, produce higher-variance predictions that fail differently from global on the out-of-window evaluation period. The average is more robust than either component alone.
+**Per-category + global (diversity helped):** Per-category models scored 0.5726 val vs global 0.5422 — individually worse. The blend (0.6×per-cat + 0.4×global) scored 0.5545 val, also worse. But on private LB: blend 0.7126 vs global recursive 0.8138 — better by 0.101. Per-category models, trained on smaller datasets, produce higher-variance predictions that fail differently from global on the out-of-window evaluation period. The average is more robust than either component alone.
 
-**Day 10 (diversity hurt):** Per-store models scored 0.6140 val vs global 0.5422. The blend (0.6×per-store + 0.4×global) scored 0.5737 val — better than per-store alone. But on private LB: per-store alone 0.6410 vs blend 0.6430 — the blend is marginally *worse*. The global recursive component achieves 0.8138 in isolation on the private period; blending 0.4× of that signal into a per-store model that's already at 0.641 adds noise from a weaker prediction rather than complementary diversity.
+**Per-store + global (diversity hurt):** Per-store models scored 0.6140 val vs global 0.5422. The blend (0.6×per-store + 0.4×global) scored 0.5737 val — better than per-store alone. But on private LB: per-store alone 0.6410 vs blend 0.6430 — the blend is marginally *worse*. The global recursive component achieves 0.8138 in isolation on the private period; blending 0.4× of that signal into a per-store model that's already at 0.641 adds noise from a weaker prediction rather than complementary diversity.
 
-An interesting consequence of comparing the two: the Day 7 improvement (+0.030 val disadvantage → −0.101 private LB gain) and the Day 10 degradation (+0.072 val disadvantage → +0.002 private LB loss) suggest that the diversity benefit isn't simply proportional to how much worse the individual components are. What appears to matter is whether the components have *comparable quality on the evaluation regime*. When both are imperfect in different ways, averaging helps. When one has already surpassed the other on the regime that counts, blending only dilutes it.
+An interesting consequence of comparing the two: the per-category improvement (+0.030 val disadvantage → −0.101 private LB gain) and the per-store degradation (+0.072 val disadvantage → +0.002 private LB loss) suggest that the diversity benefit isn't simply proportional to how much worse the individual components are. What appears to matter is whether the components have *comparable quality on the evaluation regime*. When both are imperfect in different ways, averaging helps. When one has already surpassed the other on the regime that counts, blending only dilutes it.
 
-| Day | Val: granular vs global | Private LB effect | Why |
-|-----|------------------------|-------------------|-----|
-| Day 7 | Per-cat worse (+0.030) | Blend won (−0.101) | Both similarly imperfect; different errors |
-| Day 10 | Per-store worse (+0.072) | Blend lost (+0.002) | Per-store already dominated global on private |
+| Experiment | Val: granular vs global | Private LB effect | Why |
+|------------|------------------------|-------------------|-----|
+| Per-category + global | Per-cat worse (+0.030) | Blend won (−0.101) | Both similarly imperfect; different errors |
+| Per-store + global | Per-store worse (+0.072) | Blend lost (+0.002) | Per-store already dominated global on private |
 
 ---
 
@@ -218,7 +218,7 @@ An interesting consequence of comparing the two: the Day 7 improvement (+0.030 v
 | SARIMA | Abandoned at crash | Re-run with n_jobs=1 | OOM at 442/1,000 after 3 hrs; marginal vs ARIMA/ETS; documented and moved on |
 | Recursive buffer | (30490 × 200) float32 | Re-query parquet per step | Vectorised numpy; 28 steps in 8.5s; exact day-index lookup eliminates off-by-ones |
 | Multi-horizon evaluation | Private LB, not val WRMSSE | Single-step oracle val | Val WRMSSE biases against multi-horizon (oracle features); private LB is the fair comparison |
-| Day 11 (further tuning) | Skipped | Continue deeper HPO | ~0.02–0.04 estimated gain at ~10 hrs cost; README polish has higher portfolio marginal value |
+| Further tuning (deeper HPO) | Skipped | Continue deeper HPO | ~0.02–0.04 estimated gain at ~10 hrs cost; marginal return vs additional time investment |
 
 **On not using deep learning:** TFT/N-BEATS would likely improve private LB by 0.03–0.05. The cost is ~30 hours of implementation and GPU training time. At this data scale, the feature pipeline built here maps directly to TFT's known-future/observed inputs, so the lift is plausible — but it comes from architectural complexity, not from solving a fundamentally different problem. The diminishing returns per hour of investment is the honest reason this wasn't pursued; it's noted in "What I'd Do Next" with realistic expected gains.
 
@@ -228,7 +228,7 @@ An interesting consequence of comparing the two: the Day 7 improvement (+0.030 v
 
 | Rank | Submission | Method | Val WRMSSE | Public LB | Private LB |
 |------|-----------|--------|-----------|-----------|------------|
-| **1** | **mh_blend.csv** | **0.5×multi-horizon + 0.5×Day8 recursive** | **0.5422** | **0.5422** | **0.5854** |
+| **1** | **mh_blend.csv** | **0.5×multi-horizon + 0.5×recursive** | **0.5422** | **0.5422** | **0.5854** |
 | 2 | mh_global.csv | 28 direct-horizon models | 0.5422 | 0.5422 | 0.6095 |
 | 3 | per_store_only.csv | 10 per-store LightGBM, recursive eval | 0.6140 | 0.6140 | 0.6410 |
 | 4 | per_store_blend.csv | 0.6×per-store + 0.4×global recursive | 0.5737 | 0.5736 | 0.6430 |
@@ -240,7 +240,7 @@ An interesting consequence of comparing the two: the Day 7 improvement (+0.030 v
 | 10 | SN28 baseline | Seasonal naïve 28-day | 0.8377 | 0.8377 | 0.8956 |
 
 \* 1k-series sample score — not directly comparable to full-catalogue scores  
-¹ Private = SN28 because evaluation rows used SN28 placeholder; fixed in Day 7
+¹ Private = SN28 because evaluation rows used SN28 placeholder; fixed when recursive eval was added
 
 ---
 
@@ -324,10 +324,10 @@ shelfsense-m5/
 │   ├── 02_classical_methods.md             # ETS/ARIMA/SARIMA analysis
 │   ├── 03_hierarchical.md                  # top-down hierarchy results
 │   ├── 04_feature_engineering.md           # feature group design
-│   ├── 05_lightgbm_results.md              # Day 6 results
-│   ├── 06_per_category_models.md           # Day 7 recursive + ensemble
-│   ├── 09_multi_horizon.md                 # Day 9 MH training + finding
-│   └── 10_per_store_models.md              # Day 10 per-store + inversion
+│   ├── 05_lightgbm_results.md              # LightGBM global model results
+│   ├── 06_per_category_models.md           # per-category + recursive + ensemble
+│   ├── 09_multi_horizon.md                 # multi-horizon training + finding
+│   └── 10_per_store_models.md              # per-store + ensemble inversion
 ├── scripts/
 │   ├── 05_build_features.py                # feature matrix builder
 │   ├── 06_train_lightgbm.py                # global LightGBM + Optuna

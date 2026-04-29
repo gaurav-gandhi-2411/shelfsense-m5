@@ -4,45 +4,45 @@ Metric: **WRMSSE** (lower is better).
 Validation period: **d_1914 – d_1941** (last 28 days of `sales_train_evaluation.csv`).  
 Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competition.
 
-> **Note on Day 3 scores:** Classical method scores are computed on a **stratified 1,000-series sample** (334 FOODS-top, 333 HOUSEHOLD-mid, 333 HOBBIES-low), not the full 30,490 series. Sample WRMSSE is not directly comparable to full-catalogue Kaggle scores because hierarchical aggregation and revenue weights are re-normalized within the subset. See `reports/02_classical_methods.md` for full explanation.
+> **Note on classical method scores:** Classical method scores are computed on a **stratified 1,000-series sample** (334 FOODS-top, 333 HOUSEHOLD-mid, 333 HOBBIES-low), not the full 30,490 series. Sample WRMSSE is not directly comparable to full-catalogue Kaggle scores because hierarchical aggregation and revenue weights are re-normalized within the subset. See `reports/02_classical_methods.md` for full explanation.
 
 ---
 
-| Rank | Model | Family | Score type | WRMSSE | Kaggle LB | Day | Notes |
+| Rank | Model | Family | Score type | WRMSSE | Kaggle LB | Phase | Notes |
 |------|-------|--------|------------|--------|-----------|-----|-------|
-| 1 | **MH blend (0.5×multi-horizon + 0.5×Day8 recursive, eval rows)** | **LightGBM** | **Full-30490** | **0.5422** | **0.5422 / 0.5854** | **9** | **Best private LB to date — multi-horizon eliminates compounding error on eval period; val WRMSSE 0.7156 was misleading (see Day 9 note)** |
-| 2 | Multi-horizon global (28 direct models, eval) | LightGBM | Full-30490 | 0.5422 | 0.5422 / 0.6095 | 9 | −0.1031 private vs Day 8 recursive; pure MH eval rows, SS val rows |
-| — | Per-store only (10 models, recursive eval) | LightGBM | Full-30490 | 0.6140 | 0.6140 / **0.6410** | 10 | Private better than blend (0.6430) — blending in weaker global recursive hurts |
-| — | Per-store blend (0.6×per-store + 0.4×global recursive) | LightGBM | Full-30490 | 0.5737 | 0.5736 / 0.6430 | 10 | Val better than per-store-only (global anchors accuracy) but private worse (global recursive drags it down) |
-| 3 | **Blend (0.6×per-cat + 0.4×global), v2 recursive eval** | **LightGBM** | **Full-30490** | **0.5545** | **0.5545 / 0.7126** | **8** | **Prev best private — now surpassed by Day 9** |
-| — | Blend (0.6×per-cat + 0.4×global), v1 recursive eval | LightGBM | Full-30490 | 0.5545 | 0.5545 / 0.7126 | 7 | Same score as Day 8 v2 — v1 feature math was already correct |
-| 2 | Global recursive (proper eval period) | LightGBM | Full-30490 | 0.5422 | 0.5422 / 0.8138 | 7 | Recursive eval fixes Day 6 SN28 placeholder; private −0.082 vs Day 6 |
-| 3 | **LightGBM global best (Day 6, val-period only)** | **LightGBM** | **Full-30490** | **0.5422** | **0.5422 / 0.8956³** | **6** | **tvp=1.499, lr=0.025, 879 iter** |
-| 4 | LightGBM Tweedie (power=1.1) | LightGBM | Full-30490 | 0.5442 | — | 6 | Handily beats RMSE; 823 iter |
-| 5 | LightGBM RMSE | LightGBM | Full-30490 | 0.5651 | — | 6 | Vanilla regression baseline |
-| — | Seasonal Naive 28 (1k ref) | Baseline | Sample-1000 | 0.6778 | — | 3 | SN28 on same 1k sample; use as Day 3–4 relative baseline |
-| 4 | ETS | Classical | Sample-1000 | 0.6541 | 0.8377 | 3 | Best sample score; sample improvement too small to move full-catalogue — see note ¹ |
-| 5 | Prophet (cps=0.1) | Prophet | Sample-1000 | 0.6638 | 0.8377 | 4 | Best cps from sweep; private 0.8731 (sample rank ≠ private rank — see note ²) |
-| 6 | Prophet (cps=0.05) | Prophet | Sample-1000 | 0.6743 | — | 4 | Default cps; marginal vs cps=0.1 |
-| 7 | Seasonal Naive (28-day) | Baseline | Full-30490 | 0.8377 | 0.8377 | 2 | Best full-catalogue classical score; Kaggle verified |
-| 8 | ARIMA | Classical | Sample-1000 | 0.7493 | 0.8377 | 3 | Worse than ETS/Prophet on sample; private 0.8582 beats ETS private 0.8698 |
-| 9 | Prophet (cps=0.01) | Prophet | Sample-1000 | 0.7766 | — | 4 | Too stiff; underfit trend on FOODS |
-| 10 | Seasonal Naive (7-day) | Baseline | Full-30490 | 0.8697 | — | 2 | Repeats last week's pattern |
-| 11 | Moving Average (28d) | Baseline | Full-30490 | 1.0823 | — | 2 | Mean of last 28 days |
-| 12 | Moving Average (90d) | Baseline | Full-30490 | 1.1015 | — | 2 | Mean of last 90 days |
-| 13 | Moving Average (7d) | Baseline | Full-30490 | 1.1361 | — | 2 | Mean of last 7 days |
-| 14 | Seasonal Naive (365-day) | Baseline | Full-30490 | 1.4615 | — | 2 | Same window last year |
-| 15 | Naive (last value) | Baseline | Full-30490 | 1.4639 | — | 2 | Repeat last observation |
-| — | SARIMA | Classical | INCOMPLETE | — | — | 3 | OOM crash at 442/1000; see reports/02_classical_methods.md |
-| — | SARIMAX | Classical | NOT RUN | — | — | 3 | Skipped after SARIMA OOM; not worth 8+ hrs compute |
+| 1 | **MH blend (0.5×multi-horizon + 0.5×recursive, eval rows)** | **LightGBM** | **Full-30490** | **0.5422** | **0.5422 / 0.5854** | **MH** | **Best private LB to date — multi-horizon eliminates compounding error on eval period; val WRMSSE 0.7156 was misleading (see multi-horizon note below)** |
+| 2 | Multi-horizon global (28 direct models, eval) | LightGBM | Full-30490 | 0.5422 | 0.5422 / 0.6095 | MH | −0.1031 private vs recursive blend; pure MH eval rows, SS val rows |
+| — | Per-store only (10 models, recursive eval) | LightGBM | Full-30490 | 0.6140 | 0.6140 / **0.6410** | PS | Private better than blend (0.6430) — blending in weaker global recursive hurts |
+| — | Per-store blend (0.6×per-store + 0.4×global recursive) | LightGBM | Full-30490 | 0.5737 | 0.5736 / 0.6430 | PS | Val better than per-store-only (global anchors accuracy) but private worse (global recursive drags it down) |
+| 3 | **Blend (0.6×per-cat + 0.4×global), recursive eval** | **LightGBM** | **Full-30490** | **0.5545** | **0.5545 / 0.7126** | **PC** | **Prev best private — surpassed by multi-horizon blend** |
+| — | Blend (0.6×per-cat + 0.4×global), v1 recursive eval | LightGBM | Full-30490 | 0.5545 | 0.5545 / 0.7126 | PC | Same score as v2 — v1 feature math was already correct |
+| 2 | Global recursive (proper eval period) | LightGBM | Full-30490 | 0.5422 | 0.5422 / 0.8138 | PC | Recursive eval fixes SN28 placeholder; private −0.082 vs SN28-filled submission |
+| 3 | **LightGBM global best (SN28-filled eval)** | **LightGBM** | **Full-30490** | **0.5422** | **0.5422 / 0.8956³** | **LGB** | **tvp=1.499, lr=0.025, 879 iter** |
+| 4 | LightGBM Tweedie (power=1.1) | LightGBM | Full-30490 | 0.5442 | — | LGB | Handily beats RMSE; 823 iter |
+| 5 | LightGBM RMSE | LightGBM | Full-30490 | 0.5651 | — | LGB | Vanilla regression baseline |
+| — | Seasonal Naive 28 (1k ref) | Baseline | Sample-1000 | 0.6778 | — | CL | SN28 on same 1k sample; relative baseline for classical comparisons |
+| 4 | ETS | Classical | Sample-1000 | 0.6541 | 0.8377 | CL | Best sample score; sample improvement too small to move full-catalogue — see note ¹ |
+| 5 | Prophet (cps=0.1) | Prophet | Sample-1000 | 0.6638 | 0.8377 | CL | Best cps from sweep; private 0.8731 (sample rank ≠ private rank — see note ²) |
+| 6 | Prophet (cps=0.05) | Prophet | Sample-1000 | 0.6743 | — | CL | Default cps; marginal vs cps=0.1 |
+| 7 | Seasonal Naive (28-day) | Baseline | Full-30490 | 0.8377 | 0.8377 | BL | Best full-catalogue classical score; Kaggle verified |
+| 8 | ARIMA | Classical | Sample-1000 | 0.7493 | 0.8377 | CL | Worse than ETS/Prophet on sample; private 0.8582 beats ETS private 0.8698 |
+| 9 | Prophet (cps=0.01) | Prophet | Sample-1000 | 0.7766 | — | CL | Too stiff; underfit trend on FOODS |
+| 10 | Seasonal Naive (7-day) | Baseline | Full-30490 | 0.8697 | — | BL | Repeats last week's pattern |
+| 11 | Moving Average (28d) | Baseline | Full-30490 | 1.0823 | — | BL | Mean of last 28 days |
+| 12 | Moving Average (90d) | Baseline | Full-30490 | 1.1015 | — | BL | Mean of last 90 days |
+| 13 | Moving Average (7d) | Baseline | Full-30490 | 1.1361 | — | BL | Mean of last 7 days |
+| 14 | Seasonal Naive (365-day) | Baseline | Full-30490 | 1.4615 | — | BL | Same window last year |
+| 15 | Naive (last value) | Baseline | Full-30490 | 1.4639 | — | BL | Repeat last observation |
+| — | SARIMA | Classical | INCOMPLETE | — | — | CL | OOM crash at 442/1000; see reports/02_classical_methods.md |
+| — | SARIMAX | Classical | NOT RUN | — | — | CL | Skipped after SARIMA OOM; not worth 8+ hrs compute |
 
 ---
 
-## Day 9 — Multi-Horizon Direct Training (28 Models)
+## Multi-Horizon Direct Training (28 Models)
 
 | Finding | Value |
 |---------|-------|
-| Multi-horizon val WRMSSE (origin d_1913) | 0.7156 — misleadingly bad (see note) |
+| Multi-horizon val WRMSSE (origin d_1913) | 0.7156 — misleadingly bad (see note below) |
 | **mh_blend Kaggle private LB** | **0.5854 — new best by 0.1272** |
 | mh_global Kaggle private LB | 0.6095 |
 | Recursive v2 val WRMSSE | 0.6019 |
@@ -53,17 +53,17 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 
 The val WRMSSE (0.7156) measured multi-horizon from a single origin (d_1913) against the single-step oracle (actual features at each of d_1914-1941). This is an unfair comparison — it penalises the staleness of multi-horizon features versus perfect real-world features that don't exist at inference time.
 
-The correct comparison is multi-horizon vs recursive, both starting from d_1941 on the private LB eval period (d_1942-1969). Recursive accumulates 27 steps of compounding prediction error; multi-horizon uses model_h on clean d_1941 actual features. Multi-horizon wins by 0.103 on this fair comparison (0.6095 vs 0.8138 for global recursive), and the blend wins by 0.127 (0.5854 vs 0.7126).
+The correct comparison is multi-horizon vs recursive, both starting from d_1941 on the private LB eval period (d_1942-1969). Recursive accumulates 27 steps of compounding prediction error; multi-horizon uses model_h on clean d_1941 actual features. Multi-horizon wins by 0.103 on this fair comparison (0.6095 vs 0.8138 for global recursive), and the blend wins by 0.127 (0.5854 vs 0.7126 for recursive blend).
 
 **Key insight:** Val WRMSSE from single origin is a biased estimator of private LB quality. The benefit of multi-horizon (eliminating compounding error) only shows up on the eval period — where no real oracle features exist and the comparison is against recursive's noisy accumulated predictions.
 
 ---
 
-## Day 10 — Per-Store LightGBM (10 Models)
+## Per-Store LightGBM (10 Models)
 
 | Finding | Value |
 |---------|-------|
-| Per-store val WRMSSE | 0.6140 — worse than global (same pattern as Day 7 per-category) |
+| Per-store val WRMSSE | 0.6140 — worse than global (same pattern as per-category experiment) |
 | Per-store blend val WRMSSE | 0.5737 |
 | Global reference val WRMSSE | 0.5422 |
 | Per-store only Kaggle scores | public=0.6140, **private=0.6410** |
@@ -94,40 +94,40 @@ The correct comparison is multi-horizon vs recursive, both starting from d_1941 
 
 **Private LB result — per-store beats blend (0.6410 vs 0.6430):**
 
-This is the inverse of Day 7, where blending per-category + global improved private LB. Here, blending in the global recursive (private=0.8138) with stronger per-store recursive (private=0.641) *hurts*. The mechanism: per-store models are already better than global on the eval period — adding 0.4× of a weaker recursive forecast introduces noise rather than complementary signal.
+This is the inverse of the per-category result, where blending per-category + global improved private LB. Here, blending in the global recursive (private=0.8138) with stronger per-store recursive (private=0.641) *hurts*. The mechanism: per-store models are already better than global on the eval period — adding 0.4× of a weaker recursive forecast introduces noise rather than complementary signal.
 
-Day 7 blend worked because global and per-category were roughly equally imperfect (0.8138 global vs undocumented per-cat solo). Day 10 blend failed because one component (per-store) had already surpassed the other (global). **Lesson: ensembling helps when components have comparable quality but different error patterns. When one dominates, the weaker component adds noise.**
+The per-category blend worked because global and per-category were roughly equally imperfect (0.8138 global vs undocumented per-cat solo). The per-store blend failed because one component (per-store) had already surpassed the other (global). **Lesson: ensembling helps when components have comparable quality but different error patterns. When one dominates, the weaker component adds noise.**
 
-| Model | Val WRMSSE | Private LB | vs Day 9 best |
+| Model | Val WRMSSE | Private LB | vs MH blend |
 |-------|-----------|------------|----------------|
-| mh_blend (Day 9) | 0.5422 | **0.5854** | — |
-| mh_global (Day 9) | 0.5422 | 0.6095 | +0.024 |
-| per_store_only (Day 10) | 0.6140 | 0.6410 | +0.056 |
-| per_store_blend (Day 10) | 0.5737 | 0.6430 | +0.058 |
-| Day 7/8 blend | 0.5545 | 0.7126 | +0.127 |
+| mh_blend (multi-horizon) | 0.5422 | **0.5854** | — |
+| mh_global | 0.5422 | 0.6095 | +0.024 |
+| per_store_only | 0.6140 | 0.6410 | +0.056 |
+| per_store_blend | 0.5737 | 0.6430 | +0.058 |
+| Per-category blend | 0.5545 | 0.7126 | +0.127 |
 
 Per-store (0.641) improves significantly over global recursive (0.8138) but doesn't close the gap to multi-horizon (0.585). Key reason: per-store models still use recursive for the eval period — they eliminate the demand heterogeneity problem but not the 28-step compounding error. Multi-horizon eliminates both by predicting each horizon directly.
 
 ---
 
-## Day 8 — Recursive Forecast v2 Audit
+## Recursive Forecast v2 Audit
 
 | Finding | Value |
 |---------|-------|
 | v2 recursive WRMSSE (val period, global model) | 0.6019 — **identical to v1** |
 | Single-step WRMSSE | 0.5422 |
 | Recursive-vs-single-step gap | 0.0597 (11.0%) |
-| Kaggle public LB (v2 blend) | 0.5545 — identical to Day 7 |
-| Kaggle private LB (v2 blend) | 0.7126 — identical to Day 7 |
+| Kaggle public LB (v2 blend) | 0.5545 — identical to v1 blend |
+| Kaggle private LB (v2 blend) | 0.7126 — identical to v1 blend |
 | v1 bugs found | **None** — original implementation was mathematically correct |
 
-**Key finding:** The 11% recursive gap is not a bug — it is structural. Each of 28 recursive steps introduces error that propagates forward as lag/rolling features. With 68% zero rate across M5 series, a 10-12% gap over 28 steps is expected and correct. Eliminating this gap requires direct multi-horizon training (Day 9), not a recursive rewrite.
+**Key finding:** The 11% recursive gap is not a bug — it is structural. Each of 28 recursive steps introduces error that propagates forward as lag/rolling features. With 68% zero rate across M5 series, a 10-12% gap over 28 steps is expected and correct. Eliminating this gap requires direct multi-horizon training, not a recursive rewrite.
 
 **v2 improvements** (auditability, not accuracy): exact day-index lookup via `searchsorted` instead of buffer-position arithmetic; rolling window uses boolean mask over day_cols instead of slice from buffer right edge; single `predict_horizon()` entry point with consistent API.
 
 ---
 
-## Day 7 — Results Summary
+## Per-Category + Recursive Results Summary
 
 | Finding | Value |
 |---------|-------|
@@ -142,7 +142,7 @@ Per-store (0.641) improves significantly over global recursive (0.8138) but does
 
 ---
 
-## Day 6 — LightGBM Per-Category Breakdown (full 30,490 series)
+## LightGBM Per-Category Breakdown (full 30,490 series)
 
 | Category | RMSE model | Tweedie (1.1) | Best tuned | Classical best (1k sample) | LightGBM improvement |
 |----------|-----------|--------------|-----------|---------------------------|---------------------|
@@ -155,17 +155,17 @@ Per-store (0.641) improves significantly over global recursive (0.8138) but does
 
 ---
 
-³ **Why LightGBM private (0.8956) = SN28 private (0.8956).** The M5 submission format requires forecasting two non-overlapping 28-day windows: the *validation* period (d_1914–d_1941, public LB) and the *evaluation* period (d_1942–d_1969, private LB). The Day 6 training pipeline forecasted d_1914–d_1941 only. The evaluation rows (d_1942–d_1969) were left as the SN28 base, so the private LB score matches SN28 exactly. The public score (0.5422) is meaningful and exact — confirmed by local evaluator match. Fixing the evaluation-period forecast requires recursive prediction from d_1942 forward using lag/rolling features computed from d_1914–d_1941 actuals. This is addressed in Day 7.
+³ **Why LightGBM private (0.8956) = SN28 private (0.8956).** The M5 submission format requires forecasting two non-overlapping 28-day windows: the *validation* period (d_1914–d_1941, public LB) and the *evaluation* period (d_1942–d_1969, private LB). The initial training pipeline forecasted d_1914–d_1941 only. The evaluation rows (d_1942–d_1969) were left as the SN28 base, so the private LB score matches SN28 exactly. The public score (0.5422) is meaningful and exact — confirmed by local evaluator match. Fixing the evaluation-period forecast requires recursive prediction from d_1942 forward using lag/rolling features computed from d_1914–d_1941 actuals. This is addressed in the recursive eval phase (see `src/models/recursive_forecast_v2.py`).
 
 ---
 
-² **Sample rank ≠ private LB rank.** On the 1k sample: ETS (0.6541) > Prophet (0.6638) >> ARIMA (0.7493). On Kaggle private LB: ARIMA (0.8582) > ETS (0.8698) > Prophet (0.8731). The ranking reverses. Reason: the 1k sample is FOODS-top heavy (334 FOODS series out of 1,000), which over-represents the demand regime where ETS and Prophet excel. On the full 30,490-series catalogue, ARIMA's simpler trend model generalises more consistently across all regimes. **Model selection from biased samples is unreliable.** Day 6 LightGBM trains on all 30,490 series — ranking from that point will be trusted over sample-WRMSSE.
+² **Sample rank ≠ private LB rank.** On the 1k sample: ETS (0.6541) > Prophet (0.6638) >> ARIMA (0.7493). On Kaggle private LB: ARIMA (0.8582) > ETS (0.8698) > Prophet (0.8731). The ranking reverses. Reason: the 1k sample is FOODS-top heavy (334 FOODS series out of 1,000), which over-represents the demand regime where ETS and Prophet excel. On the full 30,490-series catalogue, ARIMA's simpler trend model generalises more consistently across all regimes. **Model selection from biased samples is unreliable.** The global LightGBM trains on all 30,490 series — ranking from that point will be trusted over sample-WRMSSE.
 
-¹ **Why does 1k-sample ETS score 0.8377 (same as SN28) on Kaggle?** ETS improved on 1,000 of 30,490 series (~3.3%). Those 1,000 series — even the FOODS-top stratum — carry insufficient revenue weight to shift the full-catalogue WRMSSE by more than rounding error. To beat SN28 on Kaggle, the model must run on **all 30,490 series**. This is the core motivation for global ML models (Days 6–7): one LightGBM train covers all series simultaneously at a fraction of the per-series compute cost.
+¹ **Why does 1k-sample ETS score 0.8377 (same as SN28) on Kaggle?** ETS improved on 1,000 of 30,490 series (~3.3%). Those 1,000 series — even the FOODS-top stratum — carry insufficient revenue weight to shift the full-catalogue WRMSSE by more than rounding error. To beat SN28 on Kaggle, the model must run on **all 30,490 series**. This is the core motivation for global ML models: one LightGBM train covers all series simultaneously at a fraction of the per-series compute cost.
 
 ---
 
-## Day 4 — Prophet Per-Category Breakdown (1k sample)
+## Prophet Per-Category Breakdown (1k sample)
 
 | Model | FOODS | HOUSEHOLD | HOBBIES | Overall |
 |-------|-------|-----------|---------|---------|
@@ -180,7 +180,7 @@ Per-store (0.641) improves significantly over global recursive (0.8138) but does
 
 ---
 
-## Day 3 — Classical Methods Per-Category Breakdown (1k sample)
+## Classical Methods Per-Category Breakdown (1k sample)
 
 | Model | FOODS | HOUSEHOLD | HOBBIES | Overall |
 |-------|-------|-----------|---------|---------|
@@ -218,17 +218,17 @@ The M5 competition has separate public (validation) and private (evaluation) lea
 
 | Model | Public LB | Private LB | Note |
 |-------|-----------|------------|------|
-| Seasonal Naive 28 | 0.8377 | 0.8956 | Day 2 reference |
+| Seasonal Naive 28 | 0.8377 | 0.8956 | Reference baseline |
 | ETS (1k-sample + SN28 fill) | 0.8377 | 0.8698 | Private better than SN28 by 0.0258 |
-| ARIMA (1k-sample + SN28 fill) | 0.8377 | 0.8582 | Best private so far; ARIMA trend model generalises more consistently across full catalogue |
+| ARIMA (1k-sample + SN28 fill) | 0.8377 | 0.8582 | Best classical private; ARIMA trend model generalises more consistently across full catalogue |
 | Prophet cps=0.1 (1k + SN28 fill) | 0.8377 | 0.8731 | Worse than ETS on private despite better sample score — sample-selection bias |
-| LightGBM best (Optuna) | **0.5422** | 0.8956 | Public exact — evaluator confirmed. Private = SN28 because eval rows not forecasted; fixed in Day 7 |
-| LightGBM global recursive | 0.5422 | **0.8138** | Day 7: proper recursive eval forecast; private −0.082 vs Day 6 |
-| **LightGBM blend (Day 7 best)** | 0.5545 | **0.7126** | Ensemble diversity beats individual model accuracy on private LB |
-| Multi-horizon global (Day 9) | 0.5422 | **0.6095** | Direct 28-model training; eliminates recursive compounding |
-| **MH blend (Day 9 best)** | 0.5422 | **0.5854** | 0.5×MH + 0.5×Day8 recursive; best private LB |
-| Per-store only (Day 10) | 0.6140 | **0.6410** | Per-store recursive; beats blend (0.6430) — global recursive too weak to help |
-| Per-store blend (Day 10) | 0.5736 | 0.6430 | Blending in weaker global recursive hurts vs per-store-only |
+| LightGBM best (Optuna) | **0.5422** | 0.8956 | Public exact — evaluator confirmed. Private = SN28 because eval rows not forecasted; fixed when recursive eval added |
+| LightGBM global recursive | 0.5422 | **0.8138** | Proper recursive eval forecast; private −0.082 vs SN28-filled submission |
+| **LightGBM blend (per-category best)** | 0.5545 | **0.7126** | Ensemble diversity beats individual model accuracy on private LB |
+| Multi-horizon global | 0.5422 | **0.6095** | Direct 28-model training; eliminates recursive compounding |
+| **MH blend (best private LB)** | 0.5422 | **0.5854** | 0.5×MH + 0.5×recursive; best private LB |
+| Per-store only | 0.6140 | **0.6410** | Per-store recursive; beats blend (0.6430) — global recursive too weak to help |
+| Per-store blend | 0.5736 | 0.6430 | Blending in weaker global recursive hurts vs per-store-only |
 
 Interpretation: on the public LB (validation period), the 1k-sample models can't distinguish from SN28. On the private LB (true evaluation period), ARIMA and ETS show small private-score improvements — likely because they capture some trend signal that SN28 misses, and the evaluation period differs structurally from the validation period.
 
@@ -237,7 +237,7 @@ Interpretation: on the public LB (validation period), the 1k-sample models can't
 ## Evaluator Notes
 
 - Local WRMSSE now **exactly matches Kaggle LB** (verified: 0.8377 = 0.8377).
-- Key fix (Day 2 Task A): scale denominator now trims leading zeros before computing naive-1 MSE. Many M5 series launch mid-dataset; including pre-launch zeros deflated the scale and inflated RMSSE by ~5%.
+- Key fix: scale denominator now trims leading zeros before computing naive-1 MSE. Many M5 series launch mid-dataset; including pre-launch zeros deflated the scale and inflated RMSSE by ~5%.
 - Weights use exact day-level `sales × price` joins (not average price × total sales).
 - Series with scale=0 (all-zero training history) produce RMSSE=∞ and are excluded from the weighted sum.
 - WRMSSE = unweighted mean of 12 hierarchical level scores.

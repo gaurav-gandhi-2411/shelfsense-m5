@@ -1,10 +1,10 @@
-# Day 7 — Per-Category LightGBM + Recursive Evaluation Forecast
+# Per-Category LightGBM + Recursive Evaluation Forecast
 
 ## Overview
 
-Day 7 builds on Day 6 in two ways:
+Extends the global LightGBM in two ways:
 1. **Recursive evaluation forecast** — generates predictions for the true evaluation
-   period d_1942–d_1969 (Kaggle private LB), fixing the Day 6 private score gap.
+   period d_1942–d_1969 (Kaggle private LB), fixing the private score gap.
 2. **Per-category models** — separate LightGBM + Optuna for FOODS, HOUSEHOLD, HOBBIES,
    testing whether category-specific Tweedie tuning improves over the global model.
 
@@ -14,7 +14,7 @@ Day 7 builds on Day 6 in two ways:
 
 | Forecast method | WRMSSE (val d_1914–1941) |
 |-----------------|------------------------|
-| Global single-step (Day 6) | 0.5422 |
+| Global single-step | 0.5422 |
 | Global recursive | 0.6019 |
 | Gap | 0.0597 (11% relative) |
 
@@ -50,9 +50,9 @@ The global model's cross-series data (all 30,490 series) produces a more reliabl
 
 ## Validation Period Comparison (d_1914–1941)
 
-| Model | WRMSSE (full 30,490) | vs Day 6 global |
+| Model | WRMSSE (full 30,490) | vs global |
 |-------|---------------------|-----------------|
-| Global LightGBM (Day 6) | **0.5422** | baseline |
+| Global LightGBM | **0.5422** | baseline |
 | Per-category LightGBM | 0.5726 | +0.0304 (worse) |
 | Blend (0.6×per_cat + 0.4×global) | 0.5545 | +0.0123 (worse) |
 
@@ -67,7 +67,7 @@ demand also tends to sell HOUSEHOLD items regularly." The global model's tree sp
 
 | Submission | Local val WRMSSE | Kaggle Public | Kaggle Private |
 |------------|-----------------|---------------|----------------|
-| lgbm_best (Day 6, SN28 eval) | 0.5422 | 0.5422 | 0.8956 |
+| lgbm_best (SN28-filled eval) | 0.5422 | 0.5422 | 0.8956 |
 | lgbm_global_recursive | 0.5422 | 0.5422 | **0.8138** |
 | **lgbm_blend** | 0.5545 | 0.5545 | **0.7126** |
 

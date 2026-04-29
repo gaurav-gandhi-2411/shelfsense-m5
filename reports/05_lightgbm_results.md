@@ -1,10 +1,10 @@
-# Day 6 — LightGBM Global Model Results
+# LightGBM Global Model Results
 
 ## Overview
 
-Day 6 trains a single global LightGBM model on all 30,490 M5 series simultaneously — the approach used by all top-10 M5 competition finishers. Unlike the per-series classical methods (Days 3–4), LightGBM learns patterns across all series, eliminating the per-series compute constraint and enabling cross-series information sharing.
+Trains a single global LightGBM model on all 30,490 M5 series simultaneously — the approach used by all top-10 M5 competition finishers. Unlike the per-series classical methods, LightGBM learns patterns across all series, eliminating the per-series compute constraint and enabling cross-series information sharing.
 
-**Training data:** 38 engineered features from Day 5 pipeline, `d_num ∈ [1000, 1913]` (~27.8M training rows after dropping lag-NaN early rows).  
+**Training data:** 38 engineered features from the feature pipeline, `d_num ∈ [1000, 1913]` (~27.8M training rows after dropping lag-NaN early rows).  
 **Validation:** `d_num ∈ [1886, 1913]` (last 28 training days, mirroring the forecast horizon).  
 **Forecast:** `d_num ∈ [1914, 1941]` using pre-computed features from the parquet.
 
@@ -17,7 +17,7 @@ Day 6 trains a single global LightGBM model on all 30,490 M5 series simultaneous
 | **Best tuned (Optuna)** | **0.5422** | TBD | TBD | tvp=1.499, lr=0.025, 879 iter |
 | Tweedie (power=1.1) | 0.5442 | TBD | TBD | Handily beats RMSE; 823 iter |
 | RMSE baseline | 0.5651 | TBD | TBD | vanilla regression; 153 iter |
-| SN28 (Day 2 reference) | 0.8377 | 0.8377 | 0.8956 | best classical baseline |
+| SN28 (baseline reference) | 0.8377 | 0.8377 | 0.8956 | best classical baseline |
 | ETS 1k-sample | 0.6541* | 0.8377 | 0.8698 | *sample score, not comparable |
 | Top-Down Prophet | 0.5555* | — | — | *sample score, 1k series |
 
@@ -111,7 +111,7 @@ The large iteration count difference (153 vs 823) is expected: Tweedie loss land
 - Rolling means dominate (top 4 by gain) — confirmed. But `lag_7`/`lag_28` did not appear in top 20 by gain (high split count implies they split often but each split adds little information, suggesting rolling aggregates capture the lag signal better).
 - `sell_price` at rank 5 by gain (5,453 splits — highest split count) — confirmed; drives demand directly.
 - `weekday` at rank 8 — confirmed; strong weekly seasonality across all categories.
-- `dept_id` at rank 12, `store_id` at rank 18 — hierarchy features matter but below price/rolling in gain. Confirms Day 4 finding that category structure is informative; LightGBM extracts this natively.
+- `dept_id` at rank 12, `store_id` at rank 18 — hierarchy features matter but below price/rolling in gain. Confirms the hierarchical aggregation finding that category structure is informative; LightGBM extracts this natively.
 - Lag features (lag_7, lag_14, lag_28, lag_56) did not appear in top 20 by gain — rolling means subsume their signal with better noise reduction.
 
 ---
@@ -138,7 +138,7 @@ Classical methods (ETS, ARIMA, Prophet) all collapsed to zero-forecast fallback 
 
 ## Why Global ML Beats Classical Per-Series
 
-This experiment completes the argument started in Day 3:
+This experiment completes the argument started by the classical methods evaluation:
 
 | Dimension | Per-series classical | Global LightGBM |
 |-----------|---------------------|-----------------|
@@ -149,7 +149,7 @@ This experiment completes the argument started in Day 3:
 | Hierarchy information | Not used (per-series) | cat_id/dept_id splits |
 | HOBBIES WRMSSE | 3.27 (zero-fallback) | **0.61** |
 
-**Total training time (Day 6):**
+**Total training time:**
 - Feature load: 5.3s
 - RMSE model: ~118s
 - Tweedie model: ~395s

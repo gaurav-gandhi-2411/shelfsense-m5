@@ -1,8 +1,8 @@
-# Day 3 — Classical Statistical Forecasting Methods
+# Classical Statistical Forecasting Methods
 
 ## Overview
 
-Day 3 evaluated classical per-series statistical models (ETS and ARIMA) against the M5 dataset using a stratified 1,000-series sample. SARIMA was attempted but crashed with an out-of-memory error at 442/1000 series. SARIMAX was not run. This document explains the methodology, the OOM failure, and what the results tell us about classical methods on the M5 problem.
+This report covers classical per-series statistical models (ETS and ARIMA) evaluated against the M5 dataset using a stratified 1,000-series sample. SARIMA was attempted but crashed with an out-of-memory error at 442/1000 series. SARIMAX was not run. This document explains the methodology, the OOM failure, and what the results tell us about classical methods on the M5 problem.
 
 ---
 
@@ -27,12 +27,12 @@ A stratified 1,000-series sample reduces compute by 30x while preserving represe
 
 ## Sample WRMSSE vs Full-Catalogue Kaggle WRMSSE
 
-Scores on the 1,000-series subset are **not directly comparable** to the full-catalogue Day 2 scores for two reasons:
+Scores on the 1,000-series subset are **not directly comparable** to the full-catalogue SN28 scores for two reasons:
 
 1. **Re-normalized weights.** WRMSSE uses dollar-revenue weights. On the full 30,490 series, FOODS dominates because it has the highest sales volume. On the 1k sample, weights are re-computed from only the 1,000 series, shifting the effective weight distribution.
 2. **Partial hierarchical aggregation.** Levels 1–9 aggregate across all bottom-level series. On the subset, level-1 (total) is the sum of only 1,000 series — not the national total. Aggregate-level WRMSSE therefore reflects a different signal than in the full dataset.
 
-The Day 3 leaderboard includes **Seasonal Naive 28 scored on the same 1k sample (WRMSSE = 0.6778)** as a within-day reference baseline. All Day 3 model scores should be read relative to this number, not relative to the full-catalogue SN28 score of 0.8377.
+The leaderboard includes **Seasonal Naive 28 scored on the same 1k sample (WRMSSE = 0.6778)** as a within-sample reference baseline. All classical model scores should be read relative to this number, not relative to the full-catalogue SN28 score of 0.8377.
 
 To get a full-catalogue Kaggle score for ETS and ARIMA, the sample submission CSVs were submitted to the Kaggle competition. Those scores appear in `reports/leaderboard.md` once available.
 
@@ -130,7 +130,7 @@ This experiment makes the case clearly:
 3. **Feature richness.** SNAP flags, holidays, price elasticity, and store effects are awkward to fold into per-series SARIMAX fits. They are natural input features for tree-based models.
 4. **WRMSSE weighting.** The metric weights by revenue. A model that nails FOODS and accepts mediocre HOBBIES performance will outperform a model that optimizes uniformly across all series. Global ML models can learn this implicitly from the training signal; classical models cannot.
 
-Day 4 onward pivots to global models. The classical results serve as a floor that any competent ML approach should beat.
+The subsequent LightGBM models pivot to global approaches. The classical results serve as a floor that any competent ML approach should beat.
 
 ---
 

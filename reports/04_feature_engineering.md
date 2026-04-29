@@ -1,8 +1,8 @@
-# Day 5 — Feature Engineering Pipeline
+# Feature Engineering Pipeline
 
 ## Overview
 
-Day 5 builds the feature dataset that all ML models (LightGBM Days 6–7, LSTM/TFT Days 8–9) will consume. The pipeline converts the wide-format M5 sales matrix into a long-format feature table: one row per (series, day), ~48 feature columns, written to partitioned parquet.
+This pipeline builds the feature dataset that all ML models (LightGBM global, per-category, multi-horizon, per-store) will consume. The pipeline converts the wide-format M5 sales matrix into a long-format feature table: one row per (series, day), ~48 feature columns, written to partitioned parquet.
 
 **Output:** `data/processed/features/` — 10 parquet files (one per store), readable together with `pd.read_parquet("data/processed/features/")`.
 
@@ -58,7 +58,7 @@ Day 5 builds the feature dataset that all ML models (LightGBM Days 6–7, LSTM/T
 | `days_since_event` | float32 | Days elapsed since last calendar event; captures pre/post event decay |
 | `days_until_next_event` | float32 | Days until next event; captures anticipatory demand lift |
 
-**SNAP:** From Day 1 EDA — SNAP days lift FOODS sales +15%. Using separate state flags (not a single `is_snap`) because the program cycles are state-specific and don't correlate across states.
+**SNAP:** From EDA — SNAP days lift FOODS sales +15%. Using separate state flags (not a single `is_snap`) because the program cycles are state-specific and don't correlate across states.
 
 **days_until/since_event:** Widely used in M5 winning solutions to capture the halo effect around events (e.g., Thanksgiving demand lift begins 3–4 days before). Computed efficiently with `np.searchsorted` over sorted event day indices.
 
@@ -126,7 +126,7 @@ Output format: Snappy-compressed parquet. Snappy provides ~3× compression on fl
 | Hierarchy cats | 4 (cat/dept/store/state) | Same + item embedding | Label encoded |
 | Total features | ~48 | ~50–60 | ~40–50 |
 
-Key difference: winning solutions often added **recursive lag features** (lag of rolling mean, lag of lag) and **cross-series statistics** (mean sales in the same store on the same day). These are intentionally excluded here to keep the pipeline interpretable and fast — Day 6 LightGBM experiments will determine if additional features are worth the complexity.
+Key difference: winning solutions often added **recursive lag features** (lag of rolling mean, lag of lag) and **cross-series statistics** (mean sales in the same store on the same day). These are intentionally excluded here to keep the pipeline interpretable and fast — LightGBM experiments determined that rolling means subsume most lag-feature signal.
 
 ---
 

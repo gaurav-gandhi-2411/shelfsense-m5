@@ -48,14 +48,14 @@ methods = [
     "SN28\nbaseline",
     "ETS\n(1k fill)",
     "ARIMA\n(1k fill)",
-    "LightGBM\nDay 6\n(SN28 eval)",
+    "LightGBM\n(SN28-filled\neval)",
     "LightGBM\nglobal\nrecursive",
-    "Blend\nDay 7\n(per-cat)",
-    "Blend\nDay 8\n(v2 audit)",
-    "MH global\nDay 9",
-    "MH blend\nDay 9",
-    "Per-store\nDay 10",
-    "Per-store\nblend\nDay 10",
+    "Blend\n(per-category\n+ global)",
+    "Blend\n(refined\nrecursive)",
+    "Multi-horizon\nglobal",
+    "Multi-horizon\nblend",
+    "Per-store\n(standalone)",
+    "Per-store\nblend",
 ]
 private_lb = [0.8956, 0.8698, 0.8582, 0.8956, 0.8138, 0.7126, 0.7126, 0.6095, 0.5854, 0.6410, 0.6430]
 x = np.arange(len(methods))
@@ -85,8 +85,8 @@ for xc in PHASE_CUTS:
 PHASE_REGIONS = [
     (1.0, "Classical\n(1k sample)"),
     (4.5, "LightGBM\nglobal"),
-    (7.5, "Multi-horizon\n(Day 9)"),
-    (9.5, "Per-store\n(Day 10)"),
+    (7.5, "Multi-horizon"),
+    (9.5, "Per-store"),
 ]
 for px, label in PHASE_REGIONS:
     ax.text(px, 1.075, label, ha="center", va="bottom", fontsize=10,
@@ -96,28 +96,31 @@ for px, label in PHASE_REGIONS:
 
 # ── Inflection annotations: xytext in top headroom, straight-down arrows ──
 
-# 1. Recursive eval fixed (bar 3: LightGBM Day 6 was SN28 placeholder)
+# Annotations — xytext all in top margin (y > 1.035), arrows descend to just above bar tops.
+# Stagger x-positions so annotation boxes don't overlap each other.
+
+# 1. SN28 placeholder eval (bar 3) — box placed left of bar 3
 ax.annotate(
     "Eval rows filled with SN28\nuntil recursive forecast added",
-    xy=(3, 0.8956 + 0.015), xytext=(3, 1.040),
+    xy=(3, 0.8956 + 0.015), xytext=(2.0, 1.042),
     ha="center", va="bottom", fontsize=9, color=BLUE,
     arrowprops=dict(arrowstyle="->", color=BLUE, lw=1.3),
     bbox=dict(boxstyle="round,pad=0.3", facecolor="#EEF4FB", edgecolor=BLUE, alpha=0.9),
 )
 
-# 2. LightGBM cross-series learning (bar 4: first real private-LB improvement)
+# 2. LightGBM cross-series learning (bar 4) — box placed right of bar 4
 ax.annotate(
     "Cross-series learning\n−35% vs SN28 baseline",
-    xy=(4, 0.8138 + 0.015), xytext=(4, 1.040),
+    xy=(4, 0.8138 + 0.015), xytext=(5.5, 1.042),
     ha="center", va="bottom", fontsize=9, color=BLUE,
     arrowprops=dict(arrowstyle="->", color=BLUE, lw=1.3),
     bbox=dict(boxstyle="round,pad=0.3", facecolor="#EEF4FB", edgecolor=BLUE, alpha=0.9),
 )
 
-# 3. Multi-horizon best result (bar 8)
+# 3. Multi-horizon best result (bar 8) — box straight above bar
 ax.annotate(
     "Direct 28-step prediction\neliminates compounding  ★ best",
-    xy=(8, 0.5854 + 0.015), xytext=(8, 0.750),
+    xy=(8, 0.5854 + 0.015), xytext=(8, 1.042),
     ha="center", va="bottom", fontsize=9, color=PURPLE, fontweight="bold",
     arrowprops=dict(arrowstyle="->", color=PURPLE, lw=1.5),
     bbox=dict(boxstyle="round,pad=0.3", facecolor="#F0E8F8", edgecolor=PURPLE, alpha=0.9),
@@ -128,7 +131,7 @@ ax.set_xticklabels(methods, fontsize=9.5)
 ax.set_ylabel("Private LB WRMSSE (lower is better)", fontsize=11)
 ax.set_title("ShelfSense-M5: Kaggle Private LB Progression (Chronological)",
              fontsize=13, fontweight="bold", pad=14)
-ax.set_ylim(0.44, 1.13)
+ax.set_ylim(0.44, 1.15)
 ax.grid(axis="y", alpha=0.25, zorder=0)
 
 handles = [
@@ -136,8 +139,8 @@ handles = [
     mpatches.Patch(color=ORANGE, label="Classical (1k fill)"),
     mpatches.Patch(color=BLUE,   label="LightGBM global"),
     mpatches.Patch(color=GREEN,  label="Blend — per-category"),
-    mpatches.Patch(color=PURPLE, label="Multi-horizon (Day 9)"),
-    mpatches.Patch(color=TEAL,   label="Per-store (Day 10)"),
+    mpatches.Patch(color=PURPLE, label="Multi-horizon"),
+    mpatches.Patch(color=TEAL,   label="Per-store"),
     plt.Line2D([0], [0], color=RED, lw=2, ls="--", label="Best private LB to date"),
 ]
 ax.legend(handles=handles, fontsize=9, loc="lower left", ncol=4,
@@ -251,7 +254,7 @@ fig.suptitle("Ensemble Diversity: When Blending Helps vs Hurts",
 # ── Panel A: Day 7 — blend HELPED ────────────────────────────────────────────
 ax = axes[0]
 ax.set_facecolor("white")
-ax.set_title("Day 7: Blending Helped\n(per-category + global)", fontsize=12,
+ax.set_title("When blending helped\n(per-category + global)", fontsize=12,
              fontweight="bold", color=GREEN, pad=10)
 
 labels_7  = ["Global recursive\nval WRMSSE: 0.5422", "Blend\n(0.6×per-cat + 0.4×global)\nval WRMSSE: 0.5545"]
@@ -264,11 +267,11 @@ bars7 = ax.bar(x7, private_7, color=[BLUE, GREEN], width=0.45, zorder=3,
 for rect, v in zip(bars7, private_7):
     value_label(ax, rect, v, size=11, pad=0.015)
 
-# Improvement annotation — placed in clear space LEFT of global bar, pointing right
+# Improvement annotation — straight above blend bar, arrow pointing straight down
 ax.annotate(
     "Blend −0.101\non private LB",
     xy=(1, 0.7126 + 0.015),   # top of blend bar
-    xytext=(0.5, 0.885),       # clear space above and between
+    xytext=(1, 0.930),         # top headspace, same x
     ha="center", va="bottom", fontsize=10, color=GREEN, fontweight="bold",
     arrowprops=dict(arrowstyle="->", color=GREEN, lw=1.5),
     bbox=dict(boxstyle="round,pad=0.3", facecolor="#E8F5E9", edgecolor=GREEN, alpha=0.9),
@@ -287,7 +290,7 @@ ax.legend(handles=[
 # ── Panel B: Day 10 — blend HURT ─────────────────────────────────────────────
 ax = axes[1]
 ax.set_facecolor("white")
-ax.set_title("Day 10: Blending Hurt\n(per-store + global recursive)", fontsize=12,
+ax.set_title("When blending hurt\n(per-store + global recursive)", fontsize=12,
              fontweight="bold", color=RED, pad=10)
 
 labels_10  = ["Per-store alone\nval WRMSSE: 0.6140", "Blend\n(0.6×per-store + 0.4×global)\nval WRMSSE: 0.5737"]
@@ -302,11 +305,11 @@ bars10 = ax.bar(x10, private_10, color=bar10_colors, width=0.45, zorder=3,
 for rect, v in zip(bars10, private_10):
     value_label(ax, rect, v, size=11, pad=0.003)
 
-# Degradation annotation — placed above both bars, pointing down to blend bar top
+# Degradation annotation — straight above blend bar, arrow pointing straight down
 ax.annotate(
     "Blend +0.002\n(global recursive\nadds noise, not signal)",
     xy=(1, 0.6430 + 0.003),   # top of blend bar
-    xytext=(0.5, 0.750),       # clear space above bars
+    xytext=(1, 0.860),         # top headspace, same x
     ha="center", va="bottom", fontsize=10, color=RED, fontweight="bold",
     arrowprops=dict(arrowstyle="->", color=RED, lw=1.5),
     bbox=dict(boxstyle="round,pad=0.3", facecolor="#FDECEA", edgecolor=RED, alpha=0.9),
@@ -325,8 +328,8 @@ ax.legend(handles=[
 # Shared insight box below both panels
 fig.text(
     0.5, -0.06,
-    "Day 7: global and per-category were comparably imperfect → diversity gain on private LB\n"
-    "Day 10: per-store already outperformed global recursive → blending in the weaker component added noise",
+    "First case: global and per-category were comparably imperfect → diversity gain on private LB\n"
+    "Second case: per-store already outperformed global recursive → blending in the weaker component added noise",
     ha="center", fontsize=9.5, color="#444444", fontstyle="italic",
     bbox=dict(boxstyle="round,pad=0.4", facecolor="#F8F8F8", edgecolor=LGREY, alpha=0.9),
 )

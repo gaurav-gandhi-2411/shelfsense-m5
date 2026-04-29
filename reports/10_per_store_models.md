@@ -1,4 +1,4 @@
-# Day 10 — Per-Store LightGBM Models
+# Per-Store LightGBM Models
 
 ## Setup
 
@@ -15,11 +15,11 @@ Optuna: 15 trials per store, Tweedie loss, 500-round early stopping (ES=75, cap=
 
 | Model | Val WRMSSE | Kaggle Public | Kaggle Private |
 |-------|-----------|---------------|----------------|
-| Global (Day 6, reference) | **0.5422** | 0.5422 | — |
+| Global (reference) | **0.5422** | 0.5422 | — |
 | Per-store only | 0.6140 | 0.6140 | **0.6410** |
 | Blend (0.6×per-store + 0.4×global recursive) | 0.5737 | 0.5736 | 0.6430 |
 
-Val WRMSSE: per-store (0.6140) is worse than global (0.5422) by 0.0718 — identical pattern to Day 7, where per-category models (0.5726) also trailed global on val.
+Val WRMSSE: per-store (0.6140) is worse than global (0.5422) by 0.0718 — identical pattern to the per-category experiment, where per-category models (0.5726) also trailed global on val.
 
 ---
 
@@ -72,7 +72,7 @@ tvp range: 1.45–1.63 across stores. The global model used tvp=1.499 (a cross-s
 
 ## Val WRMSSE: Why Per-Store is Worse Than Global
 
-Per-store val WRMSSE (0.6140) > global (0.5422) by 0.0718. This is the same pattern as Day 7 (per-category: 0.5726 vs global 0.5422).
+Per-store val WRMSSE (0.6140) > global (0.5422) by 0.0718. This is the same pattern as the per-category experiment (per-category: 0.5726 vs global 0.5422).
 
 **Mechanism:** Each store model trains on 2.79M rows (one store's items × 914 days). The global model trains on 27.9M rows (all stores), giving it 10× more cross-series signal. LightGBM's tree splits on `store_id`, `cat_id`, `dept_id`, `item_id` already partition the space — the global model can learn store-specific patterns through these splits without discarding cross-store transfer.
 
@@ -81,7 +81,7 @@ By training per-store, we lose:
 - Cross-state calendar effect calibration (SNAP days affect CA differently than TX)
 - 10× smaller training set reduces leaf count reliability at fine partitions
 
-**Why we still expect private LB improvement:** Val WRMSSE measures accuracy on a fixed 28-day window with single-step oracle features. Private LB (recursive, 28 steps forward) is a different regime where prediction diversity across ensemble members reduces correlated error. Day 7 confirmed this: per-category was 0.5726 (worse) on val but contributed −0.101 on private LB via blend. We expect the same mechanism here.
+**Why we still expect private LB improvement:** Val WRMSSE measures accuracy on a fixed 28-day window with single-step oracle features. Private LB (recursive, 28 steps forward) is a different regime where prediction diversity across ensemble members reduces correlated error. The per-category experiment confirmed this: per-category was 0.5726 (worse) on val but contributed −0.101 on private LB via blend. We expect the same mechanism here.
 
 ---
 
@@ -90,22 +90,22 @@ By training per-store, we lose:
 **Duplicate `store_id` column bug (fixed before training):**  
 Original code listed `store_id` twice — once explicitly, and again as part of `CAT_FEATURES`. This caused pandas to create a duplicate column that broke LightGBM's categorical dtype check. Fixed by removing `store_id` from the explicit column list.
 
-**`free_raw_data=False` (carried from Day 9):**  
-Using `reference=ds_tr` in `lgb.Dataset` requires both datasets to keep raw data alive. `free_raw_data=True` caused silent crashes in Day 9's training loop (discovered and fixed then).
+**`free_raw_data=False` (carried from multi-horizon training):**  
+Using `reference=ds_tr` in `lgb.Dataset` requires both datasets to keep raw data alive. `free_raw_data=True` caused silent crashes in the multi-horizon training loop (discovered and fixed there).
 
 **Checkpoint-resumable:**  
 `store_{name}.pkl` checked for existence before training. Re-running the script skips already-trained stores. On a crash after CA_3, re-run picks up from CA_4.
 
 ---
 
-## Comparison to Day 7 (Per-Category)
+## Comparison to Per-Category Experiment
 
-| Approach | Val WRMSSE | Val delta vs global | Day 7/10 private LB |
-|----------|-----------|---------------------|----------------------|
-| Global (Days 6–10 reference) | 0.5422 | — | 0.8138 (Day 7 recursive) |
-| Per-category (Day 7) | 0.5726 | +0.0304 | 0.7126 (blend) |
-| Per-store (Day 10) | 0.6140 | +0.0718 | pending |
-| Per-store blend (Day 10) | 0.5737 | +0.0315 | pending |
+| Approach | Val WRMSSE | Val delta vs global | Private LB |
+|----------|-----------|---------------------|------------|
+| Global (reference) | 0.5422 | — | 0.8138 (global recursive) |
+| Per-category | 0.5726 | +0.0304 | 0.7126 (blend) |
+| Per-store | 0.6140 | +0.0718 | 0.6410 |
+| Per-store blend | 0.5737 | +0.0315 | 0.6430 |
 
 Per-store val delta (+0.0718) is larger than per-category (+0.0304), which makes sense: 10-way split is more extreme than 3-way. If the same diversity-vs-accuracy trade-off holds, we'd expect a larger private LB improvement from per-store — but the relationship is not guaranteed to be monotone.
 
@@ -113,7 +113,7 @@ Per-store val delta (+0.0718) is larger than per-category (+0.0304), which makes
 
 Blending in 0.4× global recursive *hurts* on the eval period. The global model's recursive forecast (private=0.8138 in isolation) is weaker than per-store recursive (0.641). Adding a weaker component introduces noise rather than complementary signal.
 
-This is the inverse of Day 7: the Day 7 blend (per-category + global) worked because per-category and global had comparable quality on the eval period, so they contributed different error patterns. Here, per-store has already surpassed global — blending in the inferior component is detrimental.
+This is the inverse of the per-category result: the per-category blend (per-category + global) worked because both components had comparable quality on the eval period, contributing different error patterns. Here, per-store has already surpassed global — blending in the inferior component is detrimental.
 
 **The val/private discrepancy is structural:** On val (single-step), blend=0.5737 beats per-store-only=0.6140 because the global's single-step predictions are accurate (0.5422) and anchor the blend. On private (recursive), per-store-only=0.6410 beats blend=0.6430 because the global's recursive predictions are weak (0.8138) and degrade the blend.
 
