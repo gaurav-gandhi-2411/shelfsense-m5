@@ -16,8 +16,8 @@ Optuna: 15 trials per store, Tweedie loss, 500-round early stopping (ES=75, cap=
 | Model | Val WRMSSE | Kaggle Public | Kaggle Private |
 |-------|-----------|---------------|----------------|
 | Global (Day 6, reference) | **0.5422** | 0.5422 | — |
-| Per-store only | 0.6140 | pending | pending |
-| Blend (0.6×per-store + 0.4×global recursive) | 0.5737 | pending | pending |
+| Per-store only | 0.6140 | 0.6140 | **0.6410** |
+| Blend (0.6×per-store + 0.4×global recursive) | 0.5737 | 0.5736 | 0.6430 |
 
 Val WRMSSE: per-store (0.6140) is worse than global (0.5422) by 0.0718 — identical pattern to Day 7, where per-category models (0.5726) also trailed global on val.
 
@@ -109,4 +109,12 @@ Using `reference=ds_tr` in `lgb.Dataset` requires both datasets to keep raw data
 
 Per-store val delta (+0.0718) is larger than per-category (+0.0304), which makes sense: 10-way split is more extreme than 3-way. If the same diversity-vs-accuracy trade-off holds, we'd expect a larger private LB improvement from per-store — but the relationship is not guaranteed to be monotone.
 
-The blend (0.5737) is closer to global than pure per-store, suggesting the 0.4 global weight effectively anchors accuracy while the per-store component adds diversity.
+**Private LB reversal — per-store-only beats blend (0.6410 vs 0.6430):**
+
+Blending in 0.4× global recursive *hurts* on the eval period. The global model's recursive forecast (private=0.8138 in isolation) is weaker than per-store recursive (0.641). Adding a weaker component introduces noise rather than complementary signal.
+
+This is the inverse of Day 7: the Day 7 blend (per-category + global) worked because per-category and global had comparable quality on the eval period, so they contributed different error patterns. Here, per-store has already surpassed global — blending in the inferior component is detrimental.
+
+**The val/private discrepancy is structural:** On val (single-step), blend=0.5737 beats per-store-only=0.6140 because the global's single-step predictions are accurate (0.5422) and anchor the blend. On private (recursive), per-store-only=0.6410 beats blend=0.6430 because the global's recursive predictions are weak (0.8138) and degrade the blend.
+
+**Lesson:** Ensembling improves generalisation when components have comparable quality with different error patterns. When one component dominates the other on the eval regime, the weaker component adds correlated noise rather than diversity.

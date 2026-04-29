@@ -12,8 +12,8 @@ Kaggle public LB: validation period submitted to M5 Forecasting Accuracy competi
 |------|-------|--------|------------|--------|-----------|-----|-------|
 | 1 | **MH blend (0.5×multi-horizon + 0.5×Day8 recursive, eval rows)** | **LightGBM** | **Full-30490** | **0.5422** | **0.5422 / 0.5854** | **9** | **Best private LB to date — multi-horizon eliminates compounding error on eval period; val WRMSSE 0.7156 was misleading (see Day 9 note)** |
 | 2 | Multi-horizon global (28 direct models, eval) | LightGBM | Full-30490 | 0.5422 | 0.5422 / 0.6095 | 9 | −0.1031 private vs Day 8 recursive; pure MH eval rows, SS val rows |
-| — | **Per-store blend (0.6×per-store + 0.4×global recursive)** | **LightGBM** | **Full-30490** | **0.5737** | **pending** | **10** | **Val worse than global (+0.0315); private LB pending — expect diversity gain (same Day 7 pattern)** |
-| — | Per-store only (10 models, recursive eval) | LightGBM | Full-30490 | 0.6140 | pending | 10 | Val worse than global (+0.0718); all stores hit 3000-iter cap (underfitting) |
+| — | Per-store only (10 models, recursive eval) | LightGBM | Full-30490 | 0.6140 | 0.6140 / **0.6410** | 10 | Private better than blend (0.6430) — blending in weaker global recursive hurts |
+| — | Per-store blend (0.6×per-store + 0.4×global recursive) | LightGBM | Full-30490 | 0.5737 | 0.5736 / 0.6430 | 10 | Val better than per-store-only (global anchors accuracy) but private worse (global recursive drags it down) |
 | 3 | **Blend (0.6×per-cat + 0.4×global), v2 recursive eval** | **LightGBM** | **Full-30490** | **0.5545** | **0.5545 / 0.7126** | **8** | **Prev best private — now surpassed by Day 9** |
 | — | Blend (0.6×per-cat + 0.4×global), v1 recursive eval | LightGBM | Full-30490 | 0.5545 | 0.5545 / 0.7126 | 7 | Same score as Day 8 v2 — v1 feature math was already correct |
 | 2 | Global recursive (proper eval period) | LightGBM | Full-30490 | 0.5422 | 0.5422 / 0.8138 | 7 | Recursive eval fixes Day 6 SN28 placeholder; private −0.082 vs Day 6 |
@@ -66,7 +66,8 @@ The correct comparison is multi-horizon vs recursive, both starting from d_1941 
 | Per-store val WRMSSE | 0.6140 — worse than global (same pattern as Day 7 per-category) |
 | Per-store blend val WRMSSE | 0.5737 |
 | Global reference val WRMSSE | 0.5422 |
-| Per-store Kaggle scores | pending |
+| Per-store only Kaggle scores | public=0.6140, **private=0.6410** |
+| Per-store blend Kaggle scores | public=0.5736, private=0.6430 |
 | Total training time | ~38 min (10 stores × Optuna 15 trials + 3000 rounds) |
 | All stores hit iteration cap | Yes (3000 rounds, no early stopping) → underfitting |
 
@@ -91,7 +92,21 @@ The correct comparison is multi-horizon vs recursive, both starting from d_1941 
 
 **Val WRMSSE worse than global (expected):** Per-store models train on 2.79M rows vs 27.9M for global. Smaller dataset loses cross-series transfer — the same item sold in CA_1 and TX_2 has correlated demand, but per-store models can't see across the boundary. Global tree splits on store_id already handle store heterogeneity without sacrificing cross-store signal.
 
-**Private LB hypothesis:** Day 7 confirmed that per-category models (val +0.03 worse) added diversity worth −0.101 on private LB. Per-store val delta is +0.072 — larger individual weakness, potentially larger diversity benefit. Private LB pending Kaggle submission.
+**Private LB result — per-store beats blend (0.6410 vs 0.6430):**
+
+This is the inverse of Day 7, where blending per-category + global improved private LB. Here, blending in the global recursive (private=0.8138) with stronger per-store recursive (private=0.641) *hurts*. The mechanism: per-store models are already better than global on the eval period — adding 0.4× of a weaker recursive forecast introduces noise rather than complementary signal.
+
+Day 7 blend worked because global and per-category were roughly equally imperfect (0.8138 global vs undocumented per-cat solo). Day 10 blend failed because one component (per-store) had already surpassed the other (global). **Lesson: ensembling helps when components have comparable quality but different error patterns. When one dominates, the weaker component adds noise.**
+
+| Model | Val WRMSSE | Private LB | vs Day 9 best |
+|-------|-----------|------------|----------------|
+| mh_blend (Day 9) | 0.5422 | **0.5854** | — |
+| mh_global (Day 9) | 0.5422 | 0.6095 | +0.024 |
+| per_store_only (Day 10) | 0.6140 | 0.6410 | +0.056 |
+| per_store_blend (Day 10) | 0.5737 | 0.6430 | +0.058 |
+| Day 7/8 blend | 0.5545 | 0.7126 | +0.127 |
+
+Per-store (0.641) improves significantly over global recursive (0.8138) but doesn't close the gap to multi-horizon (0.585). Key reason: per-store models still use recursive for the eval period — they eliminate the demand heterogeneity problem but not the 28-step compounding error. Multi-horizon eliminates both by predicting each horizon directly.
 
 ---
 
@@ -210,6 +225,10 @@ The M5 competition has separate public (validation) and private (evaluation) lea
 | LightGBM best (Optuna) | **0.5422** | 0.8956 | Public exact — evaluator confirmed. Private = SN28 because eval rows not forecasted; fixed in Day 7 |
 | LightGBM global recursive | 0.5422 | **0.8138** | Day 7: proper recursive eval forecast; private −0.082 vs Day 6 |
 | **LightGBM blend (Day 7 best)** | 0.5545 | **0.7126** | Ensemble diversity beats individual model accuracy on private LB |
+| Multi-horizon global (Day 9) | 0.5422 | **0.6095** | Direct 28-model training; eliminates recursive compounding |
+| **MH blend (Day 9 best)** | 0.5422 | **0.5854** | 0.5×MH + 0.5×Day8 recursive; best private LB |
+| Per-store only (Day 10) | 0.6140 | **0.6410** | Per-store recursive; beats blend (0.6430) — global recursive too weak to help |
+| Per-store blend (Day 10) | 0.5736 | 0.6430 | Blending in weaker global recursive hurts vs per-store-only |
 
 Interpretation: on the public LB (validation period), the 1k-sample models can't distinguish from SN28. On the private LB (true evaluation period), ARIMA and ETS show small private-score improvements — likely because they capture some trend signal that SN28 misses, and the evaluation period differs structurally from the validation period.
 
