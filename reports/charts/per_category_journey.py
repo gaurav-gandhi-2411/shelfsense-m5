@@ -50,20 +50,22 @@ canvas.ax.text(0.02, CLIP + 0.04, f"chart clipped at {CLIP}", color=ORANGE,
                fontsize=8, fontstyle="italic",
                transform=canvas.ax.get_yaxis_transform())
 
-# Callouts — "free" placement so we can land exactly where the original chart had them
-# Cursor ≈ 3.35 − 3.35×0.18×0.38 ≈ 3.121
+# Callouts — x_offset spreads the text boxes so they don't overlap;
+# both targets use bar_top_for_arrow() so arrow tips clear the value-label zone.
+# ETS callout arrow: (1.5, cursor) → (2.0, safe_y) — short diagonal above all bars.
+# LightGBM callout arrow: (2.94, cursor) → (2.24, safe_y) — short diagonal above all bars.
 canvas.add_callout(
-    target_x=float(x[2]),           # ETS HOBBIES bar center
-    target_y=CLIP + 0.06,
+    target_x=float(x[2]),           # ETS HOBBIES bar center (clipped at CLIP)
+    target_y=canvas.bar_top_for_arrow(float(x[2])),
     text="Zero-forecast fallback\n(390/1k sparse series)",
-    placement="free", x_offset=float(x[2]) - 0.55, y_offset=0.079,
+    placement="top", x_offset=-0.5,
     color=ORANGE, fontsize=9.5,
 )
 canvas.add_callout(
     target_x=float(x[2]) + w,       # LightGBM HOBBIES bar center
-    target_y=lgbm_scores[2] + 0.02,
+    target_y=canvas.bar_top_for_arrow(float(x[2]) + w),
     text="5× improvement\n3.27 → 0.61\n(cross-series signal)",
-    placement="free", x_offset=float(x[2]) + w + 0.55, y_offset=-2.121,
+    placement="top", x_offset=0.7,
     color=RED, fontsize=9.5, fontweight="bold",
 )
 

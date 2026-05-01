@@ -71,29 +71,30 @@ class TestCalloutInTopMargin:
     """validate() must pass when callout xytext is in the top margin zone."""
 
     def test_straight_down_callout_no_violations(self):
-        """Default add_callout (placement='top') produces no violations."""
+        """Default add_callout with bar_top_for_arrow() target produces no violations."""
         canvas = ChartCanvas(figsize=(10, 6), title="T", ylabel="Y")
         x = np.array([0.0, 1.0, 2.0])
         y = np.array([0.80, 0.60, 0.90])
         canvas.add_bars(x, y, colors=[BLUE] * 3)
         canvas.set_ylim(0.40, 1.20)
-        canvas.add_callout(target_x=1.0, target_y=0.62, text="Inline test\nline 2")
+        safe_y = canvas.bar_top_for_arrow(1.0)
+        canvas.add_callout(target_x=1.0, target_y=safe_y, text="Inline test\nline 2")
         violations = canvas.validate()
         assert violations == [], f"Unexpected violations: {violations}"
         import matplotlib.pyplot as plt
         plt.close("all")
 
     def test_multiple_callouts_stacked_no_violations(self):
-        """Three sequential callouts should all land in the top margin."""
+        """Three sequential callouts with bar_top_for_arrow() targets produce no violations."""
         canvas = ChartCanvas(figsize=(16, 8), title="T", ylabel="Y",
                              top_margin_pct=0.20)
         x = np.arange(5, dtype=float)
         y = np.array([0.85, 0.70, 0.60, 0.55, 0.65])
         canvas.add_bars(x, y, colors=[BLUE] * 5)
         canvas.set_ylim(0.40, 1.20)
-        canvas.add_callout(target_x=0, target_y=0.87, text="First", color=BLUE)
-        canvas.add_callout(target_x=2, target_y=0.62, text="Second\ntwo lines", color=GREEN)
-        canvas.add_callout(target_x=4, target_y=0.67, text="Third", color=RED)
+        canvas.add_callout(target_x=0, target_y=canvas.bar_top_for_arrow(0), text="First", color=BLUE)
+        canvas.add_callout(target_x=2, target_y=canvas.bar_top_for_arrow(2), text="Second\ntwo lines", color=GREEN)
+        canvas.add_callout(target_x=4, target_y=canvas.bar_top_for_arrow(4), text="Third", color=RED)
         violations = canvas.validate()
         assert violations == [], f"Unexpected violations: {violations}"
         import matplotlib.pyplot as plt
@@ -132,10 +133,10 @@ class TestArrowRoutesAroundBars:
         y = np.array([0.90, 0.70, 0.85])
         canvas.add_bars(x, y, colors=[BLUE] * 3)
         canvas.set_ylim(0.40, 1.15)
-        canvas.add_callout(target_x=1.0, target_y=0.72, text="Middle bar")
+        safe_y = canvas.bar_top_for_arrow(1.0)
+        canvas.add_callout(target_x=1.0, target_y=safe_y, text="Middle bar")
         violations = canvas.validate()
-        bar_violations = [v for v in violations if "crosses bar" in v]
-        assert bar_violations == [], f"Unexpected bar-cross violations: {bar_violations}"
+        assert violations == [], f"Unexpected violations: {violations}"
         import matplotlib.pyplot as plt
         plt.close("all")
 
@@ -191,6 +192,156 @@ class TestValidateCatchesOverlap:
         assert cross_violations, (
             f"Expected an arrow-cross violation for bar at x=2, got: {violations}"
         )
+
+
+class TestValueLabelZoneCollision:
+    """validate() must detect arrows entering the value-label zone above bar tops."""
+
+    def test_arrow_tip_inside_label_zone_is_detected(self):
+        """Rule 2b: target_y just above bar_top but inside label-text zone → violation."""
+        canvas = ChartCanvas(figsize=(10, 6), title="T", ylabel="Y")
+        x = np.array([0.0, 1.0])
+        y = np.array([0.80, 0.70])
+        canvas.add_bars(x, y, colors=[BLUE, RED])
+        # span=0.70, text_h = 0.70*0.028 = 0.0196
+        # bar at x=0: label_top = 0.80+0.012 = 0.812, label_zone_top = 0.812+0.0196 = 0.8316
+        # target_y=0.805 is inside [0.812..0.8316]? No — 0.805 < 0.812 (below label_top)
+        # but the label_zone_top check is target_y < label_top + text_h = 0.8316
+        # 0.805 < 0.8316 → Rule 2b fires.
+        canvas.set_ylim(0.50, 1.20)
+        canvas.add_callout(
+            target_x=0.0, target_y=0.805,  # inside value-label zone of bar at x=0
+            text="Tip in label zone",
+        )
+        violations = canvas.validate()
+        label_zone_viol = [v for v in violations if "value-label zone" in v]
+        assert label_zone_viol, (
+            f"Expected Rule 2b violation (tip in label zone), got: {violations}"
+        )
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_arrow_through_non_target_label_zone_is_detected(self):
+        """Rule 2a extended: diagonal arrow that enters a non-target bar's label zone is flagged."""
+        canvas = ChartCanvas(figsize=(10, 6), title="T", ylabel="Y")
+        x = np.array([0.0, 1.0, 2.0])
+        # Bar at x=1 is tall (0.80); arrow goes from (0,1.10) → (2,0.52).
+        # At x=1, t=0.5 → y ≈ 0.81, which is between bar_top=0.80 and obs_top≈0.837.
+        y = np.array([0.60, 0.80, 0.50])
+        canvas.add_bars(x, y, colors=[BLUE] * 3)
+        canvas.set_ylim(0.30, 1.20)
+        # Inject callout manually to avoid auto-stacking changing text position
+        from src.shelfsense.visualization.charts import _Callout
+        canvas._callouts.append(_Callout(
+            text="Through label zone",
+            text_x=0.0, text_y=1.10,
+            target_x=2.0, target_y=0.52,
+            color=BLUE, placement="top",
+        ))
+        violations = canvas.validate()
+        zone_viol = [v for v in violations if "crosses bar" in v]
+        assert zone_viol, (
+            f"Expected Rule 2a label-zone crossing violation for bar at x=1, got: {violations}"
+        )
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_arrow_above_label_zone_is_clean(self):
+        """Arrow whose tip is placed via bar_top_for_arrow() passes all checks."""
+        canvas = ChartCanvas(figsize=(10, 6), title="T", ylabel="Y")
+        x = np.array([0.0, 1.0])
+        y = np.array([0.80, 0.70])
+        canvas.add_bars(x, y, colors=[BLUE, RED])
+        canvas.set_ylim(0.50, 1.20)
+        safe_y = canvas.bar_top_for_arrow(0.0)
+        canvas.add_callout(target_x=0.0, target_y=safe_y, text="Safe tip")
+        violations = canvas.validate()
+        label_viol = [v for v in violations if "value-label zone" in v]
+        assert label_viol == [], f"bar_top_for_arrow() should produce no label violations: {violations}"
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+
+class TestTitleClearance:
+    """validate() must flag callout text that overlaps the chart title bbox."""
+
+    def test_callout_does_not_overlap_title(self):
+        """After _render_and_cache_title(), a callout above the title bottom is caught."""
+        canvas = ChartCanvas(figsize=(10, 6), title="Test Title for Overlap Check", ylabel="Y")
+        x = np.array([0.0, 1.0])
+        y = np.array([0.50, 0.70])
+        canvas.add_bars(x, y, colors=[BLUE, RED])
+        canvas.set_ylim(0.30, 1.00)
+        # Inject a callout whose text_y is well above the ylim top (and thus the title).
+        # In data coordinates the title sits just above ylim top (~1.00), so 1.50 is
+        # unambiguously inside the title region.
+        canvas._callouts.append(_Callout(
+            text="Intentionally high callout",
+            text_x=0.5,
+            text_y=1.50,
+            target_x=0.0,
+            target_y=0.52,
+            color=BLUE,
+            placement="top",
+        ))
+        canvas._render_and_cache_title()   # populate _title_ymin_data
+        assert canvas._title_ymin_data is not None, (
+            "_render_and_cache_title() must set _title_ymin_data on Agg backend"
+        )
+        violations = canvas.validate()
+        title_viol = [v for v in violations if "title" in v.lower()]
+        assert title_viol, (
+            f"Expected title-overlap violation for text_y=1.50 (ylim_top=1.00), "
+            f"title_ymin_data={canvas._title_ymin_data:.4f}, "
+            f"got violations: {violations}"
+        )
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_callout_within_margin_clears_title(self):
+        """A callout placed by bar_top_for_arrow() in the margin must not overlap the title."""
+        canvas = ChartCanvas(figsize=(10, 6), title="Clean Chart", ylabel="Y")
+        x = np.array([0.0, 1.0, 2.0])
+        y = np.array([0.60, 0.75, 0.55])
+        canvas.add_bars(x, y, colors=[BLUE] * 3)
+        canvas.set_ylim(0.40, 1.20)
+        canvas.add_callout(
+            target_x=1.0, target_y=canvas.bar_top_for_arrow(1.0),
+            text="Normal callout\nin margin zone",
+        )
+        canvas._render_and_cache_title()
+        violations = canvas.validate()
+        title_viol = [v for v in violations if "title" in v.lower()]
+        assert title_viol == [], (
+            f"Normal in-margin callout should not overlap title, got: {title_viol}"
+        )
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+
+class TestSameRowPlacement:
+    """same_row=True allows horizontally separated callouts to share a y-level."""
+
+    def test_same_row_does_not_advance_cursor(self):
+        """Two callouts with same_row=True must land at the same text_y."""
+        canvas = ChartCanvas(figsize=(16, 8), title="T", ylabel="Y")
+        x = np.arange(10, dtype=float)
+        y = np.full(10, 0.70)
+        canvas.add_bars(x, y, colors=[BLUE] * 10)
+        canvas.set_ylim(0.40, 1.20)
+        canvas.add_callout(
+            target_x=2.0, target_y=canvas.bar_top_for_arrow(2.0),
+            text="First same-row callout", same_row=True,
+        )
+        canvas.add_callout(
+            target_x=8.0, target_y=canvas.bar_top_for_arrow(8.0),
+            text="Second same-row callout", same_row=True,
+        )
+        assert canvas._callouts[0].text_y == canvas._callouts[1].text_y, (
+            "same_row=True callouts must share the same text_y (cursor must not advance)"
+        )
+        import matplotlib.pyplot as plt
+        plt.close("all")
 
 
 class TestLegendOutsideBody:

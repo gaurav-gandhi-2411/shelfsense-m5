@@ -65,8 +65,9 @@ def _fc(color: str) -> str:
 @dataclass
 class _Bar:
     x: float
-    y: float   # top of bar (= bar height for positive bars)
-    w: float   # bar width
+    y: float          # top of bar (= bar height for positive bars)
+    w: float          # bar width
+    label_top: float  # bottom edge of the value label (bar_top + value_pad)
 
 
 @dataclass
@@ -87,18 +88,23 @@ def _segment_crosses_bar(
     bar_x: float,
     bar_h: float,
     bar_w: float,
+    obs_top: Optional[float] = None,
 ) -> bool:
-    """True if segment p1→p2 strictly intersects the bar body [x±w/2] × [0, h].
+    """True if segment p1→p2 strictly intersects the bar obstacle zone.
+
+    The obstacle zone is [x±w/2] × [0, obs_top].  When obs_top is None the
+    zone ceiling equals bar_h (bar body only).  Pass obs_top > bar_h to also
+    flag crossings through the value-label region above the bar.
 
     Uses Liang-Barsky parametric clipping.  Returns False if the segment only
-    touches a corner or edge (t0 == t1) or if one endpoint is the bar top
+    touches a corner or edge (t0 == t1) or if one endpoint is at the bar top
     (the intended target case).
     """
     x0, y0 = p1
     x1, y1 = p2
     dx, dy = x1 - x0, y1 - y0
     xmin, xmax = bar_x - bar_w / 2.0, bar_x + bar_w / 2.0
-    ymin, ymax = 0.0, bar_h
+    ymin, ymax = 0.0, obs_top if obs_top is not None else bar_h
 
     p_ = [-dx, dx, -dy, dy]
     q_ = [x0 - xmin, xmax - x0, y0 - ymin, ymax - y0]
@@ -185,6 +191,7 @@ class ChartCanvas:
         self._ylim: Optional[Tuple[float, float]] = None
         self._callout_cursor: float = 0.0   # auto-stacking y cursor
         self._bar_width: float = 0.62
+        self._title_ymin_data: Optional[float] = None   # populated by _render_and_cache_title()
 
     # ── data methods ──────────────────────────────────────────────────────────
 
@@ -227,7 +234,10 @@ class ChartCanvas:
                     ha="center", va="bottom",
                     fontsize=value_size, fontweight="bold", color="#333333",
                 )
-            self._bars.append(_Bar(x=cx, y=float(v), w=float(width)))
+            self._bars.append(_Bar(
+                x=cx, y=float(v), w=float(width),
+                label_top=float(v) + value_pad,
+            ))
         return bars
 
     def add_bar_label(
@@ -239,12 +249,22 @@ class ChartCanvas:
         fontsize: float = 9.5,
         pad: float = 0.06,
     ) -> None:
-        """Place a custom label above a specific bar (use when auto-label is off)."""
+        """Place a custom label above a specific bar (use when auto-label is off).
+
+        Also updates the matching _Bar.label_top so collision detection includes
+        this text's bottom edge.
+        """
         self.ax.text(
             bar_center_x, bar_top_y + pad, text,
             ha="center", va="bottom",
             fontsize=fontsize, fontweight="bold", color=color,
         )
+        # Raise label_top on the nearest registered bar so validate() knows
+        # there is text here.
+        for bar in self._bars:
+            if abs(bar.x - bar_center_x) < bar.w * 0.6:
+                bar.label_top = max(bar.label_top, bar_top_y + pad)
+                break
 
     def add_step_line(
         self,
@@ -319,6 +339,7 @@ class ChartCanvas:
         arrowlw: float = 1.3,
         arrowstyle: str = "->",
         connectionstyle: Optional[str] = None,
+        same_row: bool = False,
     ) -> None:
         """
         Add a callout annotation with a validated arrow.
@@ -343,10 +364,13 @@ class ChartCanvas:
         if placement == "top":
             text_x = target_x + x_offset
             text_y = self._callout_cursor
-            # Advance cursor so next callout doesn't overlap
-            n_lines = text.count("\n") + 1
-            line_h = span * 0.032 * (fontsize / 9.0)
-            self._callout_cursor += n_lines * line_h + span * 0.012
+            if not same_row:
+                # Advance cursor so next callout doesn't overlap vertically.
+                # Callers that horizontally separate callouts may pass same_row=True
+                # to keep multiple annotations at the same y level.
+                n_lines = text.count("\n") + 1
+                line_h = span * 0.032 * (fontsize / 9.0)
+                self._callout_cursor += n_lines * line_h + span * 0.012
 
         elif placement == "right":
             xs = [b.x for b in self._bars] or [0.0]
@@ -408,6 +432,39 @@ class ChartCanvas:
 
     # ── validation ────────────────────────────────────────────────────────────
 
+    def _render_and_cache_title(self) -> None:
+        """Force a render pass and cache the title's bottom edge in data coordinates.
+
+        Must be called before validate() to activate Rule 3 (title clearance).
+        save() calls this automatically; callers using save_fig() (multi-panel) must
+        call it manually on each canvas before validate() if they want the title check.
+        """
+        try:
+            self.fig.canvas.draw()
+            renderer = self.fig.canvas.get_renderer()
+            bbox = self.ax.title.get_window_extent(renderer=renderer)
+            inv = self.ax.transData.inverted()
+            _, y_bottom = inv.transform((bbox.x0, bbox.y0))
+            self._title_ymin_data = float(y_bottom)
+        except Exception:
+            self._title_ymin_data = None
+
+    def bar_top_for_arrow(self, target_x: float) -> float:
+        """Return the minimum safe target_y for a callout pointing at target_x.
+
+        The returned y clears the value label of the nearest bar: it lands just
+        above the label text zone (label_top + estimated text height + a small gap).
+        """
+        if self._ylim is None:
+            raise RuntimeError("Call set_ylim() before bar_top_for_arrow().")
+        span = self._ylim[1] - self._ylim[0]
+        bar = next((b for b in self._bars if abs(b.x - target_x) < b.w * 0.6), None)
+        if bar is None:
+            return target_x
+        # span * 0.028 ≈ one line of value-label text height (calibrated empirically)
+        # span * 0.005 ≈ small breathing gap
+        return bar.label_top + span * 0.028 + span * 0.005
+
     def validate(self) -> List[str]:
         """
         Return a list of violation strings (empty = clean chart).
@@ -415,14 +472,19 @@ class ChartCanvas:
         Rules checked
         -------------
         1. Every "top" callout must have xytext_y >= the top-margin boundary.
-        2. No callout arrow may intersect a non-target bar body.
+        2a. No callout arrow may intersect a non-target bar's obstacle zone
+            (bar body + value label region above it).
+        2b. The arrow tip must not land inside the target bar's value label zone.
         """
         violations: List[str] = []
         if not self._ylim:
             return violations
 
         ylo, yhi = self._ylim
-        margin_boundary = yhi - (yhi - ylo) * self._top_margin_pct
+        span = yhi - ylo
+        margin_boundary = yhi - span * self._top_margin_pct
+        # Estimated height of a value-label text line in data units
+        text_h = span * 0.028
 
         for c in self._callouts:
             # Rule 1 — top-margin placement check
@@ -433,21 +495,44 @@ class ChartCanvas:
                     f"(ylim top={yhi:.4f}, margin_pct={self._top_margin_pct})."
                 )
 
-            # Rule 2 — arrow-bar intersection check for all placements
             for bar in self._bars:
-                # Skip the bar that the callout is pointing at
-                if abs(bar.x - c.target_x) < bar.w * 0.55:
-                    continue
-                if _segment_crosses_bar(
-                    (c.text_x, c.text_y),
-                    (c.target_x, c.target_y),
-                    bar.x, bar.y, bar.w,
-                ):
+                is_target = abs(bar.x - c.target_x) < bar.w * 0.55
+
+                if is_target:
+                    # Rule 2b — arrow tip must clear the value-label zone
+                    label_zone_top = bar.label_top + text_h
+                    if c.target_y < label_zone_top:
+                        violations.append(
+                            f"Callout {c.text[:40]!r}: arrow tip y={c.target_y:.4f} "
+                            f"is inside the value-label zone of target bar at "
+                            f"x={bar.x:.2f} (label zone top={label_zone_top:.4f})."
+                        )
+                else:
+                    # Rule 2a — arrow must not cross any non-target bar's obstacle zone
+                    obs_top = bar.label_top + text_h
+                    if _segment_crosses_bar(
+                        (c.text_x, c.text_y),
+                        (c.target_x, c.target_y),
+                        bar.x, bar.y, bar.w,
+                        obs_top=obs_top,
+                    ):
+                        violations.append(
+                            f"Callout {c.text[:40]!r}: arrow from "
+                            f"({c.text_x:.2f}, {c.text_y:.4f}) → "
+                            f"({c.target_x:.2f}, {c.target_y:.4f}) "
+                            f"crosses bar+label zone at x={bar.x:.2f} "
+                            f"(bar top={bar.y:.4f}, obs top={obs_top:.4f})."
+                        )
+
+        # Rule 3 — title clearance (only active after _render_and_cache_title())
+        if self._title_ymin_data is not None:
+            for c in self._callouts:
+                if c.text_y >= self._title_ymin_data:
                     violations.append(
-                        f"Callout {c.text[:40]!r}: arrow from "
-                        f"({c.text_x:.2f}, {c.text_y:.4f}) → "
-                        f"({c.target_x:.2f}, {c.target_y:.4f}) "
-                        f"crosses bar at x={bar.x:.2f} (h={bar.y:.4f})."
+                        f"Callout {c.text[:40]!r}: text_y={c.text_y:.4f} overlaps "
+                        f"title bottom at y={self._title_ymin_data:.4f}. "
+                        "Move text lower or use same_row=True to share a row with "
+                        "a horizontally separated callout."
                     )
 
         return violations
@@ -477,6 +562,7 @@ class ChartCanvas:
     ) -> None:
         """Validate then save.  Raises ValueError if any violations exist."""
         self._render_phase_labels()
+        self._render_and_cache_title()
         violations = self.validate()
         if violations:
             bullet = "\n".join(f"  • {v}" for v in violations)
