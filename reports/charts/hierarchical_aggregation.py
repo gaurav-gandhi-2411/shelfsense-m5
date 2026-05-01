@@ -32,7 +32,7 @@ canvas.add_hline(0.6778, color=GREY, label="SN28 ref (0.6778)")
 # Callout — arc arrow from upper-center to Top-Down Category bar top
 # cursor ≈ 0.78 − 0.31×0.18×0.38 ≈ 0.7588; original text y was 0.735
 canvas.add_callout(
-    target_x=4.0, target_y=values[4] + 0.007,
+    target_x=4.0, target_y=canvas.bar_top_for_arrow(4.0),
     text="−0.108 vs Bottom-Up\n(category aggregation\ncancels sparse-series noise)",
     placement="free", x_offset=1.5, y_offset=-0.024,
     color=GREEN, fontweight="bold", fontsize=9.5,

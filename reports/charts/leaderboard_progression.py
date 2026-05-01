@@ -56,22 +56,27 @@ canvas.add_phase_label(4.5, "LightGBM\nglobal")
 canvas.add_phase_label(7.5, "Multi-horizon")
 canvas.add_phase_label(9.5, "Per-store")
 
-# Three callouts — placed with "free" so they all land at the same y in the margin
-# (bars at x=2,5,6 are well below cursor; no diagonal crossing)
+# Three top-margin callouts share one y-row (same_row=True keeps cursor stationary).
+# Text boxes are horizontally spread so they don't overlap each other.
+# L-shaped arrows (angle connectionstyle) give a vertical descent to each bar:
+#   horizontal leg travels from the text box to directly above the target bar,
+#   then a straight vertical leg drops to the bar tip — satisfying "no diagonal arrows."
 canvas.add_callout(
-    target_x=3, target_y=private_lb[3] + 0.015,
+    target_x=3, target_y=canvas.bar_top_for_arrow(3),
     text="Eval rows filled with SN28\nuntil recursive forecast added",
-    placement="free", x_offset=2.0, color=BLUE,
+    placement="top", x_offset=-1.0, color=BLUE, same_row=True,
+    connectionstyle="angle,angleA=0,angleB=-90",
 )
 canvas.add_callout(
-    target_x=4, target_y=private_lb[4] + 0.015,
+    target_x=4, target_y=canvas.bar_top_for_arrow(4),
     text="Cross-series learning\n−35% vs SN28 baseline",
-    placement="free", x_offset=5.5, color=BLUE,
+    placement="top", x_offset=+1.5, color=BLUE, same_row=True,
+    connectionstyle="angle,angleA=180,angleB=-90",
 )
 canvas.add_callout(
-    target_x=8, target_y=private_lb[8] + 0.015,
+    target_x=8, target_y=canvas.bar_top_for_arrow(8),
     text="Direct 28-step prediction\neliminates compounding  ★ best",
-    placement="free", x_offset=8.0, color=PURPLE, fontweight="bold",
+    placement="top", x_offset=0, color=PURPLE, fontweight="bold",
 )
 
 canvas.add_legend([

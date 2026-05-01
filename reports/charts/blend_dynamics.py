@@ -38,10 +38,9 @@ canvas_a.set_ylim(0.60, 0.97)
 canvas_a.set_xticks(np.arange(2), labels_a, fontsize=11)
 
 canvas_a.add_callout(
-    target_x=1, target_y=private_a[1] + 0.015,
+    target_x=1, target_y=canvas_a.bar_top_for_arrow(1),
     text="Blend −0.101\non private LB",
-    # "free" positions text at y=0.930, clear of the panel title
-    placement="free", x_offset=1.0, y_offset=-0.015,
+    placement="top", x_offset=0,
     color=GREEN, fontweight="bold", fontsize=10,
 )
 canvas_a.ax.legend(handles=[
@@ -66,7 +65,7 @@ canvas_b.set_ylim(0.60, 0.97)
 canvas_b.set_xticks(np.arange(2), labels_b, fontsize=11)
 
 canvas_b.add_callout(
-    target_x=1, target_y=private_b[1] + 0.003,
+    target_x=1, target_y=canvas_b.bar_top_for_arrow(1),
     text="Blend +0.002\n(global recursive\nadds noise, not signal)",
     # "free" positions text at y=0.860, well below the panel title
     placement="free", x_offset=1.0, y_offset=-0.085,
