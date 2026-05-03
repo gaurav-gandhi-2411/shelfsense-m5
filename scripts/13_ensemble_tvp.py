@@ -4,7 +4,12 @@ WS2.5 — Tweedie Power Sweep Ensemble Experiments
 Builds and submits 4 ensemble candidates from available LightGBM variants:
   mh_blend  (Day 9, tvp=1.5316, private LB 0.5854)
   tvp=1.3   (WS2.5 V2a, private LB 0.5693 — new best)
-  tvp=1.7   (WS2.5 V2c, TBD)
+  tvp=1.7   (WS2.5 V2c, private LB 0.6623)
+
+All val WRMSSE computed from the SAME origin (d_1913) using multi-horizon
+direct predictions. Day 9 pkl models are reloaded to get comparable mh_blend
+val preds — avoids oracle bias from extracting single-step rows from the
+submission CSV.
 
 Ensemble candidates (eval rows only; val rows always use single-step oracle):
   1. tvp13_mhblend_5050     — 0.5 × tvp=1.3  + 0.5 × mh_blend
@@ -16,7 +21,7 @@ Usage:
   python scripts/13_ensemble_tvp.py
 """
 from __future__ import annotations
-import sys, os, time, json, warnings
+import sys, os, time, json, pickle, warnings
 warnings.filterwarnings("ignore")
 
 _SP = "C:/Users/gaura/anaconda3/Lib/site-packages"
@@ -46,6 +51,23 @@ PREDS_DIR = os.path.join(PROJ_ROOT, "data", "predictions")
 REPORTS   = os.path.join(PROJ_ROOT, "reports")
 SUBS      = os.path.join(PROJ_ROOT, "submissions")
 MODELS    = os.path.join(PROJ_ROOT, "data", "models")
+MH_DIR    = os.path.join(MODELS, "multi_horizon")
+
+# Must match Day 9 ALL_FEATURES exactly (model was trained on these)
+CAT_FEATURES = ["cat_id", "dept_id", "store_id", "state_id"]
+NUM_FEATURES = [
+    "weekday", "month", "quarter", "year", "day_of_month", "week_of_year",
+    "is_weekend", "is_holiday", "is_snap_ca", "is_snap_tx", "is_snap_wi",
+    "days_since_event", "days_until_next_event",
+    "sell_price", "price_change_pct", "price_relative_mean",
+    "price_volatility", "has_price_change",
+    "lag_7", "lag_14", "lag_28", "lag_56",
+    "roll_mean_7",  "roll_std_7",  "roll_min_7",  "roll_max_7",
+    "roll_mean_28", "roll_std_28", "roll_min_28", "roll_max_28",
+    "roll_mean_56", "roll_std_56", "roll_min_56", "roll_max_56",
+    "roll_mean_180","roll_std_180","roll_min_180","roll_max_180",
+]
+ALL_FEATURES = NUM_FEATURES + CAT_FEATURES
 
 LAST_TRAIN = 1913
 HORIZON    = 28
@@ -121,9 +143,25 @@ val_1p3 = val_1p3.set_index("id").loc[series_ids, f_cols].values.astype(np.float
 val_1p7 = pd.read_parquet(os.path.join(PREDS_DIR, "lgbm_tvp_1p7_val.parquet"))
 val_1p7 = val_1p7.set_index("id").loc[series_ids, f_cols].values.astype(np.float32)
 
-# mh_blend val rows come from single-step oracle — extract from mh_blend submission
-val_ids   = [s.replace("_evaluation", "_validation") for s in series_ids]
-val_mh    = mh_sub.loc[val_ids, f_cols].values.astype(np.float32)
+# Same-origin mh_blend val predictions: reload Day 9 pkl models, predict from d_1913.
+# This avoids oracle bias from the submission CSV's single-step rows.
+print("    Loading Day 9 multi-horizon models for same-origin val preds...")
+t0 = time.time()
+mh_models = {}
+for h in range(1, HORIZON + 1):
+    with open(os.path.join(MH_DIR, f"h_{h:02d}.pkl"), "rb") as _f:
+        mh_models[h] = pickle.load(_f)
+val_mh = np.zeros((n_series, HORIZON), dtype=np.float32)
+for h in range(1, HORIZON + 1):
+    val_mh[:, h-1] = np.clip(
+        mh_models[h].predict(df_val_origin[ALL_FEATURES]), 0.0, None
+    ).astype(np.float32)
+del mh_models
+print(f"    Day 9 val preds done in {time.time()-t0:.1f}s  shape={val_mh.shape}")
+val_ids = [s.replace("_evaluation", "_validation") for s in series_ids]
+# Oracle single-step val rows for submission (lgbm_best.pkl preds via mh_blend CSV).
+# Used ONLY in the submission file — not for Optuna/WRMSSE scoring.
+val_oracle_mat = mh_sub.loc[val_ids, f_cols].values.astype(np.float32)
 
 def score_preds(preds_mat, sids):
     sub  = sales_eval[sales_eval["id"].isin(sids)].set_index("id").reindex(sids).reset_index()
@@ -141,7 +179,7 @@ w_1p7 = score_preds(val_1p7, series_ids)
 w_mh  = score_preds(val_mh,  series_ids)
 print(f"    tvp=1.3:  {w_1p3:.4f}")
 print(f"    tvp=1.7:  {w_1p7:.4f}")
-print(f"    mh_blend: {w_mh:.4f}  (single-step oracle val rows — different scoring basis)")
+print(f"    mh_blend: {w_mh:.4f}  (same-origin d_1913 multi-horizon, comparable to tvp variants)")
 
 # ── 4. Build and score ensemble candidates ────────────────────────────────────
 print("\n[4] Building ensemble candidates (val WRMSSE for Optuna, eval preds for submission)...")
@@ -155,7 +193,7 @@ candidates = {
                              (val_1p3  + val_1p7  + val_mh) / 3.0),
 }
 
-print("\n    Candidate val WRMSSEs (approximate — val rows use oracle for mh):")
+print("\n    Candidate val WRMSSEs (all same-origin d_1913, no oracle bias):")
 for name, (_, vmat) in candidates.items():
     w = score_preds(vmat, series_ids)
     print(f"    {name}: {w:.4f}")
@@ -194,13 +232,10 @@ candidates["optuna_blend"] = (optuna_eval, optuna_val)
 # ── 6. Build submissions ───────────────────────────────────────────────────────
 print("\n[6] Building submissions...")
 
-# Single-step oracle val preds (same val rows as mh_blend — reuse from mh_blend submission)
-# val_mh is already the oracle val preds from mh_blend's val rows
-
 def build_submission(eval_mat, fname):
     base     = sn28.copy().set_index("id")
-    # val rows: use single-step oracle (from mh_blend)
-    vdf = pd.DataFrame(val_mh, columns=f_cols)
+    # val rows: use single-step oracle (lgbm_best.pkl preds, via mh_blend submission)
+    vdf = pd.DataFrame(val_oracle_mat, columns=f_cols)
     vdf.insert(0, "id", val_ids)
     val_idx = pd.Index(val_ids).intersection(base.index)
     base.loc[val_idx] = vdf.set_index("id").loc[val_idx]
