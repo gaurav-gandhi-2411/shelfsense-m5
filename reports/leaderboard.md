@@ -229,6 +229,8 @@ The M5 competition has separate public (validation) and private (evaluation) lea
 | **MH blend (best private LB)** | 0.5422 | **0.5854** | 0.5×MH + 0.5×recursive; best private LB |
 | Per-store only | 0.6140 | **0.6410** | Per-store recursive; beats blend (0.6430) — global recursive too weak to help |
 | Per-store blend | 0.5736 | 0.6430 | Blending in weaker global recursive hurts vs per-store-only |
+| Per-dept (WS2.5 V1) | 0.7332 | **0.6137** | Naive dept split, shared features; worse than MH blend but better than per-store |
+| **tvp=1.3 (WS2.5 V2a)** | **0.5422** | **0.5693** | **New best — zero-inflation emphasis, beats mh_blend by 0.016** |
 
 Interpretation: on the public LB (validation period), the 1k-sample models can't distinguish from SN28. On the private LB (true evaluation period), ARIMA and ETS show small private-score improvements — likely because they capture some trend signal that SN28 misses, and the evaluation period differs structurally from the validation period.
 

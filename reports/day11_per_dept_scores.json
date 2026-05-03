@@ -1,0 +1,164 @@
+{
+  "variant": "lgbm_per_dept",
+  "n_depts": 7,
+  "total_models": 196,
+  "total_train_min": 6.20007631778717,
+  "overall_val_wrmsse": 0.7332606635932931,
+  "reference_private_lb": 0.5854,
+  "per_dept": {
+    "FOODS_1": {
+      "n_series": 2160,
+      "val_wrmsse": 1.1751497541892155,
+      "optuna_best": 3.9594261838993674,
+      "best_params": {
+        "objective": "tweedie",
+        "metric": "tweedie",
+        "verbose": -1,
+        "num_threads": 0,
+        "seed": 42,
+        "bagging_freq": 1,
+        "learning_rate": 0.1,
+        "num_leaves": 32,
+        "min_data_in_leaf": 100,
+        "feature_fraction": 0.8,
+        "bagging_fraction": 0.8,
+        "lambda_l2": 0.0,
+        "tweedie_variance_power": 1.51171889233181
+      },
+      "train_time_min": 0.00788570245107015,
+      "h_scores": {}
+    },
+    "FOODS_2": {
+      "n_series": 3980,
+      "val_wrmsse": 0.9713075299912205,
+      "optuna_best": 4.166495378365561,
+      "best_params": {
+        "objective": "tweedie",
+        "metric": "tweedie",
+        "verbose": -1,
+        "num_threads": 0,
+        "seed": 42,
+        "bagging_freq": 1,
+        "learning_rate": 0.025,
+        "num_leaves": 64,
+        "min_data_in_leaf": 50,
+        "feature_fraction": 0.9,
+        "bagging_fraction": 0.9,
+        "lambda_l2": 0.0,
+        "tweedie_variance_power": 1.5119488063755266
+      },
+      "train_time_min": 0.0037680586179097493,
+      "h_scores": {}
+    },
+    "FOODS_3": {
+      "n_series": 8230,
+      "val_wrmsse": 0.6587321504067337,
+      "optuna_best": 4.9795559151821704,
+      "best_params": {
+        "objective": "tweedie",
+        "metric": "tweedie",
+        "verbose": -1,
+        "num_threads": 0,
+        "seed": 42,
+        "bagging_freq": 1,
+        "learning_rate": 0.025,
+        "num_leaves": 128,
+        "min_data_in_leaf": 100,
+        "feature_fraction": 0.7,
+        "bagging_fraction": 0.7,
+        "lambda_l2": 0.1,
+        "tweedie_variance_power": 1.612558965126777
+      },
+      "train_time_min": 0.001291505495707194,
+      "h_scores": {}
+    },
+    "HOUSEHOLD_1": {
+      "n_series": 5320,
+      "val_wrmsse": 0.6496920484947207,
+      "optuna_best": 4.35432107007746,
+      "best_params": {
+        "objective": "tweedie",
+        "metric": "tweedie",
+        "verbose": -1,
+        "num_threads": 0,
+        "seed": 42,
+        "bagging_freq": 1,
+        "learning_rate": 0.1,
+        "num_leaves": 128,
+        "min_data_in_leaf": 100,
+        "feature_fraction": 0.9,
+        "bagging_fraction": 0.7,
+        "lambda_l2": 0.5,
+        "tweedie_variance_power": 1.4782742212301723
+      },
+      "train_time_min": 0.0029155492782592775,
+      "h_scores": {}
+    },
+    "HOUSEHOLD_2": {
+      "n_series": 5150,
+      "val_wrmsse": 0.8101446239827942,
+      "optuna_best": 2.1672692387672905,
+      "best_params": {
+        "objective": "tweedie",
+        "metric": "tweedie",
+        "verbose": -1,
+        "num_threads": 0,
+        "seed": 42,
+        "bagging_freq": 1,
+        "learning_rate": 0.05,
+        "num_leaves": 32,
+        "min_data_in_leaf": 100,
+        "feature_fraction": 0.7,
+        "bagging_fraction": 0.9,
+        "lambda_l2": 0.0,
+        "tweedie_variance_power": 1.3887915650067049
+      },
+      "train_time_min": 0.008966358502705891,
+      "h_scores": {}
+    },
+    "HOBBIES_1": {
+      "n_series": 4160,
+      "val_wrmsse": 0.7174323819161543,
+      "optuna_best": 3.164054458885511,
+      "best_params": {
+        "objective": "tweedie",
+        "metric": "tweedie",
+        "verbose": -1,
+        "num_threads": 0,
+        "seed": 42,
+        "bagging_freq": 1,
+        "learning_rate": 0.025,
+        "num_leaves": 64,
+        "min_data_in_leaf": 20,
+        "feature_fraction": 0.7,
+        "bagging_fraction": 0.8,
+        "lambda_l2": 0.0,
+        "tweedie_variance_power": 1.4398078855139422
+      },
+      "train_time_min": 0.0066675504048665365,
+      "h_scores": {}
+    },
+    "HOBBIES_2": {
+      "n_series": 1490,
+      "val_wrmsse": 1.413802508632135,
+      "optuna_best": 1.6910612986417979,
+      "best_params": {
+        "objective": "tweedie",
+        "metric": "tweedie",
+        "verbose": -1,
+        "num_threads": 0,
+        "seed": 42,
+        "bagging_freq": 1,
+        "learning_rate": 0.025,
+        "num_leaves": 128,
+        "min_data_in_leaf": 50,
+        "feature_fraction": 0.7,
+        "bagging_fraction": 0.9,
+        "lambda_l2": 0.0,
+        "tweedie_variance_power": 1.3714894066500498
+      },
+      "train_time_min": 0.01904728412628174,
+      "h_scores": {}
+    }
+  }
+}
