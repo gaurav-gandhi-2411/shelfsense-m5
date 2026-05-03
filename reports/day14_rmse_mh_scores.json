@@ -1,0 +1,16 @@
+{
+  "rmse_mh_val_wrmsse": 0.6699427098964582,
+  "tvp13_val_wrmsse": 0.686,
+  "delta": -0.016057290103541844,
+  "optuna_ensemble": {
+    "n_trials": 50,
+    "best_val": 0.669799404088469,
+    "improvement_vs_tvp13": 0.016200595911531,
+    "weights": {
+      "w_rmse": 0.9171910564413998,
+      "w_13": 0.08280894355860029
+    },
+    "threshold": 0.005,
+    "built_ensemble_csv": 1
+  }
+}
