@@ -19,7 +19,7 @@ Output schema (per row = one series × one day):
             days_since_event, days_until_next_event
   Price   : sell_price, price_change_pct, price_relative_mean,
             price_volatility, has_price_change
-  Lags    : lag_7, lag_14, lag_28, lag_56
+  Lags    : lag_7, lag_14, lag_28, lag_56, lag_91, lag_182, lag_364
   Rolling : roll_{mean,std,min,max}_{7,28,56,180}  (16 cols)
 """
 from __future__ import annotations

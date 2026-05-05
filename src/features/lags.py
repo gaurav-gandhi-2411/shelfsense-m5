@@ -2,16 +2,20 @@
 Lag features for M5.
 
 Input:  long-format DataFrame sorted by (id, d_num), containing 'id', 'd_num', 'sales'.
-Output: same DataFrame with lag_7, lag_14, lag_28, lag_56 columns appended (float32).
+Output: same DataFrame with lag columns appended (float32).
 
 Leakage note: lag_N at day d = sales at day (d - N).  Requires df sorted by (id, d_num).
+
+lag_91/182/364 are always populated for d_num >= 365. For training at d_num >= 1000
+(FEAT_START) all three are fully available. They will be NaN for d_num < 365 in the
+full parquet — expected and benign (those rows are excluded at training time).
 """
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 
-LAGS = [7, 14, 28, 56]
+LAGS = [7, 14, 28, 56, 91, 182, 364]
 
 
 def add_lags(
