@@ -366,7 +366,7 @@ if SUBMIT_ENS:
     if result2.returncode != 0:
         print(f"WARN: ensemble submit stderr: {result2.stderr.strip()}")
 else:
-    print("    Ensemble CSV saved but not submitted (improvement ≤ 0.005).")
+    print("    Ensemble CSV saved but not submitted (improvement <= 0.005).")
 
 # ── 11. Save results JSON ─────────────────────────────────────────────────────
 def make_serial(obj):

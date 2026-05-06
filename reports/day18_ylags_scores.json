@@ -1,0 +1,51 @@
+{
+  "variant": "ylags_mh",
+  "design_hash": "9d2ccbbf",
+  "feature_count": 45,
+  "new_features": ["lag_91", "lag_182", "lag_364"],
+  "total_train_min": 234.0,
+  "val_wrmsse": 0.683,
+  "ref_tvp13_val": 0.686,
+  "ref_sd_val": 0.6294,
+  "delta_vs_tvp13": -0.003,
+  "ensemble": {
+    "best_val": 0.6292,
+    "improvement": 0.0002,
+    "submitted": false,
+    "weights": {
+      "ylags_mh": 0.056,
+      "tvp_1p3": 0.185,
+      "store_dept": 0.758
+    }
+  },
+  "per_horizon": {
+    "1":  {"best_iter": 1134, "val_tweedie": 4.9967, "train_s": 663},
+    "2":  {"best_iter": 1009, "val_tweedie": 5.0037, "train_s": 610},
+    "3":  {"best_iter": 1596, "val_tweedie": 5.0088, "train_s": 864},
+    "4":  {"best_iter": 1172, "val_tweedie": 5.0134, "train_s": 624},
+    "5":  {"best_iter": 1008, "val_tweedie": 5.0176, "train_s": 562},
+    "6":  {"best_iter": 1217, "val_tweedie": 5.0219, "train_s": 651},
+    "7":  {"best_iter":  999, "val_tweedie": 5.0260, "train_s": 530},
+    "8":  {"best_iter": 1420, "val_tweedie": 5.0288, "train_s": 672},
+    "9":  {"best_iter": 1453, "val_tweedie": 5.0312, "train_s": 578},
+    "10": {"best_iter":  785, "val_tweedie": 5.0351, "train_s": 359},
+    "11": {"best_iter": 1526, "val_tweedie": 5.0370, "train_s": 552},
+    "12": {"best_iter": 1403, "val_tweedie": 5.0387, "train_s": 505},
+    "13": {"best_iter": 1332, "val_tweedie": 5.0420, "train_s": 487},
+    "14": {"best_iter":  854, "val_tweedie": 5.0454, "train_s": 349},
+    "15": {"best_iter": 1051, "val_tweedie": 5.0470, "train_s": 407},
+    "16": {"best_iter": 1168, "val_tweedie": 5.0490, "train_s": 447},
+    "17": {"best_iter":  687, "val_tweedie": 5.0518, "train_s": 308},
+    "18": {"best_iter": 1362, "val_tweedie": 5.0522, "train_s": 493},
+    "19": {"best_iter": 1710, "val_tweedie": 5.0545, "train_s": 579},
+    "20": {"best_iter": 1191, "val_tweedie": 5.0571, "train_s": 443},
+    "21": {"best_iter": 1020, "val_tweedie": 5.0588, "train_s": 394},
+    "22": {"best_iter": 1478, "val_tweedie": 5.0605, "train_s": 514},
+    "23": {"best_iter": 1118, "val_tweedie": 5.0632, "train_s": 425},
+    "24": {"best_iter": 1012, "val_tweedie": 5.0644, "train_s": 396},
+    "25": {"best_iter": 1244, "val_tweedie": 5.0660, "train_s": 454},
+    "26": {"best_iter": 1158, "val_tweedie": 5.0676, "train_s": 433},
+    "27": {"best_iter":  898, "val_tweedie": 5.0688, "train_s": 358},
+    "28": {"best_iter":  204, "val_tweedie": 5.0785, "train_s": 139}
+  }
+}
