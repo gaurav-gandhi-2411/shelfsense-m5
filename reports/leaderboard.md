@@ -230,8 +230,9 @@ The M5 competition has separate public (validation) and private (evaluation) lea
 | Per-store only | 0.6140 | **0.6410** | Per-store recursive; beats blend (0.6430) — global recursive too weak to help |
 | Per-store blend | 0.5736 | 0.6430 | Blending in weaker global recursive hurts vs per-store-only |
 | Per-dept (WS2.5 V1) | 0.7332 | **0.6137** | Naive dept split, shared features; worse than MH blend but better than per-store |
-| **tvp=1.3 (WS2.5 V2a)** | **0.5422** | **0.5693** | **Current best — zero-inflation emphasis, beats mh_blend by 0.016** |
+| **tvp=1.3 (WS2.5 V2a)** | **0.5422** | **0.5693** | **Best private LB to date — zero-inflation emphasis, beats mh_blend by 0.016** |
 | RMSE multi-horizon (WS2.5 V3) | 0.5422 | 0.6205 | RMSE-MH val 0.6699 (better than tvp=1.3's 0.6860) but private LB reverses — Tweedie's zero-inflation better suited for eval period (68% zero rate) |
+| **Store×Dept 70-slice (WS2.5 V4, pending)** | **0.6294 (val)** | **pending** | **Same-origin val −0.0566 vs tvp=1.3 baseline (0.6860). Recursive forecasting. 70 models, 10 stores × 7 depts. Optuna 10 trials/slice. Submitted to Kaggle 2026-05-06.** |
 
 Interpretation: on the public LB (validation period), the 1k-sample models can't distinguish from SN28. On the private LB (true evaluation period), ARIMA and ETS show small private-score improvements — likely because they capture some trend signal that SN28 misses, and the evaluation period differs structurally from the validation period.
 

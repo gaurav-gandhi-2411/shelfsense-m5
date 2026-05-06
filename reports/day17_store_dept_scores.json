@@ -1,0 +1,1084 @@
+{
+  "design_hash": "ca9c89df",
+  "design": {
+    "objective": "tweedie",
+    "tvp": 1.3,
+    "feat_start": 1000,
+    "last_train": 1913,
+    "val_start": 1886,
+    "n_optuna": 10,
+    "feature_set": "v1_38num_4cat"
+  },
+  "n_slices_trained": 70,
+  "n_slices_cached": 0,
+  "total_train_min": 145.5,
+  "sd_full_val_wrmsse": 0.6293991005145139,
+  "tvp13_baseline": 0.686,
+  "delta_vs_tvp13": -0.0566,
+  "ens_val_wrmsse": 0.6283063499100319,
+  "ens_weight_sd": 0.8847417334878682,
+  "ens_degenerate": 1,
+  "n_fallback_series": 0,
+  "warn_list": [],
+  "dept_avg_val_tweedie": {
+    "FOODS_1": 5.0767,
+    "FOODS_2": 5.4622,
+    "FOODS_3": 7.2888,
+    "HOBBIES_1": 3.7025,
+    "HOBBIES_2": 1.697,
+    "HOUSEHOLD_1": 5.5871,
+    "HOUSEHOLD_2": 2.2655
+  },
+  "per_slice": {
+    "CA_1_FOODS_1": {
+      "n_series": 216,
+      "val_wrmsse": 0.6626586090867059,
+      "val_tweedie": 5.1915159033745,
+      "best_iter": 94,
+      "train_time": 25.261595964431763,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.048510627533703096,
+        "num_leaves": 81,
+        "min_data_in_leaf": 66,
+        "feature_fraction": 0.8950157048601426,
+        "bagging_fraction": 0.9225321502294931
+      }
+    },
+    "CA_1_FOODS_2": {
+      "n_series": 398,
+      "val_wrmsse": 0.5453306632262472,
+      "val_tweedie": 5.236690895903337,
+      "best_iter": 425,
+      "train_time": 46.900875091552734,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.04984371622448944,
+        "num_leaves": 57,
+        "min_data_in_leaf": 96,
+        "feature_fraction": 0.8859776253604699,
+        "bagging_fraction": 0.7283709088476054
+      }
+    },
+    "CA_1_FOODS_3": {
+      "n_series": 823,
+      "val_wrmsse": 0.6043666192888438,
+      "val_tweedie": 8.192845788007512,
+      "best_iter": 339,
+      "train_time": 56.952630043029785,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.010820153067195542,
+        "num_leaves": 93,
+        "min_data_in_leaf": 100,
+        "feature_fraction": 0.7533466318813652,
+        "bagging_fraction": 0.6139069884406585
+      }
+    },
+    "CA_1_HOBBIES_1": {
+      "n_series": 416,
+      "val_wrmsse": 0.6899847004478437,
+      "val_tweedie": 4.653568531672267,
+      "best_iter": 60,
+      "train_time": 21.88728618621826,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.05669853730384975,
+        "num_leaves": 85,
+        "min_data_in_leaf": 87,
+        "feature_fraction": 0.596758155217854,
+        "bagging_fraction": 0.6598687751859894
+      }
+    },
+    "CA_1_HOBBIES_2": {
+      "n_series": 149,
+      "val_wrmsse": 0.7544986076228053,
+      "val_tweedie": 1.6600050350040318,
+      "best_iter": 540,
+      "train_time": 23.51987314224243,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.012612861363893783,
+        "num_leaves": 97,
+        "min_data_in_leaf": 51,
+        "feature_fraction": 0.6211601848352251,
+        "bagging_fraction": 0.6102067487172144
+      }
+    },
+    "CA_1_HOUSEHOLD_1": {
+      "n_series": 532,
+      "val_wrmsse": 0.49872025548285465,
+      "val_tweedie": 5.579336572808613,
+      "best_iter": 191,
+      "train_time": 33.65230655670166,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.017501928904720267,
+        "num_leaves": 114,
+        "min_data_in_leaf": 96,
+        "feature_fraction": 0.8476493148614248,
+        "bagging_fraction": 0.9200503066082286
+      }
+    },
+    "CA_1_HOUSEHOLD_2": {
+      "n_series": 515,
+      "val_wrmsse": 0.5514153563943046,
+      "val_tweedie": 2.424911633478931,
+      "best_iter": 292,
+      "train_time": 28.03656268119812,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.034376986879980774,
+        "num_leaves": 75,
+        "min_data_in_leaf": 27,
+        "feature_fraction": 0.6657683577107051,
+        "bagging_fraction": 0.7659565621072474
+      }
+    },
+    "CA_2_FOODS_1": {
+      "n_series": 216,
+      "val_wrmsse": 0.8784269730942578,
+      "val_tweedie": 7.14988694951132,
+      "best_iter": 245,
+      "train_time": 22.24947428703308,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.02108134770332675,
+        "num_leaves": 91,
+        "min_data_in_leaf": 53,
+        "feature_fraction": 0.5850960438739038,
+        "bagging_fraction": 0.9435191623594089
+      }
+    },
+    "CA_2_FOODS_2": {
+      "n_series": 398,
+      "val_wrmsse": 1.180066865986588,
+      "val_tweedie": 5.1517445266912,
+      "best_iter": 653,
+      "train_time": 31.294185161590576,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.015776466681865706,
+        "num_leaves": 78,
+        "min_data_in_leaf": 79,
+        "feature_fraction": 0.9933044232216044,
+        "bagging_fraction": 0.5581420611348775
+      }
+    },
+    "CA_2_FOODS_3": {
+      "n_series": 823,
+      "val_wrmsse": 0.7004613418586643,
+      "val_tweedie": 7.669080553347248,
+      "best_iter": 364,
+      "train_time": 67.03233909606934,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.04508611805398593,
+        "num_leaves": 63,
+        "min_data_in_leaf": 23,
+        "feature_fraction": 0.9198939696023753,
+        "bagging_fraction": 0.5066563674498277
+      }
+    },
+    "CA_2_HOBBIES_1": {
+      "n_series": 416,
+      "val_wrmsse": 0.808530595224164,
+      "val_tweedie": 3.91201598016261,
+      "best_iter": 174,
+      "train_time": 35.22940802574158,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.033722365078412433,
+        "num_leaves": 96,
+        "min_data_in_leaf": 69,
+        "feature_fraction": 0.5298598193050287,
+        "bagging_fraction": 0.7313209276778647
+      }
+    },
+    "CA_2_HOBBIES_2": {
+      "n_series": 149,
+      "val_wrmsse": 1.212623437271677,
+      "val_tweedie": 1.7923076010608632,
+      "best_iter": 163,
+      "train_time": 11.58202838897705,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.017688099201532477,
+        "num_leaves": 110,
+        "min_data_in_leaf": 41,
+        "feature_fraction": 0.9508645121199165,
+        "bagging_fraction": 0.9633546888542441
+      }
+    },
+    "CA_2_HOUSEHOLD_1": {
+      "n_series": 532,
+      "val_wrmsse": 0.7602507359295964,
+      "val_tweedie": 5.890038877717124,
+      "best_iter": 154,
+      "train_time": 20.486330270767212,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.018241831278353726,
+        "num_leaves": 81,
+        "min_data_in_leaf": 81,
+        "feature_fraction": 0.8754997008885966,
+        "bagging_fraction": 0.8797127569206165
+      }
+    },
+    "CA_2_HOUSEHOLD_2": {
+      "n_series": 515,
+      "val_wrmsse": 0.7981992316608225,
+      "val_tweedie": 3.0770213988795754,
+      "best_iter": 47,
+      "train_time": 31.41857361793518,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.0928265775907631,
+        "num_leaves": 74,
+        "min_data_in_leaf": 32,
+        "feature_fraction": 0.535350830312465,
+        "bagging_fraction": 0.5142251117262463
+      }
+    },
+    "CA_3_FOODS_1": {
+      "n_series": 216,
+      "val_wrmsse": 0.973717101150588,
+      "val_tweedie": 6.29404967056984,
+      "best_iter": 245,
+      "train_time": 24.348448991775513,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.037301457192817716,
+        "num_leaves": 76,
+        "min_data_in_leaf": 36,
+        "feature_fraction": 0.7264537974320666,
+        "bagging_fraction": 0.9351813755718716
+      }
+    },
+    "CA_3_FOODS_2": {
+      "n_series": 398,
+      "val_wrmsse": 0.6327387504327525,
+      "val_tweedie": 6.309608273327974,
+      "best_iter": 320,
+      "train_time": 32.996867656707764,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.03295026408101087,
+        "num_leaves": 80,
+        "min_data_in_leaf": 49,
+        "feature_fraction": 0.9000189224570911,
+        "bagging_fraction": 0.8625871986965408
+      }
+    },
+    "CA_3_FOODS_3": {
+      "n_series": 823,
+      "val_wrmsse": 0.6323281673601466,
+      "val_tweedie": 9.731911639297111,
+      "best_iter": 445,
+      "train_time": 139.56899523735046,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.05455848722874716,
+        "num_leaves": 107,
+        "min_data_in_leaf": 42,
+        "feature_fraction": 0.6633247145542156,
+        "bagging_fraction": 0.9610706960449709
+      }
+    },
+    "CA_3_HOBBIES_1": {
+      "n_series": 416,
+      "val_wrmsse": 0.5620977997627236,
+      "val_tweedie": 4.824114458681887,
+      "best_iter": 331,
+      "train_time": 34.643083572387695,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.021639177461789987,
+        "num_leaves": 85,
+        "min_data_in_leaf": 82,
+        "feature_fraction": 0.5265577546979204,
+        "bagging_fraction": 0.9668772253553882
+      }
+    },
+    "CA_3_HOBBIES_2": {
+      "n_series": 149,
+      "val_wrmsse": 1.4548149693128642,
+      "val_tweedie": 2.1271272685660407,
+      "best_iter": 106,
+      "train_time": 10.230379581451416,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.03906949883938091,
+        "num_leaves": 118,
+        "min_data_in_leaf": 86,
+        "feature_fraction": 0.5415138358341733,
+        "bagging_fraction": 0.9615530868249471
+      }
+    },
+    "CA_3_HOUSEHOLD_1": {
+      "n_series": 532,
+      "val_wrmsse": 0.6221479176522198,
+      "val_tweedie": 8.46708268605365,
+      "best_iter": 1064,
+      "train_time": 67.79556584358215,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.01128336563731184,
+        "num_leaves": 71,
+        "min_data_in_leaf": 92,
+        "feature_fraction": 0.8157795432897835,
+        "bagging_fraction": 0.8688227315530777
+      }
+    },
+    "CA_3_HOUSEHOLD_2": {
+      "n_series": 515,
+      "val_wrmsse": 0.9145461176990944,
+      "val_tweedie": 3.093360113281843,
+      "best_iter": 608,
+      "train_time": 46.2404625415802,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.012493155445159576,
+        "num_leaves": 93,
+        "min_data_in_leaf": 42,
+        "feature_fraction": 0.9988810881101516,
+        "bagging_fraction": 0.775268581462773
+      }
+    },
+    "CA_4_FOODS_1": {
+      "n_series": 216,
+      "val_wrmsse": 0.9835876462864842,
+      "val_tweedie": 4.145214640860518,
+      "best_iter": 306,
+      "train_time": 18.64261031150818,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.016853012463017576,
+        "num_leaves": 108,
+        "min_data_in_leaf": 27,
+        "feature_fraction": 0.9297975085633476,
+        "bagging_fraction": 0.7750981711375751
+      }
+    },
+    "CA_4_FOODS_2": {
+      "n_series": 398,
+      "val_wrmsse": 0.820586236613337,
+      "val_tweedie": 4.139991786586064,
+      "best_iter": 100,
+      "train_time": 32.5887246131897,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.08109116379079552,
+        "num_leaves": 69,
+        "min_data_in_leaf": 23,
+        "feature_fraction": 0.6236822541314633,
+        "bagging_fraction": 0.5493372496157551
+      }
+    },
+    "CA_4_FOODS_3": {
+      "n_series": 823,
+      "val_wrmsse": 0.6670828777004828,
+      "val_tweedie": 5.391186056008906,
+      "best_iter": 218,
+      "train_time": 66.85697197914124,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.016845027256586615,
+        "num_leaves": 117,
+        "min_data_in_leaf": 61,
+        "feature_fraction": 0.9221402435151052,
+        "bagging_fraction": 0.7992312473847376
+      }
+    },
+    "CA_4_HOBBIES_1": {
+      "n_series": 416,
+      "val_wrmsse": 0.9545771182631309,
+      "val_tweedie": 3.6231316282428554,
+      "best_iter": 269,
+      "train_time": 24.479288578033447,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.015028514521152595,
+        "num_leaves": 61,
+        "min_data_in_leaf": 70,
+        "feature_fraction": 0.6151604894373099,
+        "bagging_fraction": 0.647758744892732
+      }
+    },
+    "CA_4_HOBBIES_2": {
+      "n_series": 149,
+      "val_wrmsse": 0.870036574247043,
+      "val_tweedie": 0.9289623176418611,
+      "best_iter": 177,
+      "train_time": 12.336248397827148,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.0638087161352957,
+        "num_leaves": 39,
+        "min_data_in_leaf": 22,
+        "feature_fraction": 0.9627411382147649,
+        "bagging_fraction": 0.9679868246047476
+      }
+    },
+    "CA_4_HOUSEHOLD_1": {
+      "n_series": 532,
+      "val_wrmsse": 1.1733157309643492,
+      "val_tweedie": 3.6571675784593047,
+      "best_iter": 192,
+      "train_time": 30.095200061798096,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.014497410177404748,
+        "num_leaves": 126,
+        "min_data_in_leaf": 20,
+        "feature_fraction": 0.6789268934569661,
+        "bagging_fraction": 0.7745911434814483
+      }
+    },
+    "CA_4_HOUSEHOLD_2": {
+      "n_series": 515,
+      "val_wrmsse": 0.7141151967378367,
+      "val_tweedie": 1.8562293303338704,
+      "best_iter": 77,
+      "train_time": 19.06690812110901,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.086710717774592,
+        "num_leaves": 63,
+        "min_data_in_leaf": 63,
+        "feature_fraction": 0.6093106789411117,
+        "bagging_fraction": 0.6784816190287366
+      }
+    },
+    "TX_1_FOODS_1": {
+      "n_series": 216,
+      "val_wrmsse": 1.0097728516655717,
+      "val_tweedie": 3.881414317700664,
+      "best_iter": 184,
+      "train_time": 23.546348571777344,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.04646940881301802,
+        "num_leaves": 89,
+        "min_data_in_leaf": 29,
+        "feature_fraction": 0.6493311666121517,
+        "bagging_fraction": 0.9211176931390019
+      }
+    },
+    "TX_1_FOODS_2": {
+      "n_series": 398,
+      "val_wrmsse": 0.7379039051161653,
+      "val_tweedie": 3.9592711541793495,
+      "best_iter": 1118,
+      "train_time": 56.68356013298035,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.010344522305163134,
+        "num_leaves": 95,
+        "min_data_in_leaf": 21,
+        "feature_fraction": 0.8333705543309176,
+        "bagging_fraction": 0.8831026033954807
+      }
+    },
+    "TX_1_FOODS_3": {
+      "n_series": 823,
+      "val_wrmsse": 0.7033322261817534,
+      "val_tweedie": 5.863938067044594,
+      "best_iter": 225,
+      "train_time": 42.150720834732056,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.016607428324527582,
+        "num_leaves": 96,
+        "min_data_in_leaf": 87,
+        "feature_fraction": 0.8918789429396126,
+        "bagging_fraction": 0.5990988954028384
+      }
+    },
+    "TX_1_HOBBIES_1": {
+      "n_series": 416,
+      "val_wrmsse": 0.7199279716542226,
+      "val_tweedie": 2.966501912775477,
+      "best_iter": 158,
+      "train_time": 17.014160633087158,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.025399309671030858,
+        "num_leaves": 69,
+        "min_data_in_leaf": 77,
+        "feature_fraction": 0.5959630825037854,
+        "bagging_fraction": 0.577989926414789
+      }
+    },
+    "TX_1_HOBBIES_2": {
+      "n_series": 149,
+      "val_wrmsse": 1.3355639880181378,
+      "val_tweedie": 1.5247848597247209,
+      "best_iter": 124,
+      "train_time": 11.08617639541626,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.0290244614668964,
+        "num_leaves": 73,
+        "min_data_in_leaf": 21,
+        "feature_fraction": 0.5507840974583185,
+        "bagging_fraction": 0.6172737620084856
+      }
+    },
+    "TX_1_HOUSEHOLD_1": {
+      "n_series": 532,
+      "val_wrmsse": 0.8038139631105811,
+      "val_tweedie": 5.294195666317753,
+      "best_iter": 201,
+      "train_time": 28.879750728607178,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.01893462531081993,
+        "num_leaves": 115,
+        "min_data_in_leaf": 81,
+        "feature_fraction": 0.7505217261953678,
+        "bagging_fraction": 0.7022790366560296
+      }
+    },
+    "TX_1_HOUSEHOLD_2": {
+      "n_series": 515,
+      "val_wrmsse": 0.8622305424825832,
+      "val_tweedie": 2.091573314006407,
+      "best_iter": 277,
+      "train_time": 32.47288656234741,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.01593571321288796,
+        "num_leaves": 93,
+        "min_data_in_leaf": 69,
+        "feature_fraction": 0.537287229140903,
+        "bagging_fraction": 0.8651988420843207
+      }
+    },
+    "TX_2_FOODS_1": {
+      "n_series": 216,
+      "val_wrmsse": 0.8345801069136664,
+      "val_tweedie": 4.228973989560491,
+      "best_iter": 324,
+      "train_time": 35.607237339019775,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.014183910175449448,
+        "num_leaves": 115,
+        "min_data_in_leaf": 96,
+        "feature_fraction": 0.6492192380141562,
+        "bagging_fraction": 0.6260688593450081
+      }
+    },
+    "TX_2_FOODS_2": {
+      "n_series": 398,
+      "val_wrmsse": 0.6251668926843122,
+      "val_tweedie": 4.300461481159706,
+      "best_iter": 239,
+      "train_time": 62.111974239349365,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.02895563652154041,
+        "num_leaves": 102,
+        "min_data_in_leaf": 71,
+        "feature_fraction": 0.5217671291616828,
+        "bagging_fraction": 0.6089216566531663
+      }
+    },
+    "TX_2_FOODS_3": {
+      "n_series": 823,
+      "val_wrmsse": 0.5399611971629354,
+      "val_tweedie": 7.029450919806802,
+      "best_iter": 130,
+      "train_time": 73.46512722969055,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.03051156115615609,
+        "num_leaves": 122,
+        "min_data_in_leaf": 75,
+        "feature_fraction": 0.8964642934807256,
+        "bagging_fraction": 0.8299197005367105
+      }
+    },
+    "TX_2_HOBBIES_1": {
+      "n_series": 416,
+      "val_wrmsse": 0.8082297793602972,
+      "val_tweedie": 3.689374260117695,
+      "best_iter": 201,
+      "train_time": 40.014920473098755,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.027984448370687254,
+        "num_leaves": 79,
+        "min_data_in_leaf": 67,
+        "feature_fraction": 0.7044012626538558,
+        "bagging_fraction": 0.8188175874869204
+      }
+    },
+    "TX_2_HOBBIES_2": {
+      "n_series": 149,
+      "val_wrmsse": 0.8908037464671835,
+      "val_tweedie": 1.9314055388184987,
+      "best_iter": 105,
+      "train_time": 17.539077758789062,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.05315273860890801,
+        "num_leaves": 49,
+        "min_data_in_leaf": 65,
+        "feature_fraction": 0.6402411136140924,
+        "bagging_fraction": 0.6936720389848315
+      }
+    },
+    "TX_2_HOUSEHOLD_1": {
+      "n_series": 532,
+      "val_wrmsse": 0.5928184508412838,
+      "val_tweedie": 5.555924715505026,
+      "best_iter": 79,
+      "train_time": 53.28908181190491,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.04691640964243475,
+        "num_leaves": 120,
+        "min_data_in_leaf": 60,
+        "feature_fraction": 0.9245194175291362,
+        "bagging_fraction": 0.6977663392528797
+      }
+    },
+    "TX_2_HOUSEHOLD_2": {
+      "n_series": 515,
+      "val_wrmsse": 0.5376838424597631,
+      "val_tweedie": 2.329666890232396,
+      "best_iter": 235,
+      "train_time": 61.92847919464111,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.04612653291226939,
+        "num_leaves": 92,
+        "min_data_in_leaf": 29,
+        "feature_fraction": 0.615200261844119,
+        "bagging_fraction": 0.9461554282944409
+      }
+    },
+    "TX_3_FOODS_1": {
+      "n_series": 216,
+      "val_wrmsse": 1.1673870869499827,
+      "val_tweedie": 4.468202097192653,
+      "best_iter": 627,
+      "train_time": 43.47938394546509,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.024221789295878742,
+        "num_leaves": 106,
+        "min_data_in_leaf": 23,
+        "feature_fraction": 0.5158216622629798,
+        "bagging_fraction": 0.991908331569133
+      }
+    },
+    "TX_3_FOODS_2": {
+      "n_series": 398,
+      "val_wrmsse": 0.7395580833097223,
+      "val_tweedie": 4.950937267723784,
+      "best_iter": 496,
+      "train_time": 62.83238959312439,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.011508420126664481,
+        "num_leaves": 106,
+        "min_data_in_leaf": 45,
+        "feature_fraction": 0.7473021398747399,
+        "bagging_fraction": 0.7377027629710389
+      }
+    },
+    "TX_3_FOODS_3": {
+      "n_series": 823,
+      "val_wrmsse": 0.8764834069094084,
+      "val_tweedie": 6.419460588597848,
+      "best_iter": 45,
+      "train_time": 64.11911344528198,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.0748065342360245,
+        "num_leaves": 123,
+        "min_data_in_leaf": 96,
+        "feature_fraction": 0.8433714991514331,
+        "bagging_fraction": 0.7976794262994601
+      }
+    },
+    "TX_3_HOBBIES_1": {
+      "n_series": 416,
+      "val_wrmsse": 0.7458597761282563,
+      "val_tweedie": 3.5736202248043556,
+      "best_iter": 336,
+      "train_time": 58.05492281913757,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.016579900190415178,
+        "num_leaves": 40,
+        "min_data_in_leaf": 72,
+        "feature_fraction": 0.5443807282502144,
+        "bagging_fraction": 0.8903522423522716
+      }
+    },
+    "TX_3_HOBBIES_2": {
+      "n_series": 149,
+      "val_wrmsse": 1.4099270884831274,
+      "val_tweedie": 2.4020996299501363,
+      "best_iter": 21,
+      "train_time": 15.218697547912598,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.08818217919697545,
+        "num_leaves": 59,
+        "min_data_in_leaf": 46,
+        "feature_fraction": 0.6207769008978353,
+        "bagging_fraction": 0.8094715046135053
+      }
+    },
+    "TX_3_HOUSEHOLD_1": {
+      "n_series": 532,
+      "val_wrmsse": 0.7437596158561753,
+      "val_tweedie": 5.496436319574004,
+      "best_iter": 133,
+      "train_time": 59.31967115402222,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.029067464085719644,
+        "num_leaves": 110,
+        "min_data_in_leaf": 80,
+        "feature_fraction": 0.9551287839356674,
+        "bagging_fraction": 0.9320581502399459
+      }
+    },
+    "TX_3_HOUSEHOLD_2": {
+      "n_series": 515,
+      "val_wrmsse": 0.6731181805260977,
+      "val_tweedie": 2.0197134733612607,
+      "best_iter": 623,
+      "train_time": 3239.618305206299,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.011205463106628327,
+        "num_leaves": 120,
+        "min_data_in_leaf": 96,
+        "feature_fraction": 0.9800461232342796,
+        "bagging_fraction": 0.8357889217074814
+      }
+    },
+    "WI_1_FOODS_1": {
+      "n_series": 216,
+      "val_wrmsse": 0.6534299103841752,
+      "val_tweedie": 5.357184785157516,
+      "best_iter": 478,
+      "train_time": 33.66954040527344,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.03442781134054215,
+        "num_leaves": 112,
+        "min_data_in_leaf": 44,
+        "feature_fraction": 0.5842439817577021,
+        "bagging_fraction": 0.9836885937257678
+      }
+    },
+    "WI_1_FOODS_2": {
+      "n_series": 398,
+      "val_wrmsse": 0.900442440208823,
+      "val_tweedie": 6.2792975217225875,
+      "best_iter": 67,
+      "train_time": 36.22498106956482,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.06551315175324665,
+        "num_leaves": 108,
+        "min_data_in_leaf": 59,
+        "feature_fraction": 0.6966242057363694,
+        "bagging_fraction": 0.8699973899957727
+      }
+    },
+    "WI_1_FOODS_3": {
+      "n_series": 823,
+      "val_wrmsse": 0.5949504714591436,
+      "val_tweedie": 6.941336828364406,
+      "best_iter": 119,
+      "train_time": 83.36057472229004,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.07934220934712435,
+        "num_leaves": 96,
+        "min_data_in_leaf": 97,
+        "feature_fraction": 0.5308656481329381,
+        "bagging_fraction": 0.9817300207820024
+      }
+    },
+    "WI_1_HOBBIES_1": {
+      "n_series": 416,
+      "val_wrmsse": 0.5057244317437357,
+      "val_tweedie": 3.8918097304208583,
+      "best_iter": 137,
+      "train_time": 41.79949378967285,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.03888445087209711,
+        "num_leaves": 40,
+        "min_data_in_leaf": 99,
+        "feature_fraction": 0.5257892488157011,
+        "bagging_fraction": 0.7000425303071267
+      }
+    },
+    "WI_1_HOBBIES_2": {
+      "n_series": 149,
+      "val_wrmsse": 0.9901670700731119,
+      "val_tweedie": 1.5243815431061736,
+      "best_iter": 149,
+      "train_time": 15.658841133117676,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.03053653690193321,
+        "num_leaves": 44,
+        "min_data_in_leaf": 98,
+        "feature_fraction": 0.6438424076669695,
+        "bagging_fraction": 0.8377052687476253
+      }
+    },
+    "WI_1_HOUSEHOLD_1": {
+      "n_series": 532,
+      "val_wrmsse": 0.6585127638487999,
+      "val_tweedie": 4.734394061961404,
+      "best_iter": 179,
+      "train_time": 42.948951959609985,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.018482759852128775,
+        "num_leaves": 105,
+        "min_data_in_leaf": 81,
+        "feature_fraction": 0.7828149050466122,
+        "bagging_fraction": 0.9528518549290292
+      }
+    },
+    "WI_1_HOUSEHOLD_2": {
+      "n_series": 515,
+      "val_wrmsse": 0.8307806993194732,
+      "val_tweedie": 2.1037828122814672,
+      "best_iter": 78,
+      "train_time": 38.342164039611816,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.04388738518958775,
+        "num_leaves": 104,
+        "min_data_in_leaf": 49,
+        "feature_fraction": 0.5130302496065371,
+        "bagging_fraction": 0.8251545600523769
+      }
+    },
+    "WI_2_FOODS_1": {
+      "n_series": 216,
+      "val_wrmsse": 1.2590605316103602,
+      "val_tweedie": 5.698170866348879,
+      "best_iter": 219,
+      "train_time": 31.559860229492188,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.07252628316277965,
+        "num_leaves": 103,
+        "min_data_in_leaf": 67,
+        "feature_fraction": 0.9491159707080516,
+        "bagging_fraction": 0.7866066040163073
+      }
+    },
+    "WI_2_FOODS_2": {
+      "n_series": 398,
+      "val_wrmsse": 0.8603267525446917,
+      "val_tweedie": 8.765484333227477,
+      "best_iter": 436,
+      "train_time": 44.84940433502197,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.01689487452631069,
+        "num_leaves": 80,
+        "min_data_in_leaf": 42,
+        "feature_fraction": 0.8272246715406809,
+        "bagging_fraction": 0.5720143870074983
+      }
+    },
+    "WI_2_FOODS_3": {
+      "n_series": 823,
+      "val_wrmsse": 0.6697400365318668,
+      "val_tweedie": 8.292856261021429,
+      "best_iter": 336,
+      "train_time": 78.035471200943,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.04796268404565268,
+        "num_leaves": 62,
+        "min_data_in_leaf": 82,
+        "feature_fraction": 0.8904450917621355,
+        "bagging_fraction": 0.5433754404771942
+      }
+    },
+    "WI_2_HOBBIES_1": {
+      "n_series": 416,
+      "val_wrmsse": 0.8380449241421286,
+      "val_tweedie": 2.9791273269981353,
+      "best_iter": 228,
+      "train_time": 30.038240432739258,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.015922482911541535,
+        "num_leaves": 107,
+        "min_data_in_leaf": 76,
+        "feature_fraction": 0.9795575565535583,
+        "bagging_fraction": 0.7920690597272892
+      }
+    },
+    "WI_2_HOBBIES_2": {
+      "n_series": 149,
+      "val_wrmsse": 1.1349788055460812,
+      "val_tweedie": 1.5242768625488246,
+      "best_iter": 49,
+      "train_time": 9.61905574798584,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.05840855026621809,
+        "num_leaves": 41,
+        "min_data_in_leaf": 46,
+        "feature_fraction": 0.5465434471867345,
+        "bagging_fraction": 0.8906319240993052
+      }
+    },
+    "WI_2_HOUSEHOLD_1": {
+      "n_series": 532,
+      "val_wrmsse": 0.7196614976371046,
+      "val_tweedie": 6.327262435456858,
+      "best_iter": 67,
+      "train_time": 39.799335956573486,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.055992092484640585,
+        "num_leaves": 116,
+        "min_data_in_leaf": 84,
+        "feature_fraction": 0.7618059344393754,
+        "bagging_fraction": 0.9364140597519726
+      }
+    },
+    "WI_2_HOUSEHOLD_2": {
+      "n_series": 515,
+      "val_wrmsse": 0.9545501282256516,
+      "val_tweedie": 1.7540231417237597,
+      "best_iter": 165,
+      "train_time": 33.77595257759094,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.019542073873800966,
+        "num_leaves": 71,
+        "min_data_in_leaf": 65,
+        "feature_fraction": 0.9433617929487559,
+        "bagging_fraction": 0.8127527370843327
+      }
+    },
+    "WI_3_FOODS_1": {
+      "n_series": 216,
+      "val_wrmsse": 1.3746267017193794,
+      "val_tweedie": 4.35281483535744,
+      "best_iter": 1431,
+      "train_time": 30.985851764678955,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.010753577788814514,
+        "num_leaves": 42,
+        "min_data_in_leaf": 58,
+        "feature_fraction": 0.546532220227343,
+        "bagging_fraction": 0.9732799574563349
+      }
+    },
+    "WI_3_FOODS_2": {
+      "n_series": 398,
+      "val_wrmsse": 0.7212616691930301,
+      "val_tweedie": 5.528485153580627,
+      "best_iter": 208,
+      "train_time": 59.81067943572998,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.03361971328127124,
+        "num_leaves": 110,
+        "min_data_in_leaf": 65,
+        "feature_fraction": 0.8310122797017911,
+        "bagging_fraction": 0.588333769456172
+      }
+    },
+    "WI_3_FOODS_3": {
+      "n_series": 823,
+      "val_wrmsse": 0.5905184130463799,
+      "val_tweedie": 7.355807796976202,
+      "best_iter": 65,
+      "train_time": 47.98208165168762,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.05920204498251514,
+        "num_leaves": 107,
+        "min_data_in_leaf": 86,
+        "feature_fraction": 0.8332822347443012,
+        "bagging_fraction": 0.5000737725082578
+      }
+    },
+    "WI_3_HOBBIES_1": {
+      "n_series": 416,
+      "val_wrmsse": 0.8409529940141994,
+      "val_tweedie": 2.911389538588178,
+      "best_iter": 94,
+      "train_time": 27.101763486862183,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.03143325572941465,
+        "num_leaves": 79,
+        "min_data_in_leaf": 70,
+        "feature_fraction": 0.5534904782300589,
+        "bagging_fraction": 0.7791572192476056
+      }
+    },
+    "WI_3_HOBBIES_2": {
+      "n_series": 149,
+      "val_wrmsse": 0.8326528371615901,
+      "val_tweedie": 1.55498027404157,
+      "best_iter": 97,
+      "train_time": 10.702761173248291,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.03485064212347793,
+        "num_leaves": 88,
+        "min_data_in_leaf": 31,
+        "feature_fraction": 0.6178110810022062,
+        "bagging_fraction": 0.5424285802988964
+      }
+    },
+    "WI_3_HOUSEHOLD_1": {
+      "n_series": 532,
+      "val_wrmsse": 0.7189481581764214,
+      "val_tweedie": 4.869514268137588,
+      "best_iter": 43,
+      "train_time": 30.686752796173096,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.0688891691913506,
+        "num_leaves": 111,
+        "min_data_in_leaf": 36,
+        "feature_fraction": 0.880042171429813,
+        "bagging_fraction": 0.5293196369890303
+      }
+    },
+    "WI_3_HOUSEHOLD_2": {
+      "n_series": 515,
+      "val_wrmsse": 0.9200597374128731,
+      "val_tweedie": 1.9045577953783888,
+      "best_iter": 162,
+      "train_time": 51.37999367713928,
+      "warn": 0,
+      "best_params": {
+        "learning_rate": 0.040637502502802285,
+        "num_leaves": 105,
+        "min_data_in_leaf": 87,
+        "feature_fraction": 0.7370248677258181,
+        "bagging_fraction": 0.6598427531258336
+      }
+    }
+  }
+}
