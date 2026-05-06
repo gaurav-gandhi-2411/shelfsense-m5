@@ -31,3 +31,17 @@ The three Tweedie variants share nearly identical feature structure and
 training data — the only difference is tvp. Without complementary error
 structure, blending provides no diversity benefit on val. Private LB for
 tvp=1.3 is 0.5693 (current best); no ensemble would improve on this.
+
+---
+
+# Not Submitted — WS2.5 RMSE-MH Ensemble
+
+- `ens_rmse_tvp13_optuna.csv` — Optuna blend of RMSE multi-horizon + tvp=1.3
+
+## Why not submitted
+
+RMSE-MH private LB was 0.6205, worse than tvp=1.3 (0.5693) despite showing
+a 0.016 val WRMSSE improvement. The val→private reversal confirmed that
+Tweedie's zero-inflation structure is categorically better for M5's 68% zero
+rate. An ensemble of RMSE-MH with tvp=1.3 would regress the private LB by
+adding RMSE-MH weight; Optuna val improvement would not transfer.

@@ -2,7 +2,7 @@
 
 **Forecasting 30,490 Walmart SKU series across 10 stores — LightGBM, multi-horizon direct training, classical baselines, and hierarchical aggregation.**
 
-Best public LB: **0.5422** | Best private LB: **0.5854** | Baseline (Seasonal Naive 28): **0.8377 / 0.8956**
+Best public LB: **0.5422** | Best private LB: **0.5693** | Baseline (Seasonal Naive 28): **0.8377 / 0.8956**
 
 ![Private LB Progression](reports/charts/leaderboard_progression.png)
 
