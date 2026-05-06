@@ -1,0 +1,285 @@
+{
+  "oracle_val_wrmsse": 0.5440535694826104,
+  "baseline_wrmsse": 0.5422,
+  "delta": 0.0018535694826103954,
+  "best_iteration": 751,
+  "train_time_s": 474.87614035606384,
+  "feature_importance": [
+    {
+      "feature": "roll_mean_28",
+      "rank": 1,
+      "gain": 613255126.3833923,
+      "split": 2203
+    },
+    {
+      "feature": "roll_mean_7",
+      "rank": 2,
+      "gain": 271035047.6151047,
+      "split": 2438
+    },
+    {
+      "feature": "roll_std_28",
+      "rank": 3,
+      "gain": 53642895.2096405,
+      "split": 575
+    },
+    {
+      "feature": "roll_mean_56",
+      "rank": 4,
+      "gain": 45552416.72306442,
+      "split": 2782
+    },
+    {
+      "feature": "roll_mean_180",
+      "rank": 5,
+      "gain": 12592180.513656616,
+      "split": 2653
+    },
+    {
+      "feature": "price_relative_mean",
+      "rank": 6,
+      "gain": 10993940.727703094,
+      "split": 2501
+    },
+    {
+      "feature": "sell_price",
+      "rank": 7,
+      "gain": 10417367.056827545,
+      "split": 4064
+    },
+    {
+      "feature": "roll_max_28",
+      "rank": 8,
+      "gain": 9411763.863399506,
+      "split": 304
+    },
+    {
+      "feature": "roll_std_180",
+      "rank": 9,
+      "gain": 8703177.36315918,
+      "split": 1570
+    },
+    {
+      "feature": "weekday",
+      "rank": 10,
+      "gain": 6088952.088027954,
+      "split": 2552
+    },
+    {
+      "feature": "roll_max_7",
+      "rank": 11,
+      "gain": 3540237.86668396,
+      "split": 466
+    },
+    {
+      "feature": "roll_std_7",
+      "rank": 12,
+      "gain": 3324779.803237915,
+      "split": 1397
+    },
+    {
+      "feature": "roll_std_56",
+      "rank": 13,
+      "gain": 3198465.766494751,
+      "split": 784
+    },
+    {
+      "feature": "day_of_month",
+      "rank": 14,
+      "gain": 3152687.6326408386,
+      "split": 2022
+    },
+    {
+      "feature": "price_change_pct",
+      "rank": 15,
+      "gain": 3036574.966949463,
+      "split": 1004
+    },
+    {
+      "feature": "dept_id",
+      "rank": 16,
+      "gain": 2911606.6118011475,
+      "split": 2612
+    },
+    {
+      "feature": "has_price_change",
+      "rank": 17,
+      "gain": 2349095.510612488,
+      "split": 509
+    },
+    {
+      "feature": "week_of_year",
+      "rank": 18,
+      "gain": 2332877.51953125,
+      "split": 2696
+    },
+    {
+      "feature": "month",
+      "rank": 19,
+      "gain": 2084521.5069580078,
+      "split": 1430
+    },
+    {
+      "feature": "is_weekend",
+      "rank": 20,
+      "gain": 1889272.0428466797,
+      "split": 436
+    },
+    {
+      "feature": "lag_364",
+      "rank": 21,
+      "gain": 1743095.061264038,
+      "split": 798
+    },
+    {
+      "feature": "store_id",
+      "rank": 22,
+      "gain": 1568070.9055290222,
+      "split": 2184
+    },
+    {
+      "feature": "days_until_next_event",
+      "rank": 23,
+      "gain": 1136777.1259155273,
+      "split": 1248
+    },
+    {
+      "feature": "price_volatility",
+      "rank": 24,
+      "gain": 987654.6136360168,
+      "split": 743
+    },
+    {
+      "feature": "days_since_event",
+      "rank": 25,
+      "gain": 798381.4745101929,
+      "split": 1132
+    },
+    {
+      "feature": "roll_min_7",
+      "rank": 26,
+      "gain": 715478.0034561157,
+      "split": 262
+    },
+    {
+      "feature": "roll_max_56",
+      "rank": 27,
+      "gain": 706420.2917404175,
+      "split": 258
+    },
+    {
+      "feature": "cat_id",
+      "rank": 28,
+      "gain": 691088.9439926147,
+      "split": 678
+    },
+    {
+      "feature": "roll_max_180",
+      "rank": 29,
+      "gain": 580671.5005874634,
+      "split": 572
+    },
+    {
+      "feature": "lag_182",
+      "rank": 30,
+      "gain": 527024.2651977539,
+      "split": 341
+    },
+    {
+      "feature": "lag_7",
+      "rank": 31,
+      "gain": 495284.48988342285,
+      "split": 719
+    },
+    {
+      "feature": "year",
+      "rank": 32,
+      "gain": 489091.1858444214,
+      "split": 684
+    },
+    {
+      "feature": "is_holiday",
+      "rank": 33,
+      "gain": 484790.72985076904,
+      "split": 262
+    },
+    {
+      "feature": "lag_14",
+      "rank": 34,
+      "gain": 473515.6272354126,
+      "split": 381
+    },
+    {
+      "feature": "lag_91",
+      "rank": 35,
+      "gain": 442247.2074203491,
+      "split": 365
+    },
+    {
+      "feature": "lag_28",
+      "rank": 36,
+      "gain": 406969.07637786865,
+      "split": 423
+    },
+    {
+      "feature": "lag_56",
+      "rank": 37,
+      "gain": 300022.18715286255,
+      "split": 301
+    },
+    {
+      "feature": "state_id",
+      "rank": 38,
+      "gain": 227694.14600372314,
+      "split": 386
+    },
+    {
+      "feature": "is_snap_wi",
+      "rank": 39,
+      "gain": 186194.6358718872,
+      "split": 217
+    },
+    {
+      "feature": "quarter",
+      "rank": 40,
+      "gain": 181138.77390289307,
+      "split": 131
+    },
+    {
+      "feature": "is_snap_tx",
+      "rank": 41,
+      "gain": 127742.09931945801,
+      "split": 137
+    },
+    {
+      "feature": "is_snap_ca",
+      "rank": 42,
+      "gain": 46261.66693878174,
+      "split": 91
+    },
+    {
+      "feature": "roll_min_180",
+      "rank": 43,
+      "gain": 548.1019897460938,
+      "split": 2
+    },
+    {
+      "feature": "roll_min_56",
+      "rank": 44,
+      "gain": 0.0,
+      "split": 0
+    },
+    {
+      "feature": "roll_min_28",
+      "rank": 45,
+      "gain": 0.0,
+      "split": 0
+    }
+  ],
+  "yearly_lag_ranks": {
+    "lag_364": 21,
+    "lag_182": 30,
+    "lag_91": 35
+  },
+  "verdict": "MARGINAL"
+}
