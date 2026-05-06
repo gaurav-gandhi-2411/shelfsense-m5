@@ -178,7 +178,7 @@ print(f"\n    Full ranking by gain:")
 print(f"    {'Rank':>4}  {'Feature':<22}  {'Gain':>12}  {'Split':>8}")
 print(f"    {'-'*4}  {'-'*22}  {'-'*12}  {'-'*8}")
 for _, row in importance.iterrows():
-    marker = " ◄" if row["feature"] in ("lag_91", "lag_182", "lag_364") else ""
+    marker = " ***" if row["feature"] in ("lag_91", "lag_182", "lag_364") else ""
     print(f"    {int(row['rank']):>4}  {row['feature']:<22}  {row['gain']:>12.0f}  {int(row['split']):>8}{marker}")
 
 yearly_lags = importance[importance["feature"].isin(["lag_91", "lag_182", "lag_364"])]
