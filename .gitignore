@@ -218,3 +218,6 @@ outputs/
 mlruns/
 dagster_home/
 data/models/
+
+# Google Cloud service account key (never commit)
+secrets/
