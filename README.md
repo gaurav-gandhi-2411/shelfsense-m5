@@ -297,6 +297,16 @@ shelfsense ensemble --candidates tvp_13,store_dept --method optuna
 shelfsense submit --variant best --kaggle
 ```
 
+### Quick start (Makefile)
+
+```bash
+make setup           # build Docker image and prime directories
+make ui              # start MLflow (:5000) and Dagster (:3000)
+make test            # run test suite with coverage
+make lint            # check formatting and types
+make help            # list all targets
+```
+
 ### Run with Docker Compose
 
 ```bash
