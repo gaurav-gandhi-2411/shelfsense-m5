@@ -31,9 +31,12 @@ dev = [
     "pre-commit>=3.7",
 ]
 dl = [
-    "darts>=0.44",
+    "darts==0.44.0",
     "torch>=2.0",
     "pytorch-lightning>=2.0",
+]
+submission = [
+    "kaggle==2.0.1",
 ]
 
 [tool.hatch.build.targets.wheel]

@@ -270,7 +270,9 @@ These are the next steps in decreasing marginal return order, with honest expect
 git clone https://github.com/gaurav-gandhi-2411/shelfsense-m5
 cd shelfsense-m5
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e .
+pip install -e .                        # core pipeline
+pip install -e ".[dl]"                  # optional: Darts / N-BEATS (requires CUDA)
+pip install -e ".[submission]"          # optional: Kaggle API client
 ```
 
 ### Pipeline
