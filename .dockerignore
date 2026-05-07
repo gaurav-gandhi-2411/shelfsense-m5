@@ -1,0 +1,39 @@
+# Data directories — large, gitignored, mounted as volumes at runtime
+data/
+mlruns/
+dagster_home/
+
+# Git history and IDE config
+.git/
+.github/
+.vscode/
+.idea/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Existing venv — Docker builds its own via uv
+.venv/
+venv/
+
+# Notebooks and reports (not needed in container)
+notebooks/
+reports/
+
+# Legacy scripts — not needed at runtime
+scripts/legacy/
+
+# Test suite — not needed at runtime
+tests/
+
+# Docs
+docs/
