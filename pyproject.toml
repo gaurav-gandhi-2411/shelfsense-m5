@@ -31,6 +31,7 @@ dev = [
     "mypy>=1.8",
     "pre-commit>=3.7",
     "dvc[gdrive]>=3.0",
+    "pandera>=0.20",
 ]
 dl = [
     "darts==0.44.0",
