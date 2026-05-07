@@ -215,3 +215,7 @@ submissions/*.csv
 .claude/
 outputs/
 *.zip
+
+# Docker Compose runtime dirs (volume-mounted at runtime, not source)
+mlruns/
+dagster_home/

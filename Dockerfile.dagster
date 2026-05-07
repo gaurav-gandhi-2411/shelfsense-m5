@@ -1,0 +1,11 @@
+# Minimal Dagster webserver image for local development.
+# Not derived from shelfsense:dev — keeps the ML pipeline image lean.
+# Rebuild when dagster version changes: docker compose build dagster
+FROM python:3.12-slim
+
+RUN pip install --no-cache-dir \
+        dagster==1.10.4 \
+        dagster-webserver==1.10.4
+
+EXPOSE 3000
+CMD ["dagster-webserver", "-h", "0.0.0.0", "-p", "3000"]

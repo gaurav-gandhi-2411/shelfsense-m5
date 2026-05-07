@@ -1,0 +1,3 @@
+# Dagster workspace — no code locations defined yet.
+# Stage 4 will register shelfsense/orchestration/assets.py here.
+load_from: []

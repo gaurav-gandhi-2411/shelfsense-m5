@@ -297,6 +297,15 @@ shelfsense ensemble --candidates tvp_13,store_dept --method optuna
 shelfsense submit --variant best --kaggle
 ```
 
+### Run with Docker Compose
+
+```bash
+docker compose up -d                       # start mlflow (port 5000) + dagster (port 3000)
+docker compose run --rm train --help       # run any shelfsense CLI command
+docker compose run --rm train features build  # example: build feature parquets
+docker compose down                        # stop and remove containers
+```
+
 > **Note:** The CLI is being wired incrementally (Stages 3–4). Steps marked `NotImplementedError` today will be functional after Stage 4. The legacy scripts at [`scripts/legacy/`](scripts/legacy/) run the equivalent operations directly until then.
 
 **Hardware:** RTX 3070 8 GB, 33.5 GB RAM, Windows 11. Linux/WSL2 with Python 3.12+ recommended. LightGBM runs on CPU. Steps 3–6 complete in under 6 hours total.
