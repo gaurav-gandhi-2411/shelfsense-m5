@@ -3,7 +3,9 @@ Feature engineering pipeline for M5.
 
 Public API:
     feature_engineer(sales_df, calendar_df, prices_df, output_dir, last_day=1941)
-        -> None  (writes partitioned parquet to output_dir)
+        -> int  (writes partitioned parquet to output_dir; returns total rows written)
+    feature_engineer_from_config(cfg, output_dir=None)
+        -> int  (loads raw CSVs from cfg.data.raw_dir, writes to cfg.data.processed_dir)
 
 Processing strategy:
   - Batch by store_id (10 stores, ~5.9M rows each) to keep peak memory <= ~1.5 GB per batch.
@@ -145,3 +147,32 @@ def feature_engineer(
         print(f"\n  Done. Total rows: {total_rows:,}  Time: {total_elapsed:.1f}s ({total_elapsed/60:.1f} min)")
 
     return total_rows
+
+def feature_engineer_from_config(cfg, output_dir: str | None = None) -> int:
+    """
+    Load raw M5 CSVs and call feature_engineer() using paths from a Hydra config.
+
+    Parameters
+    ----------
+    cfg : OmegaConf DictConfig
+        Must have cfg.data.raw_dir, cfg.data.processed_dir,
+        cfg.data.last_train_day, and cfg.data.horizon.
+    output_dir :
+        Override for the output directory. When None, uses cfg.data.processed_dir.
+
+    Returns
+    -------
+    int
+        Total rows written (forwarded from feature_engineer).
+    """
+    raw_dir = cfg.data.raw_dir
+    out_dir = output_dir if output_dir is not None else cfg.data.processed_dir
+    last_day = cfg.data.last_train_day + cfg.data.horizon  # default: 1913 + 28 = 1941
+
+    print(f"Loading raw CSVs from {raw_dir!r}...", flush=True)
+    sales_df = pd.read_csv(os.path.join(raw_dir, "sales_train_evaluation.csv"))
+    calendar_df = pd.read_csv(os.path.join(raw_dir, "calendar.csv"))
+    prices_df = pd.read_csv(os.path.join(raw_dir, "sell_prices.csv"))
+
+    print(f"Writing features to {out_dir!r}  (last_day={last_day})", flush=True)
+    return feature_engineer(sales_df, calendar_df, prices_df, out_dir, last_day=last_day)

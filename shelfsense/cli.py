@@ -1,6 +1,8 @@
 """ShelfSense CLI — entry point for all pipeline commands."""
 from __future__ import annotations
 
+from typing import Optional
+
 import typer
 
 import shelfsense
@@ -63,12 +65,33 @@ def features_build(
             "(e.g. features/default, features/ylags)."
         ),
     ),
+    output_dir: Optional[str] = typer.Option(
+        None,
+        "--output-dir",
+        help="Override output directory. Defaults to cfg.data.processed_dir.",
+    ),
 ) -> None:
     """Build feature parquets from raw M5 CSVs using the specified Hydra config."""
-    typer.echo(f"shelfsense features build --config-name {config_name}")
-    raise NotImplementedError(
-        "Wired in commit 9 — Hydra config loader not yet connected."
+    import os
+    from hydra import compose, initialize_config_dir
+
+    from shelfsense.features.pipeline import feature_engineer_from_config
+
+    # Parse "features/default" -> ["features=default"]  (plain name -> no override)
+    overrides = []
+    if "/" in config_name:
+        group, variant = config_name.split("/", 1)
+        overrides.append(f"{group}={variant}")
+
+    config_dir = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "config")
     )
+    with initialize_config_dir(
+        config_dir=config_dir, job_name="features_build", version_base=None
+    ):
+        cfg = compose(config_name="config", overrides=overrides)
+
+    feature_engineer_from_config(cfg, output_dir=output_dir or None)
 
 
 # ── shelfsense train ──────────────────────────────────────────────────────────
