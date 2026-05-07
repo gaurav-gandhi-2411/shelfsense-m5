@@ -15,6 +15,11 @@ Expected recursive-vs-single-step gap:
   fundamental to recursive autoregression: each wrong prediction contaminates the next
   step's lag features. The gap cannot be eliminated without multi-horizon direct training
   (see Day 9). v2 produces the same gap as v1 because the feature algebra is identical.
+
+Known issue: LAGS = [7, 14, 28, 56] here does not match shelfsense/features/lags.py
+  which includes annual lags (91, 182, 364). A model trained with the yearly-lag
+  feature set would receive zeros for those lags at recursive inference. Not a concern
+  for tvp=1.3 multi-horizon (direct prediction, not recursive) — the production path.
 """
 from __future__ import annotations
 
