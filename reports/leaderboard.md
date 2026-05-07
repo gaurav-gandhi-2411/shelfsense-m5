@@ -234,6 +234,7 @@ The M5 competition has separate public (validation) and private (evaluation) lea
 | RMSE multi-horizon (WS2.5 V3) | 0.5422 | 0.6205 | RMSE-MH val 0.6699 (better than tvp=1.3's 0.6860) but private LB reverses — Tweedie's zero-inflation better suited for eval period (68% zero rate) |
 | Store×Dept 70-slice standalone (WS2.5 V4) | 0.6294 (val) | 0.5882 | Recursive; val −0.057 vs tvp=1.3 baseline but private reverses. 70 models, 10 stores × 7 depts, Optuna 10 trials/slice. |
 | Store×Dept + tvp=1.3 ensemble (WS2.5 V4b) | 0.6283 (val) | 0.5748 | SD w=0.885 + tvp13 w=0.115; ensemble val 0.0011 better than SD alone; private 0.013 better than SD-only — tvp=1.3 lifts strongly despite 11.5% weight. |
+| Annual lags MH (WS2.5 V5) | 0.6830 (val) | 0.5749 | lag_91/182/364 + tvp=1.3 MH; val −0.003 vs tvp=1.3 baseline but private reverses again (4th reversal). Model chapter locked. |
 
 Interpretation: on the public LB (validation period), the 1k-sample models can't distinguish from SN28. On the private LB (true evaluation period), ARIMA and ETS show small private-score improvements — likely because they capture some trend signal that SN28 misses, and the evaluation period differs structurally from the validation period.
 
