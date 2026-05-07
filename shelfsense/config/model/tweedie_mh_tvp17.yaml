@@ -1,0 +1,30 @@
+_target_: shelfsense.models.lightgbm.multihorizon.MultiHorizonTrainer
+
+# WS2.5 V2 — same architecture as tvp13, only variance power changed.
+# tvp=1.7 is closer to gamma distribution; emphasizes high-value spikes.
+# Result: val WRMSSE 0.7713, private LB 0.5965 — worse than tvp=1.3 on both.
+# Confirms M5's 68% zero-demand rate rewards lower tvp (zero-inflation emphasis).
+
+objective: tweedie
+metric: tweedie
+tweedie_variance_power: 1.7
+
+# Day 9 Optuna best params (same as tvp13 — only tvp differs)
+learning_rate: 0.025
+num_leaves: 64
+min_data_in_leaf: 100
+feature_fraction: 0.7
+bagging_fraction: 0.9
+bagging_freq: 1
+lambda_l2: 0.1
+
+num_boost_round: 3000
+early_stopping_rounds: 75
+seed: 42
+num_threads: 0
+verbose: -1
+
+horizon: 28
+optuna_horizon: 14
+optuna_trials: 15
+optuna_start_day: 1600

@@ -1,0 +1,14 @@
+_target_: shelfsense.ensemble.OptunaBlender
+
+# 50-trial Bayesian weight search minimising same-origin val WRMSSE.
+# Weights are simplex-constrained (sum to 1) across all candidate models.
+# Degenerate guard: if any single weight exceeds threshold, ensemble is flagged
+# and not submitted (one model dominating means no diversity benefit).
+
+n_trials: 50
+direction: minimize
+metric: wrmsse
+seed: 42
+
+# A weight > degenerate_threshold signals the blend adds no diversity benefit
+degenerate_threshold: 0.85

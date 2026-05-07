@@ -1,0 +1,28 @@
+_target_: shelfsense.models.lightgbm.multihorizon.MultiHorizonTrainer
+
+# WS2.5 V3 — RMSE objective. Isolates effect of loss function vs tvp=1.3.
+# All params identical to tweedie_mh_tvp13; only objective/metric changed.
+# Result: val WRMSSE improved 0.016 vs tvp=1.3 baseline, but private LB reversed to 0.6205.
+# Confirmed Tweedie zero-inflation is categorically better for M5 sparse demand.
+# Re-tuning hyperparams for RMSE would confound the objective comparison; not done.
+
+objective: regression
+metric: rmse
+# No tweedie_variance_power for RMSE objective
+
+# Day 9 Optuna best params (same as tvp13 — objective/metric changed only)
+learning_rate: 0.025
+num_leaves: 64
+min_data_in_leaf: 100
+feature_fraction: 0.7
+bagging_fraction: 0.9
+bagging_freq: 1
+lambda_l2: 0.1
+
+num_boost_round: 3000
+early_stopping_rounds: 75
+seed: 42
+num_threads: 0
+verbose: -1
+
+horizon: 28

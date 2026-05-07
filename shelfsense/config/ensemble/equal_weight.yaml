@@ -1,0 +1,5 @@
+_target_: shelfsense.ensemble.EqualWeightBlender
+
+# Uniform 1/N weights across all candidate models.
+# No optimisation required. Strong baseline when model errors are diverse;
+# degrades to noise-averaging when candidates are highly correlated.

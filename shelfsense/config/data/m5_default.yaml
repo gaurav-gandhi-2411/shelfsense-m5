@@ -1,0 +1,16 @@
+_target_: shelfsense.data.load.M5Dataset
+
+# Raw CSV paths (relative to project root)
+raw_dir: data/raw/m5-forecasting-accuracy
+processed_dir: data/processed/features
+
+# Day index boundaries (M5 calendar: d_1 = 2011-01-29)
+last_train_day: 1913      # last known ground-truth day (2016-04-24)
+val_start_day: 1886       # first day of LightGBM validation targets (d_1886..d_1913)
+feat_start_day: 1000      # first row kept for training — ensures lag_56 + roll_180 are fully populated
+eval_start_day: 1942      # private LB period start (d_1942 = 2016-05-23)
+eval_end_day: 1969        # private LB period end
+horizon: 28               # M5 forecast horizon
+
+# Series split (M5 evaluation file contains both validation and evaluation IDs)
+n_series: 30490

@@ -1,0 +1,15 @@
+# Root Hydra config for shelfsense.
+# Bare `shelfsense train tweedie-mh` (no overrides) runs the production setup:
+# tvp=1.3 multi-horizon, default 38-feature set, M5 data boundaries, Optuna ensemble.
+
+defaults:
+  - data: m5_default
+  - features: default
+  - model: tweedie_mh_tvp13
+  - ensemble: optuna
+  - _self_
+
+project_name: shelfsense-m5
+log_dir: mlruns         # MLflow artifact root
+submissions_dir: submissions
+predictions_dir: data/predictions
