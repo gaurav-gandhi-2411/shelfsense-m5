@@ -30,6 +30,7 @@ dev = [
     "black>=24.0",
     "mypy>=1.8",
     "pre-commit>=3.7",
+    "dvc[gdrive]>=3.0",
 ]
 dl = [
     "darts==0.44.0",

@@ -207,8 +207,6 @@ marimo/_lsp/
 __marimo__/
 
 # M5 project
-data/raw/
-data/processed/
 submissions/*.csv
 *.parquet
 *.pkl
@@ -219,3 +217,4 @@ outputs/
 # Docker Compose runtime dirs (volume-mounted at runtime, not source)
 mlruns/
 dagster_home/
+data/models/
