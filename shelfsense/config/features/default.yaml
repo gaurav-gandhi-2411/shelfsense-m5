@@ -1,0 +1,38 @@
+_target_: shelfsense.features.pipeline.feature_engineer
+
+# Production feature set — 38 numeric + 4 categorical = 42 total.
+# Used by all WS2.5 experiments except ylags (V4).
+
+# 13 calendar features
+calendar_features:
+  - weekday
+  - month
+  - quarter
+  - year
+  - day_of_month
+  - week_of_year
+  - is_weekend
+  - is_holiday
+  - is_snap_ca
+  - is_snap_tx
+  - is_snap_wi
+  - days_since_event
+  - days_until_next_event
+
+# 5 price features
+price_features:
+  - sell_price
+  - price_change_pct
+  - price_relative_mean
+  - price_volatility
+  - has_price_change
+
+# 4 lag windows → 4 lag features
+lag_windows: [7, 14, 28, 56]
+
+# 4 rolling windows × 4 stats → 16 rolling features
+roll_windows: [7, 28, 56, 180]
+roll_stats: [mean, std, min, max]
+
+# 4 categorical encodings (LightGBM native; not counted in numeric total)
+cat_features: [cat_id, dept_id, store_id, state_id]

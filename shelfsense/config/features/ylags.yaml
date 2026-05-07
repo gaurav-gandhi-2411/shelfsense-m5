@@ -1,0 +1,37 @@
+_target_: shelfsense.features.pipeline.feature_engineer
+
+# Annual-lag extension — 41 numeric + 4 categorical.
+# Adds lag_91 (quarter), lag_182 (half-year), lag_364 (yearly) to the default set.
+# Phase 2 result: val WRMSSE improved 0.003 but private LB worsened 0.006
+# (4th val→private reversal). Not used in production.
+# feat_start_day=1000 satisfies the lag_364 warm-up requirement (d_1000 > 364 + burn-in).
+
+calendar_features:
+  - weekday
+  - month
+  - quarter
+  - year
+  - day_of_month
+  - week_of_year
+  - is_weekend
+  - is_holiday
+  - is_snap_ca
+  - is_snap_tx
+  - is_snap_wi
+  - days_since_event
+  - days_until_next_event
+
+price_features:
+  - sell_price
+  - price_change_pct
+  - price_relative_mean
+  - price_volatility
+  - has_price_change
+
+# 7 lag windows → 7 lag features (adds 91/182/364 to default [7,14,28,56])
+lag_windows: [7, 14, 28, 56, 91, 182, 364]
+
+roll_windows: [7, 28, 56, 180]
+roll_stats: [mean, std, min, max]
+
+cat_features: [cat_id, dept_id, store_id, state_id]
