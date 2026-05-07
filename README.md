@@ -264,42 +264,40 @@ These are the next steps in decreasing marginal return order, with honest expect
 
 ## Reproduce
 
+### Setup
+
 ```bash
-# 0. Clone and install
-git clone https://github.com/gaurav-gandhi-2411/shelfsense-m5.git
+git clone https://github.com/gaurav-gandhi-2411/shelfsense-m5
 cd shelfsense-m5
-pip install -r requirements.txt
-
-# 1. Download M5 data (Kaggle API required)
-kaggle competitions download -c m5-forecasting-accuracy -p data/raw/m5-forecasting-accuracy
-cd data/raw/m5-forecasting-accuracy && unzip m5-forecasting-accuracy.zip && cd ../../..
-
-# 2. EDA (optional)
-jupyter notebook notebooks/01_eda.ipynb
-
-# 3. Build feature matrix (~15 min, 845 MB output)
-python scripts/05_build_features.py
-
-# 4. Train global LightGBM + Optuna (~25 min)
-python scripts/06_train_lightgbm.py
-
-# 5. Per-category models + recursive eval + blend (~20 min)
-python scripts/07_train_per_category.py
-
-# 6. Recursive forecast v2 audit + submission (~10 min)
-python scripts/08_recursive_v2.py
-
-# 7. Multi-horizon 28-model training (~126 min)
-python scripts/09_train_multi_horizon.py
-
-# 8. Per-store 10-model training (~38 min)
-python scripts/10_train_per_store.py
-
-# 9. Regenerate portfolio charts
-python scripts/generate_charts.py
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
 ```
 
-**Hardware:** RTX 3070 8 GB, 33.5 GB RAM, Windows 11. LightGBM runs on CPU. Steps 3–8 complete in under 4 hours total.
+### Pipeline
+
+```bash
+# 1. Download M5 data (requires Kaggle API)
+shelfsense data download
+
+# 2. Build feature parquets (~7 min, 845 MB output)
+shelfsense features build
+
+# 3. Train production model (~3h)
+shelfsense train tweedie-mh --tvp 1.3
+
+# 4. Train ensemble component (~2.5h)
+shelfsense train store-dept
+
+# 5. Generate ensemble submission
+shelfsense ensemble --candidates tvp_13,store_dept --method optuna
+
+# 6. Submit to Kaggle
+shelfsense submit --variant best --kaggle
+```
+
+> **Note:** The CLI is being wired incrementally (Stages 3–4). Steps marked `NotImplementedError` today will be functional after Stage 4. The legacy scripts at [`scripts/legacy/`](scripts/legacy/) run the equivalent operations directly until then.
+
+**Hardware:** RTX 3070 8 GB, 33.5 GB RAM, Windows 11. Linux/WSL2 with Python 3.12+ recommended. LightGBM runs on CPU. Steps 3–6 complete in under 6 hours total.
 
 ---
 
