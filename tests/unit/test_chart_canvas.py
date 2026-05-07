@@ -4,7 +4,6 @@ Unit tests for ChartCanvas (collision-aware chart rendering).
 Run with:   pytest tests/test_chart_canvas.py -v
 """
 import sys
-import os
 
 import numpy as np
 import matplotlib
@@ -12,9 +11,8 @@ matplotlib.use("Agg")
 import matplotlib.patches as mpatches
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.shelfsense.visualization.charts import (
+from shelfsense.visualization.charts import (
     ChartCanvas,
     _segment_crosses_bar,
     _Callout,
@@ -231,7 +229,7 @@ class TestValueLabelZoneCollision:
         canvas.add_bars(x, y, colors=[BLUE] * 3)
         canvas.set_ylim(0.30, 1.20)
         # Inject callout manually to avoid auto-stacking changing text position
-        from src.shelfsense.visualization.charts import _Callout
+        from shelfsense.visualization.charts import _Callout
         canvas._callouts.append(_Callout(
             text="Through label zone",
             text_x=0.0, text_y=1.10,
