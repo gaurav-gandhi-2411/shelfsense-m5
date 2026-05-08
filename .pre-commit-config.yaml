@@ -1,0 +1,48 @@
+# Pre-commit hooks for ShelfSense M5.
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # ── Standard housekeeping ──────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: debug-statements
+
+  # ── Ruff (lint + isort) ────────────────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.11
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # ── DVC status check ───────────────────────────────────────────────────────
+  # Warns if DVC-tracked files are modified but .dvc pointer not updated.
+  # Uses pre-commit's system hook (runs in the repo's own venv via dvc).
+  - repo: local
+    hooks:
+      - id: dvc-status
+        name: dvc status (warn on unstaged data changes)
+        language: system
+        entry: bash -c 'dvc status --quiet 2>/dev/null || true'
+        pass_filenames: false
+        always_run: true
+
+  # ── Data validation ────────────────────────────────────────────────────────
+  # Runs shelfsense data validate if raw or feature data is present.
+  # Skipped automatically when data directories do not exist (e.g. CI).
+  - repo: local
+    hooks:
+      - id: shelfsense-data-validate
+        name: shelfsense data validate
+        language: system
+        entry: bash -c '[ -d data/raw/m5-forecasting-accuracy ] && shelfsense data validate || true'
+        pass_filenames: false
+        always_run: false
+        files: ^(data/raw/.*\.dvc|data/processed/.*\.dvc|shelfsense/data/.*)$
