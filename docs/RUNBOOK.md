@@ -75,3 +75,29 @@ dvc remote modify gdrive url gdrive://<new-folder-id>
 git add .dvc/config
 git commit -m "dvc: update gdrive remote folder"
 ```
+
+---
+
+## Lessons learned — Stage 3 dependency gap (commit 22)
+
+**What happened:** Stage 3 added `pandera` (commits 19-20) and `dvc` (commit
+17) but placed both in `[project.optional-dependencies] dev` instead of their
+correct locations. `pandera` is imported at module level by
+`shelfsense/data/schemas.py` and `shelfsense/data/load.py` — it is a runtime
+dependency of the package, not a test tool. Tests were always run via
+`uv run pytest` against the dev venv (which had `--extra dev` installed), so
+pandera was silently present and every test passed. The gap only became visible
+when imagining a fresh `pip install shelfsense` or a Docker `uv sync` run
+without dev extras: the import would fail at container startup.
+
+**Rule derived:** Before declaring a stage complete, verify the dependency
+contract from the consumer's perspective, not the developer's:
+
+1. Run `uv run --no-dev python3 -c "from shelfsense.<module> import <symbol>"`
+   for every new public module. If it fails, the dep belongs in
+   `[project.dependencies]`, not in an extra.
+2. Check that `uv sync --frozen --no-editable` (the Docker production path)
+   would install every import the package makes. Dev extras are NOT installed
+   in the production image.
+3. `dvc` and other CLI-only tools that are never imported by package code
+   correctly stay in dev extras — they are not needed at container runtime.

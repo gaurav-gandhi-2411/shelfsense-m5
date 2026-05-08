@@ -17,6 +17,7 @@ dependencies = [
     "lightgbm>=4.6",
     "optuna>=4.8",
     "pyarrow>=14.0",
+    "pandera>=0.20",
 ]
 
 [project.scripts]
@@ -30,8 +31,7 @@ dev = [
     "black>=24.0",
     "mypy>=1.8",
     "pre-commit>=3.7",
-    "dvc[gdrive]>=3.0",
-    "pandera>=0.20",
+    "dvc[gdrive]>=3.50",
 ]
 dl = [
     "darts==0.44.0",
