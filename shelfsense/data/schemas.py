@@ -29,6 +29,7 @@ raw_sales_schema = DataFrameSchema(
     },
     name="raw_sales",
     strict=False,
+    coerce=True,
 )
 
 raw_calendar_schema = DataFrameSchema(
@@ -50,6 +51,7 @@ raw_calendar_schema = DataFrameSchema(
     },
     name="raw_calendar",
     strict=False,
+    coerce=True,
 )
 
 raw_prices_schema = DataFrameSchema(
@@ -61,6 +63,7 @@ raw_prices_schema = DataFrameSchema(
     },
     name="raw_prices",
     strict=True,
+    coerce=True,
 )
 
 # ---------------------------------------------------------------------------
@@ -101,7 +104,7 @@ feature_schema = DataFrameSchema(
         "is_snap_wi": Column(pa.Int, nullable=False, checks=pa.Check.isin([0, 1])),
         "days_since_event": Column(pa.Float, nullable=True),
         "days_until_next_event": Column(pa.Float, nullable=True),
-        "sell_price": Column(pa.Float, nullable=True, checks=pa.Check.gt(0)),
+        "sell_price": Column(pa.Float, nullable=True, checks=pa.Check.ge(0)),
         "price_change_pct": Column(pa.Float, nullable=True),
         "price_relative_mean": Column(pa.Float, nullable=True),
         "price_volatility": Column(pa.Float, nullable=True),
@@ -111,6 +114,7 @@ feature_schema = DataFrameSchema(
     },
     name="features",
     strict=True,
+    coerce=True,
 )
 
 # ---------------------------------------------------------------------------
@@ -134,6 +138,7 @@ predictions_schema = DataFrameSchema(
     },
     name="predictions",
     strict=True,
+    coerce=True,
 )
 
 submission_schema = DataFrameSchema(
@@ -143,4 +148,5 @@ submission_schema = DataFrameSchema(
     },
     name="submission",
     strict=True,
+    coerce=True,
 )

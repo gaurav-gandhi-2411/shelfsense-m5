@@ -45,14 +45,69 @@ def data_download() -> None:
 
 
 @data_app.command("validate")
-def data_validate() -> None:
+def data_validate(
+    raw_dir: Optional[str] = typer.Option(
+        None, "--raw-dir", help="Override path to raw CSV directory."
+    ),
+    features_dir: Optional[str] = typer.Option(
+        None, "--features-dir", help="Override path to feature parquet directory."
+    ),
+) -> None:
     """Run Pandera schema checks on raw CSVs and processed feature parquets."""
-    typer.echo("shelfsense data validate")
-    raise NotImplementedError(
-        "Wired in Stage 3 — Pandera schemas not yet defined."
+    import os
+    from hydra import compose, initialize_config_dir
+
+    from shelfsense.data.load import M5Dataset
+
+    config_dir = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "config")
+    )
+    with initialize_config_dir(
+        config_dir=config_dir, job_name="data_validate", version_base=None
+    ):
+        cfg = compose(config_name="config")
+
+    ds = M5Dataset(
+        raw_dir=raw_dir or cfg.data.raw_dir,
+        features_dir=features_dir or cfg.data.processed_dir,
+        validate=True,
     )
 
+    passed = 0
+    failed = 0
 
+    typer.echo("Validating raw CSVs ...")
+    raw_results = ds.validate_raw()
+    for fname, result in raw_results.items():
+        if fname.endswith("__error"):
+            continue
+        status = "PASS" if result else "FAIL"
+        typer.echo(f"  [{status}] {fname}")
+        if result:
+            passed += 1
+        else:
+            failed += 1
+            err = raw_results.get(f"{fname}__error", "")
+            if err:
+                typer.echo(f"         {err[:200]}", err=True)
+
+    typer.echo("Validating feature parquets ...")
+    feat_results = ds.validate_features()
+    for fname, result in feat_results.items():
+        if fname.endswith("__error"):
+            continue
+        status = "PASS" if result else "FAIL"
+        typer.echo(f"  [{status}] {fname}")
+        if result:
+            passed += 1
+        else:
+            failed += 1
+
+    total = passed + failed
+    typer.echo("")
+    typer.echo(f"{passed}/{total} checks passed.")
+    if failed:
+        raise typer.Exit(code=1)
 # ── shelfsense features ───────────────────────────────────────────────────────
 
 @features_app.command("build")

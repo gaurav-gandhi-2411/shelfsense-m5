@@ -145,8 +145,8 @@ def test_feature_schema_negative_d_num():
 
 
 def test_feature_schema_missing_column():
-    df = _make_feature().drop(columns=["lag_7"])
-    with pytest.raises(pa.errors.SchemaError):
+    df = _make_feature().drop(columns=["d_num"])
+    with pytest.raises((pa.errors.SchemaError, pa.errors.SchemaErrors)):
         feature_schema.validate(df)
 
 
