@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import glob
 import os
+import time
 
 import pandas as pd
 from dagster import (
@@ -25,6 +26,8 @@ from dagster import (
     asset,
     asset_check,
 )
+
+from shelfsense.orchestration.resources import MLflowResource
 
 
 # -- Raw data loaders ----------------------------------------------------------
@@ -88,6 +91,7 @@ def raw_validated(
     raw_sales: pd.DataFrame,
     raw_calendar: pd.DataFrame,
     raw_prices: pd.DataFrame,
+    mlflow_resource: MLflowResource,
 ) -> dict:
     import pandera as pa
     from shelfsense.data.schemas import (
@@ -116,6 +120,20 @@ def raw_validated(
                     "top_failures": str(exc.failure_cases.head(5).to_dict()),
                 },
             )
+
+    try:
+        mlflow_resource.log_asset_run(
+            run_name="raw_validated",
+            metrics={
+                "raw_sales_rows":    float(len(raw_sales)),
+                "raw_calendar_rows": float(len(raw_calendar)),
+                "raw_prices_rows":   float(len(raw_prices)),
+            },
+            tags={"asset": "raw_validated", "stage": "data_validation"},
+        )
+    except Exception as exc:
+        context.log.warning(f"MLflow logging skipped: {exc}")
+
     return validated
 
 
@@ -138,7 +156,11 @@ def raw_validated(
         "Returns output_dir path; skips stores whose parquet already exists."
     ),
 )
-def features(context, raw_validated: dict) -> str:
+def features(
+    context,
+    raw_validated: dict,
+    mlflow_resource: MLflowResource,
+) -> str:
     import numpy as np
     from shelfsense.features.pipeline import feature_engineer
 
@@ -158,6 +180,7 @@ def features(context, raw_validated: dict) -> str:
         context.log.info(f"test_mode: {n} series -> {output_dir!r}")
 
     os.makedirs(output_dir, exist_ok=True)
+    t0 = time.time()
     rows = feature_engineer(
         sales_df=sales_df,
         calendar_df=calendar_df,
@@ -166,7 +189,22 @@ def features(context, raw_validated: dict) -> str:
         last_day=last_day,
         verbose=True,
     )
+    elapsed = round(time.time() - t0, 2)
     context.log.info(f"feature_engineer: {rows:,} rows written to {output_dir!r}")
+
+    try:
+        mlflow_resource.log_asset_run(
+            run_name="features",
+            metrics={
+                "total_rows":   float(rows),
+                "n_series":     float(len(sales_df)),
+                "build_time_s": elapsed,
+            },
+            tags={"asset": "features", "output_dir": output_dir},
+        )
+    except Exception as exc:
+        context.log.warning(f"MLflow logging skipped: {exc}")
+
     return output_dir
 
 
@@ -176,7 +214,11 @@ def features(context, raw_validated: dict) -> str:
         "Returns the same dir path on success; raises dagster.Failure on any violation."
     ),
 )
-def features_validated(context, features: str) -> str:
+def features_validated(
+    context,
+    features: str,
+    mlflow_resource: MLflowResource,
+) -> str:
     import pandera as pa
     from shelfsense.data.schemas import feature_schema
 
@@ -203,6 +245,16 @@ def features_validated(context, features: str) -> str:
                 },
             )
     context.log.info(f"features_validated: {len(parquets)} parquets passed schema checks")
+
+    try:
+        mlflow_resource.log_asset_run(
+            run_name="features_validated",
+            metrics={"validated_parquet_count": float(len(parquets))},
+            tags={"asset": "features_validated"},
+        )
+    except Exception as exc:
+        context.log.warning(f"MLflow logging skipped: {exc}")
+
     return features
 
 
@@ -398,4 +450,9 @@ defs = Definitions(
         check_features_parquet_count,
         check_features_no_nan_d_num,
     ],
+    resources={
+        "mlflow_resource": MLflowResource(
+            tracking_uri=os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000")
+        ),
+    },
 )
