@@ -1,0 +1,118 @@
+"""Smoke tests for the Dagster asset graph skeleton.
+
+Verifies structure (asset count, key presence, dependency edges) without
+materializing any assets. All materializations remain NotImplementedError
+until commit 24-27.
+"""
+from __future__ import annotations
+
+from dagster import AssetKey, Definitions
+
+
+def _get_assets_def(defs: Definitions, key: AssetKey):
+    """Return the AssetsDefinition for *key*, or None if not found."""
+    return next(
+        (a for a in defs.assets if hasattr(a, "keys") and key in a.keys),
+        None,
+    )
+
+
+# ── Basic structure ───────────────────────────────────────────────────────────
+
+def test_defs_is_dagster_definitions():
+    from shelfsense.orchestration.assets import defs
+    assert isinstance(defs, Definitions)
+
+
+def test_asset_count():
+    # 3 SourceAssets + 15 computed = 18 total
+    from shelfsense.orchestration.assets import defs
+    assert len(defs.assets) == 18
+
+
+def test_required_asset_keys_present():
+    from shelfsense.orchestration.assets import defs
+    required = {
+        "raw_sales", "raw_calendar", "raw_prices",
+        "raw_validated", "features", "features_validated",
+        "model_tvp_13", "model_tvp_17", "model_rmse_mh",
+        "model_store_dept", "model_ylags",
+        "predictions_tvp_13", "predictions_tvp_17",
+        "predictions_rmse_mh", "predictions_store_dept", "predictions_ylags",
+        "ensemble", "submission",
+    }
+    found: set[str] = set()
+    for a in defs.assets:
+        if hasattr(a, "keys"):
+            found.update(k.path[-1] for k in a.keys)
+        elif hasattr(a, "key"):
+            found.add(a.key.path[-1])
+    assert required == found
+
+
+# ── Dependency edges ──────────────────────────────────────────────────────────
+
+def test_submission_depends_on_ensemble():
+    from shelfsense.orchestration.assets import defs
+    sub_def = _get_assets_def(defs, AssetKey("submission"))
+    assert sub_def is not None
+    assert AssetKey("ensemble") in sub_def.dependency_keys
+
+
+def test_ensemble_depends_on_all_predictions():
+    from shelfsense.orchestration.assets import defs
+    ens_def = _get_assets_def(defs, AssetKey("ensemble"))
+    assert ens_def is not None
+    expected = {
+        AssetKey("predictions_tvp_13"),
+        AssetKey("predictions_tvp_17"),
+        AssetKey("predictions_rmse_mh"),
+        AssetKey("predictions_store_dept"),
+        AssetKey("predictions_ylags"),
+    }
+    assert expected <= ens_def.dependency_keys
+
+
+def test_model_assets_depend_on_features_validated():
+    from shelfsense.orchestration.assets import defs
+    for key in (
+        "model_tvp_13", "model_tvp_17", "model_rmse_mh",
+        "model_store_dept", "model_ylags",
+    ):
+        m_def = _get_assets_def(defs, AssetKey(key))
+        assert m_def is not None, f"{key} not in defs"
+        assert AssetKey("features_validated") in m_def.dependency_keys, (
+            f"{key} should depend on features_validated"
+        )
+
+
+def test_raw_validated_depends_on_all_source_assets():
+    from shelfsense.orchestration.assets import defs
+    rv_def = _get_assets_def(defs, AssetKey("raw_validated"))
+    assert rv_def is not None
+    for src in ("raw_sales", "raw_calendar", "raw_prices"):
+        assert AssetKey(src) in rv_def.dependency_keys, (
+            f"raw_validated should depend on {src}"
+        )
+
+
+def test_predictions_depend_on_model_and_features():
+    # Each predictions asset must depend on its model AND features_validated.
+    from shelfsense.orchestration.assets import defs
+    pairs = [
+        ("predictions_tvp_13",     "model_tvp_13"),
+        ("predictions_tvp_17",     "model_tvp_17"),
+        ("predictions_rmse_mh",    "model_rmse_mh"),
+        ("predictions_store_dept", "model_store_dept"),
+        ("predictions_ylags",      "model_ylags"),
+    ]
+    for pred_key, model_key in pairs:
+        p_def = _get_assets_def(defs, AssetKey(pred_key))
+        assert p_def is not None, f"{pred_key} not in defs"
+        deps = p_def.dependency_keys
+        assert AssetKey(model_key) in deps, (
+            f"{pred_key} should depend on {model_key}"
+        )
+        assert AssetKey("features_validated") in deps, (
+            f"{pred_key} should depend on features_validated"
+        )

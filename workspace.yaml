@@ -1,3 +1,6 @@
-# Dagster workspace — no code locations defined yet.
-# Stage 4 will register shelfsense/orchestration/assets.py here.
-load_from: []
+# Dagster workspace — registers shelfsense.orchestration.assets as the code location.
+# Run: dagster dev   (from project root, with venv active)
+#      dagster asset list -m shelfsense.orchestration.assets
+load_from:
+  - python_module:
+      module_name: shelfsense.orchestration.assets
