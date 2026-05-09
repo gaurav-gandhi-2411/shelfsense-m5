@@ -371,48 +371,334 @@ def model_tvp_13(
     return {"model_dir": result["model_dir"], "val_wrmsse": result["val_wrmsse"]}
 
 
+_TVP17_CFG = {
+    "objective": "tweedie", "tvp": 1.7,
+    "learning_rate": 0.025, "num_leaves": 64,
+    "min_data_in_leaf": 100, "feature_fraction": 0.7,
+    "bagging_fraction": 0.9, "lambda_l2": 0.1,
+    "num_boost_round": 3000, "early_stopping_rounds": 75, "horizon": 28,
+}
+
+_RMSE_CFG = {
+    "objective": "regression", "metric": "rmse",
+    "learning_rate": 0.025, "num_leaves": 64,
+    "min_data_in_leaf": 100, "feature_fraction": 0.7,
+    "bagging_fraction": 0.9, "lambda_l2": 0.1,
+    "num_boost_round": 3000, "early_stopping_rounds": 75, "horizon": 28,
+}
+
+_SD_CFG = {
+    "objective": "tweedie", "tweedie_variance_power": 1.3,
+    "optuna_trials": 10,
+    "lr_min": 0.01, "lr_max": 0.1,
+    "num_leaves_min": 31, "num_leaves_max": 127,
+    "min_data_in_leaf_min": 20, "min_data_in_leaf_max": 100,
+    "feature_fraction_min": 0.5, "feature_fraction_max": 1.0,
+    "bagging_fraction_min": 0.5, "bagging_fraction_max": 1.0,
+    "num_boost_round": 3000, "early_stopping_rounds": 75,
+    "seed": 42, "num_threads": 0, "history_days": 200,
+}
+
+_YLAGS_CFG = {
+    "objective": "tweedie", "tvp": 1.3,
+    "learning_rate": 0.025, "num_leaves": 64,
+    "min_data_in_leaf": 100, "feature_fraction": 0.7,
+    "bagging_fraction": 0.9, "lambda_l2": 0.1,
+    "num_boost_round": 3000, "early_stopping_rounds": 75, "horizon": 28,
+}
+
+_MODEL_CONFIG_SCHEMA = {
+    "model_dir": Field(str,  default_value=""),
+    "raw_dir":   Field(str,  default_value="data/raw/m5-forecasting-accuracy"),
+    "test_mode": Field(bool, default_value=False,
+                       description="10 boost rounds + horizon=1 for fast integration tests."),
+}
+
+
 @asset(
+    config_schema={**_MODEL_CONFIG_SCHEMA,
+                   "model_dir": Field(str, default_value="data/models/tvp_1p7")},
     description=(
         "Train 28 direct-horizon LightGBM models with Tweedie loss (tvp=1.7). "
         "Spike-emphasis complement to tvp=1.3 for ensemble diversity. "
         "Returns dict with model_dir path and val_wrmsse."
     ),
 )
-def model_tvp_17(context, features_validated: str) -> dict:
-    raise NotImplementedError("Wired in commit 26")
+def model_tvp_17(
+    context,
+    features_validated: str,
+    mlflow_resource: MLflowResource,
+) -> dict:
+    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer, DEFAULT_FEATURE_COLS
+
+    cfg = context.op_config
+    test_mode = cfg["test_mode"]
+    trainer = MultiHorizonTrainer(_TVP17_CFG)
+
+    t0 = time.time()
+    result = trainer.fit(
+        features_dir=features_validated,
+        model_dir=cfg["model_dir"],
+        feature_cols=DEFAULT_FEATURE_COLS,
+        raw_dir=cfg["raw_dir"],
+        num_boost_round_override=10 if test_mode else None,
+        horizon_override=1 if test_mode else None,
+    )
+    elapsed = round(time.time() - t0, 2)
+    context.log.info(
+        f"model_tvp_17: val_wrmsse={result['val_wrmsse']:.4f}  "
+        f"n_series={result['n_series']:,}  elapsed={elapsed}s"
+    )
+
+    try:
+        mlflow_resource.log_asset_run(
+            run_name="model_tvp_17",
+            metrics={"val_wrmsse": result["val_wrmsse"], "train_time_s": elapsed},
+            params={"objective": "tweedie", "tvp": "1.7", "test_mode": str(test_mode)},
+            tags={"asset": "model_tvp_17", "variant": "tvp_17",
+                  "feature_set": "default", "objective": "tweedie"},
+        )
+    except Exception as exc:
+        context.log.warning(f"MLflow logging skipped: {exc}")
+
+    return {"model_dir": result["model_dir"], "val_wrmsse": result["val_wrmsse"]}
 
 
 @asset(
+    config_schema={**_MODEL_CONFIG_SCHEMA,
+                   "model_dir": Field(str, default_value="data/models/rmse_mh")},
     description=(
         "Train 28 direct-horizon LightGBM models with RMSE objective. "
         "Ensemble diversity component -- different loss surface from Tweedie variants. "
         "Returns dict with model_dir path and val_wrmsse."
     ),
 )
-def model_rmse_mh(context, features_validated: str) -> dict:
-    raise NotImplementedError("Wired in commit 26")
+def model_rmse_mh(
+    context,
+    features_validated: str,
+    mlflow_resource: MLflowResource,
+) -> dict:
+    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer, DEFAULT_FEATURE_COLS
+
+    cfg = context.op_config
+    test_mode = cfg["test_mode"]
+    trainer = MultiHorizonTrainer(_RMSE_CFG)
+
+    t0 = time.time()
+    result = trainer.fit(
+        features_dir=features_validated,
+        model_dir=cfg["model_dir"],
+        feature_cols=DEFAULT_FEATURE_COLS,
+        raw_dir=cfg["raw_dir"],
+        num_boost_round_override=10 if test_mode else None,
+        horizon_override=1 if test_mode else None,
+    )
+    elapsed = round(time.time() - t0, 2)
+    context.log.info(
+        f"model_rmse_mh: val_wrmsse={result['val_wrmsse']:.4f}  "
+        f"n_series={result['n_series']:,}  elapsed={elapsed}s"
+    )
+
+    try:
+        mlflow_resource.log_asset_run(
+            run_name="model_rmse_mh",
+            metrics={"val_wrmsse": result["val_wrmsse"], "train_time_s": elapsed},
+            params={"objective": "regression", "test_mode": str(test_mode)},
+            tags={"asset": "model_rmse_mh", "variant": "rmse_mh",
+                  "feature_set": "default", "objective": "regression"},
+        )
+    except Exception as exc:
+        context.log.warning(f"MLflow logging skipped: {exc}")
+
+    return {"model_dir": result["model_dir"], "val_wrmsse": result["val_wrmsse"]}
 
 
 @asset(
+    config_schema={
+        "model_dir": Field(str,  default_value="data/models/store_dept"),
+        "raw_dir":   Field(str,  default_value="data/raw/m5-forecasting-accuracy"),
+        "test_mode": Field(bool, default_value=False,
+                           description="2 slices + 10 boost rounds for fast integration tests."),
+    },
     description=(
         "Train 70 LightGBM models (one per store x dept slice) with recursive 28-step forecast. "
         "Fine-grained granularity captures local demand patterns. "
         "Returns dict with model_dir path and val_wrmsse."
     ),
 )
-def model_store_dept(context, features_validated: str) -> dict:
-    raise NotImplementedError("Wired in commit 26")
+def model_store_dept(
+    context,
+    features_validated: str,
+    mlflow_resource: MLflowResource,
+) -> dict:
+    from shelfsense.models.lightgbm.store_dept import StoreDeptTrainer, DEFAULT_FEATURE_COLS
+
+    cfg = context.op_config
+    test_mode = cfg["test_mode"]
+    trainer = StoreDeptTrainer(_SD_CFG)
+
+    test_slices = [("CA_1", "FOODS_1")] if test_mode else None
+
+    t0 = time.time()
+    result = trainer.fit(
+        features_dir=features_validated,
+        model_dir=cfg["model_dir"],
+        feature_cols=DEFAULT_FEATURE_COLS,
+        raw_dir=cfg["raw_dir"],
+        num_boost_round_override=10 if test_mode else None,
+        optuna_trials_override=2 if test_mode else None,
+        slices_override=test_slices,
+    )
+    elapsed = round(time.time() - t0, 2)
+    n_slices = result["n_slices"] + result["n_slices_cached"]
+    context.log.info(
+        f"model_store_dept: val_wrmsse={result['val_wrmsse']:.4f}  "
+        f"slices={n_slices}  elapsed={elapsed}s"
+    )
+
+    try:
+        mlflow_resource.log_asset_run(
+            run_name="model_store_dept",
+            metrics={"val_wrmsse": result["val_wrmsse"], "train_time_s": elapsed,
+                     "n_slices": float(n_slices)},
+            params={"objective": "tweedie", "tvp": "1.3", "test_mode": str(test_mode)},
+            tags={"asset": "model_store_dept", "variant": "store_dept",
+                  "feature_set": "default", "objective": "tweedie"},
+        )
+    except Exception as exc:
+        context.log.warning(f"MLflow logging skipped: {exc}")
+
+    return {"model_dir": result["model_dir"], "val_wrmsse": result["val_wrmsse"]}
 
 
 @asset(
+    config_schema={**_MODEL_CONFIG_SCHEMA,
+                   "model_dir": Field(str, default_value="data/models/ylags")},
     description=(
         "Train 28 direct-horizon LightGBM models with annual lag features (lag_91/182/364). "
-        "Tests yearly seasonality signal against the tvp=1.3 baseline. "
+        "Same Tweedie tvp=1.3 params as model_tvp_13; feature set adds lag_91/182/364. "
+        "Reads same feature parquets as model_tvp_13 — annual lags already present on disk. "
         "Returns dict with model_dir path and val_wrmsse."
     ),
 )
-def model_ylags(context, features_validated: str) -> dict:
-    raise NotImplementedError("Wired in commit 26")
+def model_ylags(
+    context,
+    features_validated: str,
+    mlflow_resource: MLflowResource,
+) -> dict:
+    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer, YLAGS_FEATURE_COLS
+
+    cfg = context.op_config
+    test_mode = cfg["test_mode"]
+    trainer = MultiHorizonTrainer(_YLAGS_CFG)
+
+    t0 = time.time()
+    result = trainer.fit(
+        features_dir=features_validated,
+        model_dir=cfg["model_dir"],
+        feature_cols=YLAGS_FEATURE_COLS,
+        raw_dir=cfg["raw_dir"],
+        num_boost_round_override=10 if test_mode else None,
+        horizon_override=1 if test_mode else None,
+    )
+    elapsed = round(time.time() - t0, 2)
+    context.log.info(
+        f"model_ylags: val_wrmsse={result['val_wrmsse']:.4f}  "
+        f"n_series={result['n_series']:,}  elapsed={elapsed}s"
+    )
+
+    try:
+        mlflow_resource.log_asset_run(
+            run_name="model_ylags",
+            metrics={"val_wrmsse": result["val_wrmsse"], "train_time_s": elapsed},
+            params={"objective": "tweedie", "tvp": "1.3", "test_mode": str(test_mode)},
+            tags={"asset": "model_ylags", "variant": "ylags",
+                  "feature_set": "ylags", "objective": "tweedie"},
+        )
+    except Exception as exc:
+        context.log.warning(f"MLflow logging skipped: {exc}")
+
+    return {"model_dir": result["model_dir"], "val_wrmsse": result["val_wrmsse"]}
+
+
+# -- Model asset checks --------------------------------------------------------
+
+def _check_mh_pkl_count(model_dir: str, expected: int = 28) -> AssetCheckResult:
+    pkls = glob.glob(os.path.join(model_dir, "h_*.pkl"))
+    n = len(pkls)
+    return AssetCheckResult(
+        passed=n == expected,
+        description=f"pkl count: {n} (expected {expected})",
+        metadata={"count": n, "model_dir": model_dir},
+    )
+
+
+def _check_val_wrmsse(val_wrmsse: float, lo: float = 0.5, hi: float = 1.5) -> AssetCheckResult:
+    return AssetCheckResult(
+        passed=lo < val_wrmsse < hi,
+        description=f"val_wrmsse: {val_wrmsse:.4f} (expected {lo}–{hi})",
+        metadata={"val_wrmsse": val_wrmsse},
+    )
+
+
+@asset_check(asset="model_tvp_13", description="model_tvp_13 must write exactly 28 h_*.pkl files.")
+def check_model_tvp_13_pkl_count(model_tvp_13: dict) -> AssetCheckResult:
+    return _check_mh_pkl_count(model_tvp_13["model_dir"])
+
+
+@asset_check(asset="model_tvp_13", description="model_tvp_13 val_wrmsse must be in (0.5, 1.5).")
+def check_model_tvp_13_val_wrmsse(model_tvp_13: dict) -> AssetCheckResult:
+    return _check_val_wrmsse(model_tvp_13["val_wrmsse"])
+
+
+@asset_check(asset="model_tvp_17", description="model_tvp_17 must write exactly 28 h_*.pkl files.")
+def check_model_tvp_17_pkl_count(model_tvp_17: dict) -> AssetCheckResult:
+    return _check_mh_pkl_count(model_tvp_17["model_dir"])
+
+
+@asset_check(asset="model_tvp_17", description="model_tvp_17 val_wrmsse must be in (0.5, 1.5).")
+def check_model_tvp_17_val_wrmsse(model_tvp_17: dict) -> AssetCheckResult:
+    return _check_val_wrmsse(model_tvp_17["val_wrmsse"])
+
+
+@asset_check(asset="model_rmse_mh", description="model_rmse_mh must write exactly 28 h_*.pkl files.")
+def check_model_rmse_mh_pkl_count(model_rmse_mh: dict) -> AssetCheckResult:
+    return _check_mh_pkl_count(model_rmse_mh["model_dir"])
+
+
+@asset_check(asset="model_rmse_mh", description="model_rmse_mh val_wrmsse must be in (0.5, 1.5).")
+def check_model_rmse_mh_val_wrmsse(model_rmse_mh: dict) -> AssetCheckResult:
+    return _check_val_wrmsse(model_rmse_mh["val_wrmsse"])
+
+
+@asset_check(
+    asset="model_store_dept",
+    description="model_store_dept must write between 1 and 70 lgbm_SD_*.pkl files.",
+)
+def check_model_store_dept_pkl_count(model_store_dept: dict) -> AssetCheckResult:
+    model_dir = model_store_dept["model_dir"]
+    pkls = glob.glob(os.path.join(model_dir, "lgbm_SD_*.pkl"))
+    n = len(pkls)
+    return AssetCheckResult(
+        passed=1 <= n <= 70,
+        description=f"pkl count: {n} (expected 1–70)",
+        metadata={"count": n, "model_dir": model_dir},
+    )
+
+
+@asset_check(asset="model_store_dept", description="model_store_dept val_wrmsse must be in (0.5, 1.5).")
+def check_model_store_dept_val_wrmsse(model_store_dept: dict) -> AssetCheckResult:
+    return _check_val_wrmsse(model_store_dept["val_wrmsse"])
+
+
+@asset_check(asset="model_ylags", description="model_ylags must write exactly 28 h_*.pkl files.")
+def check_model_ylags_pkl_count(model_ylags: dict) -> AssetCheckResult:
+    return _check_mh_pkl_count(model_ylags["model_dir"])
+
+
+@asset_check(asset="model_ylags", description="model_ylags val_wrmsse must be in (0.5, 1.5).")
+def check_model_ylags_val_wrmsse(model_ylags: dict) -> AssetCheckResult:
+    return _check_val_wrmsse(model_ylags["val_wrmsse"])
 
 
 # -- Predictions (wired in commit 27) ------------------------------------------
@@ -499,6 +785,16 @@ defs = Definitions(
         check_sales_row_count,
         check_features_parquet_count,
         check_features_no_nan_d_num,
+        check_model_tvp_13_pkl_count,
+        check_model_tvp_13_val_wrmsse,
+        check_model_tvp_17_pkl_count,
+        check_model_tvp_17_val_wrmsse,
+        check_model_rmse_mh_pkl_count,
+        check_model_rmse_mh_val_wrmsse,
+        check_model_store_dept_pkl_count,
+        check_model_store_dept_val_wrmsse,
+        check_model_ylags_pkl_count,
+        check_model_ylags_val_wrmsse,
     ],
     resources={
         "mlflow_resource": MLflowResource(

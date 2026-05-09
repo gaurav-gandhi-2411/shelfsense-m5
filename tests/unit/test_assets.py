@@ -121,7 +121,8 @@ def test_predictions_depend_on_model_and_features():
 
 def test_asset_checks_count():
     from shelfsense.orchestration.assets import defs
-    assert len(defs.asset_checks) == 3
+    # 3 data checks + 2 checks × 5 model assets = 13
+    assert len(defs.asset_checks) == 13
 
 
 def test_features_has_config_schema():

@@ -194,6 +194,7 @@ class StoreDeptTrainer:
         feature_cols: list[str] | None = None,
         raw_dir: str = "data/raw/m5-forecasting-accuracy",
         num_boost_round_override: int | None = None,
+        optuna_trials_override: int | None = None,
         slices_override: list[tuple[str, str]] | None = None,
     ) -> dict[str, Any]:
         """Train one model per (store, dept) slice.
@@ -204,6 +205,7 @@ class StoreDeptTrainer:
             feature_cols:  feature columns; defaults to DEFAULT_FEATURE_COLS
             raw_dir:       M5 CSV directory (for WRMSSE + recursive prediction)
             num_boost_round_override:  cap num_boost_round (useful in test_mode)
+            optuna_trials_override:  cap Optuna trials per slice (useful in test_mode)
             slices_override:  train only these (store, dept) pairs (useful in test_mode)
 
         Returns:
@@ -215,7 +217,8 @@ class StoreDeptTrainer:
         if feature_cols is None:
             feature_cols = DEFAULT_FEATURE_COLS
         cat_features = [c for c in CAT_FEATURES if c in feature_cols]
-        n_boost = num_boost_round_override or self.num_boost_round
+        n_boost   = num_boost_round_override or self.num_boost_round
+        n_optuna  = optuna_trials_override or self.n_optuna
         slices  = slices_override or [(s, d) for s in self.stores for d in self.depts]
 
         os.makedirs(model_dir, exist_ok=True)
@@ -274,7 +277,7 @@ class StoreDeptTrainer:
 
             # ── Optuna sweep ───────────────────────────────────────────
             model, val_tweedie, best_params, best_iter = self._train_slice(
-                df_tr, df_vl, feature_cols, self.n_optuna, n_boost
+                df_tr, df_vl, feature_cols, n_optuna, n_boost
             )
 
             # ── Recursive val predictions ──────────────────────────────
