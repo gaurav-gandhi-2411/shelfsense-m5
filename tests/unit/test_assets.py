@@ -1,8 +1,7 @@
-"""Smoke tests for the Dagster asset graph skeleton.
+"""Smoke tests for the Dagster asset graph structure.
 
-Verifies structure (asset count, key presence, dependency edges) without
-materializing any assets. All materializations remain NotImplementedError
-until commit 24-27.
+Verifies asset count, key presence, dependency edges, asset check
+registration, and config schema presence without materializing anything.
 """
 from __future__ import annotations
 
@@ -25,7 +24,7 @@ def test_defs_is_dagster_definitions():
 
 
 def test_asset_count():
-    # 3 SourceAssets + 15 computed = 18 total
+    # 3 raw loaders + 15 computed = 18 total
     from shelfsense.orchestration.assets import defs
     assert len(defs.assets) == 18
 
@@ -116,3 +115,18 @@ def test_predictions_depend_on_model_and_features():
         assert AssetKey("features_validated") in deps, (
             f"{pred_key} should depend on features_validated"
         )
+
+
+# -- Asset checks + config schema (added in commit 24) ------------------------
+
+def test_asset_checks_count():
+    from shelfsense.orchestration.assets import defs
+    assert len(defs.asset_checks) == 3
+
+
+def test_features_has_config_schema():
+    from shelfsense.orchestration.assets import features
+    # config_schema is on the underlying op; verify test_mode field is registered
+    schema = features.node_def.config_schema
+    assert schema is not None
+    assert "test_mode" in schema.config_type.fields
