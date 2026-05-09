@@ -310,15 +310,65 @@ def check_features_no_nan_d_num(features: str) -> AssetCheckResult:
 
 # -- Model training (wired in commit 26) --------------------------------------
 
+_TVP13_CFG = {
+    "objective": "tweedie", "tvp": 1.3,
+    "learning_rate": 0.025, "num_leaves": 64,
+    "min_data_in_leaf": 100, "feature_fraction": 0.7,
+    "bagging_fraction": 0.9, "lambda_l2": 0.1,
+    "num_boost_round": 3000, "early_stopping_rounds": 75, "horizon": 28,
+}
+
+
 @asset(
+    config_schema={
+        "model_dir": Field(str,  default_value="data/models/tvp_1p3"),
+        "raw_dir":   Field(str,  default_value="data/raw/m5-forecasting-accuracy"),
+        "test_mode": Field(bool, default_value=False,
+                           description="10 boost rounds + horizon=1 for fast integration tests."),
+    },
     description=(
         "Train 28 direct-horizon LightGBM models with Tweedie loss (tvp=1.3). "
         "Production best: val WRMSSE 0.6860, private LB 0.5693. "
         "Returns dict with model_dir path and val_wrmsse."
     ),
 )
-def model_tvp_13(context, features_validated: str) -> dict:
-    raise NotImplementedError("Wired in commit 26")
+def model_tvp_13(
+    context,
+    features_validated: str,
+    mlflow_resource: MLflowResource,
+) -> dict:
+    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer, DEFAULT_FEATURE_COLS
+
+    cfg = context.op_config
+    test_mode = cfg["test_mode"]
+    trainer = MultiHorizonTrainer(_TVP13_CFG)
+
+    t0 = time.time()
+    result = trainer.fit(
+        features_dir=features_validated,
+        model_dir=cfg["model_dir"],
+        feature_cols=DEFAULT_FEATURE_COLS,
+        raw_dir=cfg["raw_dir"],
+        num_boost_round_override=10 if test_mode else None,
+        horizon_override=1 if test_mode else None,
+    )
+    elapsed = round(time.time() - t0, 2)
+    context.log.info(
+        f"model_tvp_13: val_wrmsse={result['val_wrmsse']:.4f}  "
+        f"n_series={result['n_series']:,}  elapsed={elapsed}s"
+    )
+
+    try:
+        mlflow_resource.log_asset_run(
+            run_name="model_tvp_13",
+            metrics={"val_wrmsse": result["val_wrmsse"], "train_time_s": elapsed},
+            params={"objective": "tweedie", "tvp": "1.3", "test_mode": str(test_mode)},
+            tags={"asset": "model_tvp_13", "model_dir": cfg["model_dir"]},
+        )
+    except Exception as exc:
+        context.log.warning(f"MLflow logging skipped: {exc}")
+
+    return {"model_dir": result["model_dir"], "val_wrmsse": result["val_wrmsse"]}
 
 
 @asset(
