@@ -368,6 +368,39 @@ class StoreDeptTrainer:
         }
 
     # ------------------------------------------------------------------
+    # val_preds_from_cache (no CSV loads — reads cached val_preds from pkl)
+    # ------------------------------------------------------------------
+
+    def val_preds_from_cache(
+        self,
+        model_dir: str,
+        slices_override: list[tuple[str, str]] | None = None,
+    ) -> pd.DataFrame:
+        """Return cached val predictions (d_1913 origin) stored inside each pkl.
+
+        No CSV loads required — uses the val_preds array saved by fit().
+        Returns DataFrame with columns ["id", "F1", ..., "F28"].
+        """
+        slices = slices_override or [(s, d) for s in self.stores for d in self.depts]
+        rows: list[dict] = []
+        for store, dept in slices:
+            pkl_path = os.path.join(model_dir, _model_filename(store, dept, self.design_hash))
+            if not os.path.exists(pkl_path):
+                continue
+            with open(pkl_path, "rb") as fh:
+                cached = pickle.load(fh)
+            series_ids = cached["series_ids"]
+            val_preds  = cached["val_preds"]   # (n_series, 28), stored by fit()
+            for i, sid in enumerate(series_ids):
+                row = {"id": sid}
+                for h in range(1, HORIZON + 1):
+                    row[f"F{h}"] = float(val_preds[i, h - 1])
+                rows.append(row)
+        if not rows:
+            return pd.DataFrame(columns=["id"] + [f"F{h}" for h in range(1, HORIZON + 1)])
+        return pd.DataFrame(rows).sort_values("id").reset_index(drop=True)
+
+    # ------------------------------------------------------------------
     # predict
     # ------------------------------------------------------------------
 
