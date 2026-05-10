@@ -42,3 +42,21 @@ def test_features_help_lists_subcommands():
     result = runner.invoke(app, ["features", "--help"])
     assert result.exit_code == 0
     assert "build" in result.output
+
+
+def test_per_store_stub_exits_nonzero():
+    result = runner.invoke(app, ["train", "per-store"])
+    assert result.exit_code == 1
+    assert "Stage 5" in result.output or "deferred" in result.output.lower()
+
+
+def test_per_dept_stub_exits_nonzero():
+    result = runner.invoke(app, ["train", "per-dept"])
+    assert result.exit_code == 1
+    assert "Stage 5" in result.output or "deferred" in result.output.lower()
+
+
+def test_report_stub_exits_nonzero():
+    result = runner.invoke(app, ["report"])
+    assert result.exit_code == 1
+    assert "Stage 6" in result.output or "deferred" in result.output.lower()

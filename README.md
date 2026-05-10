@@ -269,33 +269,47 @@ These are the next steps in decreasing marginal return order, with honest expect
 ```bash
 git clone https://github.com/gaurav-gandhi-2411/shelfsense-m5
 cd shelfsense-m5
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .                        # core pipeline
-pip install -e ".[dl]"                  # optional: Darts / N-BEATS (requires CUDA)
-pip install -e ".[submission]"          # optional: Kaggle API client
+curl -LsSf https://astral.sh/uv/install.sh | sh   # install uv (once)
+uv sync                                            # create .venv, install all deps
+```
+
+All pipeline steps are orchestrated by Dagster.
+- **Dagster UI:** http://localhost:3000 — view the asset graph, lineage, and run history.
+- **MLflow UI:** http://localhost:5000 — browse experiment metrics, params, and model artifacts.
+
+### Start infrastructure
+
+```bash
+docker compose up -d    # starts mlflow (:5000) + dagster (:3000)
 ```
 
 ### Pipeline
 
 ```bash
-# 1. Download M5 data (requires Kaggle API)
+# 1. Download M5 data (requires Kaggle API credentials)
 shelfsense data download
 
-# 2. Build feature parquets (~7 min, 845 MB output)
+# 2. Validate raw CSVs and feature parquets
+shelfsense data validate
+
+# 3. Build feature parquets (~7 min, 845 MB output)
 shelfsense features build
 
-# 3. Train production model (~3h)
+# 4. Train production model (~3h)
 shelfsense train tweedie-mh --tvp 1.3
 
-# 4. Train ensemble component (~2.5h)
+# 5. Train ensemble component (~2.5h)
 shelfsense train store-dept
 
-# 5. Generate ensemble submission
-shelfsense ensemble --candidates tvp_13,store_dept --method optuna
+# 6. Generate ensemble submission (runs Optuna weight search)
+shelfsense ensemble
 
-# 6. Submit to Kaggle
+# 7. Submit to Kaggle
 shelfsense submit --variant best --kaggle
 ```
+
+Each command materializes the corresponding Dagster asset (and its upstream dependencies).
+MLflow run URLs are printed on success — click to see metrics and params.
 
 ### Quick start (Makefile)
 
@@ -310,15 +324,13 @@ make help            # list all targets
 ### Run with Docker Compose
 
 ```bash
-docker compose up -d                       # start mlflow (port 5000) + dagster (port 3000)
-docker compose run --rm train --help       # run any shelfsense CLI command
-docker compose run --rm train features build  # example: build feature parquets
-docker compose down                        # stop and remove containers
+docker compose up -d                             # start mlflow + dagster
+docker compose run --rm train --help             # run any shelfsense CLI command
+docker compose run --rm train features build     # example: build feature parquets
+docker compose down                              # stop and remove containers
 ```
 
-> **Note:** The CLI is being wired incrementally (Stages 3–4). Steps marked `NotImplementedError` today will be functional after Stage 4. The legacy scripts at [`scripts/legacy/`](scripts/legacy/) run the equivalent operations directly until then.
-
-**Hardware:** RTX 3070 8 GB, 33.5 GB RAM, Windows 11. Linux/WSL2 with Python 3.12+ recommended. LightGBM runs on CPU. Steps 3–6 complete in under 6 hours total.
+**Hardware:** RTX 3070 8 GB, 33.5 GB RAM, Windows 11. Linux/WSL2 with Python 3.12+ recommended. LightGBM runs on CPU. Steps 4–7 complete in under 6 hours total.
 
 ---
 
