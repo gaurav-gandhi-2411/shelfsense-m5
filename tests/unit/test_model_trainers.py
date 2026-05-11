@@ -216,6 +216,59 @@ def test_recursive_build_price_by_day():
         assert arr.shape == (len(series_meta), len(PRICE_FEATURE_COLS))
 
 
+def test_mht_fit_accepts_store_and_dept_filter():
+    """MultiHorizonTrainer.fit() exposes store_filter and dept_filter kwargs."""
+    import inspect
+
+    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer
+
+    sig = inspect.signature(MultiHorizonTrainer.fit)
+    assert "store_filter" in sig.parameters
+    assert "dept_filter" in sig.parameters
+
+
+def test_mht_predict_accepts_store_and_dept_filter():
+    """MultiHorizonTrainer.predict() exposes store_filter and dept_filter kwargs."""
+    import inspect
+
+    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer
+
+    sig = inspect.signature(MultiHorizonTrainer.predict)
+    assert "store_filter" in sig.parameters
+    assert "dept_filter" in sig.parameters
+
+
+def test_parse_slices_all_returns_none():
+    """_parse_slices('all') returns None (meaning 'train all slices')."""
+    from shelfsense.orchestration.assets import _parse_slices
+
+    assert _parse_slices("all") is None
+
+
+def test_parse_slices_single_key():
+    """_parse_slices parses a valid STORE_DEPT key into a list of tuples."""
+    from shelfsense.orchestration.assets import _parse_slices
+
+    result = _parse_slices("CA_1_FOODS_3")
+    assert result == [("CA_1", "FOODS_3")]
+
+
+def test_parse_slices_multiple_keys():
+    """_parse_slices handles comma-separated keys."""
+    from shelfsense.orchestration.assets import _parse_slices
+
+    result = _parse_slices("CA_1_FOODS_3,TX_2_HOBBIES_1")
+    assert result == [("CA_1", "FOODS_3"), ("TX_2", "HOBBIES_1")]
+
+
+def test_parse_slices_invalid_key_skipped():
+    """_parse_slices ignores keys that don't match a known store×dept pair."""
+    from shelfsense.orchestration.assets import _parse_slices
+
+    result = _parse_slices("ZZ_1_INVALID")
+    assert result is None  # falls through to `return result or None`
+
+
 def test_sdt_val_preds_from_cache_returns_rows_from_pkl(tmp_path):
     """val_preds_from_cache reads pkl and returns DataFrame with F1..F28."""
     import pickle

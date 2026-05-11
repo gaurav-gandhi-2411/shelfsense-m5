@@ -118,3 +118,24 @@ it uses a regex-based `parse_clause()` for `--select` that works with antlr4
 `antlr4==4.9.*` pin and allows upgrading to current Dagster.
 Note: in Dagster 1.9.2, `*asset_name` means "asset and all transitive upstreams"
 (equivalent to `+asset_name` in the ANTLR DSL of 1.9.3+).
+
+**WSL2 memory pressure on full pipeline materialization**
+
+Sequential `dagster.materialize()` of all 22 assets keeps DataFrames alive across
+step boundaries, which can exceed 8 GB RAM on WSL2 (default 50% host RAM cap).
+Symptom: kernel OOM-kills the process during the features → model transition.
+Workaround: gate long runs behind `RUN_FULL_PIPELINE_TEST=1`, run on bare-metal
+Linux or a machine with >16 GB available to WSL2. Production Dagster deployments
+using IO managers (DagsterFS or a custom on-disk serialiser) release step output
+between steps; `dagster.materialize()` in tests holds everything in-process.
+Architectural fix: adopt a Dagster IO manager that writes each asset output to a
+local path so intermediate DataFrames are freed between steps.
+
+**GitHub Actions: Node.js 20 deprecation warning**
+
+CI warns: "Node.js 20 actions are deprecated … forced to run with Node.js 24 by
+default starting June 2nd, 2026." Affected actions in `.github/workflows/ci.yml`:
+`actions/checkout@v4`, `actions/setup-python@v5`, `actions/cache@v4`,
+`astral-sh/setup-uv@v3`. Plan: upgrade each to its v5 (or latest Node.js 24
+compatible release) before the June 2026 deadline. No action needed today —
+workflows still pass on Node.js 20.

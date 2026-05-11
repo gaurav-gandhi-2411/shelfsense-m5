@@ -27,10 +27,10 @@ def test_defs_is_dagster_definitions():
 
 
 def test_asset_count():
-    # 3 raw loaders + 15 computed = 18 total
+    # 3 raw loaders + 19 computed = 22 total
     from shelfsense.orchestration.assets import defs
 
-    assert len(defs.assets) == 18
+    assert len(defs.assets) == 22
 
 
 def test_required_asset_keys_present():
@@ -48,11 +48,15 @@ def test_required_asset_keys_present():
         "model_rmse_mh",
         "model_store_dept",
         "model_ylags",
+        "model_per_store",
+        "model_per_dept",
         "predictions_tvp_13",
         "predictions_tvp_17",
         "predictions_rmse_mh",
         "predictions_store_dept",
         "predictions_ylags",
+        "predictions_per_store",
+        "predictions_per_dept",
         "ensemble",
         "submission",
     }
@@ -87,6 +91,8 @@ def test_ensemble_depends_on_all_predictions():
         AssetKey("predictions_rmse_mh"),
         AssetKey("predictions_store_dept"),
         AssetKey("predictions_ylags"),
+        AssetKey("predictions_per_store"),
+        AssetKey("predictions_per_dept"),
     }
     assert expected <= ens_def.dependency_keys
 
@@ -100,6 +106,8 @@ def test_model_assets_depend_on_features_validated():
         "model_rmse_mh",
         "model_store_dept",
         "model_ylags",
+        "model_per_store",
+        "model_per_dept",
     ):
         m_def = _get_assets_def(defs, AssetKey(key))
         assert m_def is not None, f"{key} not in defs"
@@ -127,6 +135,8 @@ def test_predictions_depend_on_model_and_features():
         ("predictions_rmse_mh", "model_rmse_mh"),
         ("predictions_store_dept", "model_store_dept"),
         ("predictions_ylags", "model_ylags"),
+        ("predictions_per_store", "model_per_store"),
+        ("predictions_per_dept", "model_per_dept"),
     ]
     for pred_key, model_key in pairs:
         p_def = _get_assets_def(defs, AssetKey(pred_key))
@@ -144,8 +154,8 @@ def test_predictions_depend_on_model_and_features():
 def test_asset_checks_count():
     from shelfsense.orchestration.assets import defs
 
-    # 3 data + 2×5 model + 5 predictions + 1 ensemble + 1 submission = 20
-    assert len(defs.asset_checks) == 20
+    # 3 data + 2×7 model + 7 predictions + 1 ensemble + 1 submission = 26
+    assert len(defs.asset_checks) == 26
 
 
 def test_features_has_config_schema():

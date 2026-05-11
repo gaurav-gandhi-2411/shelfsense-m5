@@ -45,16 +45,28 @@ def test_features_help_lists_subcommands():
     assert "build" in result.output
 
 
-def test_per_store_stub_exits_nonzero():
-    result = runner.invoke(app, ["train", "per-store"])
-    assert result.exit_code == 1
-    assert "Stage 5" in result.output or "deferred" in result.output.lower()
+def test_per_store_train_runs_dag(monkeypatch):
+    from unittest.mock import MagicMock, patch
+
+    monkeypatch.setenv("SHELFSENSE_TEST_MODE", "1")
+    result_mock = MagicMock()
+    result_mock.success = True
+
+    with patch("dagster.materialize", return_value=result_mock):
+        result = runner.invoke(app, ["train", "per-store"])
+    assert result.exit_code == 0
 
 
-def test_per_dept_stub_exits_nonzero():
-    result = runner.invoke(app, ["train", "per-dept"])
-    assert result.exit_code == 1
-    assert "Stage 5" in result.output or "deferred" in result.output.lower()
+def test_per_dept_train_runs_dag(monkeypatch):
+    from unittest.mock import MagicMock, patch
+
+    monkeypatch.setenv("SHELFSENSE_TEST_MODE", "1")
+    result_mock = MagicMock()
+    result_mock.success = True
+
+    with patch("dagster.materialize", return_value=result_mock):
+        result = runner.invoke(app, ["train", "per-dept"])
+    assert result.exit_code == 0
 
 
 def test_report_stub_exits_nonzero():

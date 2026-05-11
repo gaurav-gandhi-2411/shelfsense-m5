@@ -348,6 +348,7 @@ _TVP13_CFG = {
             default_value=False,
             description="10 boost rounds + horizon=1 for fast integration tests.",
         ),
+        "seed": Field(int, default_value=42, description="LightGBM random seed."),
     },
     description=(
         "Train 28 direct-horizon LightGBM models with Tweedie loss (tvp=1.3). "
@@ -365,6 +366,7 @@ def model_tvp_13(
     cfg = context.op_config
     test_mode = cfg["test_mode"]
     trainer = MultiHorizonTrainer(_TVP13_CFG)
+    trainer._lgb_params["seed"] = cfg["seed"]
 
     t0 = time.time()
     result = trainer.fit(
@@ -385,7 +387,12 @@ def model_tvp_13(
         mlflow_resource.log_asset_run(
             run_name="model_tvp_13",
             metrics={"val_wrmsse": result["val_wrmsse"], "train_time_s": elapsed},
-            params={"objective": "tweedie", "tvp": "1.3", "test_mode": str(test_mode)},
+            params={
+                "objective": "tweedie",
+                "tvp": "1.3",
+                "seed": str(cfg["seed"]),
+                "test_mode": str(test_mode),
+            },
             tags={"asset": "model_tvp_13", "model_dir": cfg["model_dir"]},
         )
     except Exception as exc:
@@ -578,6 +585,24 @@ def model_rmse_mh(
     return {"model_dir": result["model_dir"], "val_wrmsse": result["val_wrmsse"]}
 
 
+def _parse_slices(slices_str: str) -> list[tuple[str, str]] | None:
+    """Parse 'all' or 'CA_1_FOODS_3,TX_2_HOBBIES_1' into list of (store, dept) tuples."""
+    from shelfsense.models.lightgbm.store_dept import DEPTS, STORES
+
+    if slices_str == "all":
+        return None
+    result = []
+    for key in slices_str.split(","):
+        key = key.strip()
+        for store in STORES:
+            if key.startswith(store + "_"):
+                dept = key[len(store) + 1 :]
+                if dept in DEPTS:
+                    result.append((store, dept))
+                break
+    return result or None
+
+
 @asset(
     config_schema={
         "model_dir": Field(str, default_value="data/models/store_dept"),
@@ -586,6 +611,14 @@ def model_rmse_mh(
             bool,
             default_value=False,
             description="2 slices + 10 boost rounds for fast integration tests.",
+        ),
+        "slices": Field(
+            str,
+            default_value="all",
+            description=(
+                "'all' or comma-separated STORE_DEPT keys like CA_1_FOODS_3,TX_2_HOBBIES_1. "
+                "When not 'all', only those slices are trained."
+            ),
         ),
     },
     description=(
@@ -605,7 +638,10 @@ def model_store_dept(
     test_mode = cfg["test_mode"]
     trainer = StoreDeptTrainer(_SD_CFG)
 
-    test_slices = [("CA_1", "FOODS_1")] if test_mode else None
+    if test_mode:
+        test_slices: list[tuple[str, str]] | None = [("CA_1", "FOODS_1")]
+    else:
+        test_slices = _parse_slices(cfg["slices"])
 
     t0 = time.time()
     result = trainer.fit(
@@ -787,6 +823,200 @@ def check_model_ylags_val_wrmsse(model_ylags: dict) -> AssetCheckResult:
     return _check_val_wrmsse(model_ylags["val_wrmsse"])
 
 
+# -- Per-store and per-dept model assets ----------------------------------------
+
+_STORES_LIST = ["CA_1", "CA_2", "CA_3", "CA_4", "TX_1", "TX_2", "TX_3", "WI_1", "WI_2", "WI_3"]
+_DEPTS_LIST = [
+    "FOODS_1",
+    "FOODS_2",
+    "FOODS_3",
+    "HOUSEHOLD_1",
+    "HOUSEHOLD_2",
+    "HOBBIES_1",
+    "HOBBIES_2",
+]
+
+
+@asset(
+    config_schema={
+        "model_dir": Field(str, default_value="data/models/per_store"),
+        "raw_dir": Field(str, default_value="data/raw/m5-forecasting-accuracy"),
+        "test_mode": Field(
+            bool,
+            default_value=False,
+            description="Train CA_1 only + 10 boost rounds + horizon=1.",
+        ),
+    },
+    description=(
+        "Train 28 direct-horizon LightGBM models per Walmart store (10 stores, 280 pkl files). "
+        "Each model specialises on one store's ~3,049 series — local SNAP behaviour, "
+        "store-specific product mix, regional event patterns. "
+        "Returns dict with model_dir and avg val_wrmsse across stores."
+    ),
+)
+def model_per_store(
+    context,
+    features_validated: str,
+    mlflow_resource: MLflowResource,
+) -> dict:
+    from shelfsense.models.lightgbm.multihorizon import DEFAULT_FEATURE_COLS, MultiHorizonTrainer
+
+    cfg = context.op_config
+    test_mode = cfg["test_mode"]
+    trainer = MultiHorizonTrainer(_TVP13_CFG)
+    stores = _STORES_LIST[:1] if test_mode else _STORES_LIST
+
+    t0 = time.time()
+    total_wrmsse = 0.0
+    for store in stores:
+        store_dir = os.path.join(cfg["model_dir"], store)
+        result = trainer.fit(
+            features_dir=features_validated,
+            model_dir=store_dir,
+            feature_cols=DEFAULT_FEATURE_COLS,
+            raw_dir=cfg["raw_dir"],
+            num_boost_round_override=10 if test_mode else None,
+            horizon_override=1 if test_mode else None,
+            store_filter=store,
+        )
+        total_wrmsse += result["val_wrmsse"]
+        context.log.info(f"model_per_store [{store}]: val_wrmsse={result['val_wrmsse']:.4f}")
+
+    avg_wrmsse = total_wrmsse / len(stores)
+    elapsed = round(time.time() - t0, 2)
+    context.log.info(
+        f"model_per_store: avg_val_wrmsse={avg_wrmsse:.4f}  n_stores={len(stores)}  elapsed={elapsed}s"
+    )
+
+    try:
+        mlflow_resource.log_asset_run(
+            run_name="model_per_store",
+            metrics={
+                "avg_val_wrmsse": avg_wrmsse,
+                "train_time_s": elapsed,
+                "n_stores": float(len(stores)),
+            },
+            params={"objective": "tweedie", "tvp": "1.3", "test_mode": str(test_mode)},
+            tags={"asset": "model_per_store", "variant": "per_store"},
+        )
+    except Exception as exc:
+        context.log.warning(f"MLflow logging skipped: {exc}")
+
+    return {"model_dir": cfg["model_dir"], "val_wrmsse": avg_wrmsse}
+
+
+@asset(
+    config_schema={
+        "model_dir": Field(str, default_value="data/models/per_dept"),
+        "raw_dir": Field(str, default_value="data/raw/m5-forecasting-accuracy"),
+        "test_mode": Field(
+            bool,
+            default_value=False,
+            description="Train FOODS_1 only + 10 boost rounds + horizon=1.",
+        ),
+    },
+    description=(
+        "Train 28 direct-horizon LightGBM models per M5 department (7 depts, 196 pkl files). "
+        "FOODS/HOUSEHOLD/HOBBIES have structurally different zero-rates and demand distributions; "
+        "per-dept models optimise each distribution separately. "
+        "Returns dict with model_dir and avg val_wrmsse across depts."
+    ),
+)
+def model_per_dept(
+    context,
+    features_validated: str,
+    mlflow_resource: MLflowResource,
+) -> dict:
+    from shelfsense.models.lightgbm.multihorizon import DEFAULT_FEATURE_COLS, MultiHorizonTrainer
+
+    cfg = context.op_config
+    test_mode = cfg["test_mode"]
+    trainer = MultiHorizonTrainer(_TVP13_CFG)
+    depts = _DEPTS_LIST[:1] if test_mode else _DEPTS_LIST
+
+    t0 = time.time()
+    total_wrmsse = 0.0
+    for dept in depts:
+        dept_dir = os.path.join(cfg["model_dir"], dept)
+        result = trainer.fit(
+            features_dir=features_validated,
+            model_dir=dept_dir,
+            feature_cols=DEFAULT_FEATURE_COLS,
+            raw_dir=cfg["raw_dir"],
+            num_boost_round_override=10 if test_mode else None,
+            horizon_override=1 if test_mode else None,
+            dept_filter=dept,
+        )
+        total_wrmsse += result["val_wrmsse"]
+        context.log.info(f"model_per_dept [{dept}]: val_wrmsse={result['val_wrmsse']:.4f}")
+
+    avg_wrmsse = total_wrmsse / len(depts)
+    elapsed = round(time.time() - t0, 2)
+    context.log.info(
+        f"model_per_dept: avg_val_wrmsse={avg_wrmsse:.4f}  n_depts={len(depts)}  elapsed={elapsed}s"
+    )
+
+    try:
+        mlflow_resource.log_asset_run(
+            run_name="model_per_dept",
+            metrics={
+                "avg_val_wrmsse": avg_wrmsse,
+                "train_time_s": elapsed,
+                "n_depts": float(len(depts)),
+            },
+            params={"objective": "tweedie", "tvp": "1.3", "test_mode": str(test_mode)},
+            tags={"asset": "model_per_dept", "variant": "per_dept"},
+        )
+    except Exception as exc:
+        context.log.warning(f"MLflow logging skipped: {exc}")
+
+    return {"model_dir": cfg["model_dir"], "val_wrmsse": avg_wrmsse}
+
+
+@asset_check(
+    asset="model_per_store",
+    description="model_per_store must write at least 1 h_*.pkl across all store subdirs.",
+)
+def check_model_per_store_pkl_count(model_per_store: dict) -> AssetCheckResult:
+    pkls = glob.glob(os.path.join(model_per_store["model_dir"], "*/h_*.pkl"))
+    n = len(pkls)
+    return AssetCheckResult(
+        passed=n >= 1,
+        description=f"pkl count: {n} (expected ≥1)",
+        metadata={"count": n, "model_dir": model_per_store["model_dir"]},
+    )
+
+
+@asset_check(
+    asset="model_per_store",
+    description="model_per_store avg val_wrmsse must be in (0.5, 1.5).",
+)
+def check_model_per_store_val_wrmsse(model_per_store: dict) -> AssetCheckResult:
+    return _check_val_wrmsse(model_per_store["val_wrmsse"])
+
+
+@asset_check(
+    asset="model_per_dept",
+    description="model_per_dept must write at least 1 h_*.pkl across all dept subdirs.",
+)
+def check_model_per_dept_pkl_count(model_per_dept: dict) -> AssetCheckResult:
+    pkls = glob.glob(os.path.join(model_per_dept["model_dir"], "*/h_*.pkl"))
+    n = len(pkls)
+    return AssetCheckResult(
+        passed=n >= 1,
+        description=f"pkl count: {n} (expected ≥1)",
+        metadata={"count": n, "model_dir": model_per_dept["model_dir"]},
+    )
+
+
+@asset_check(
+    asset="model_per_dept",
+    description="model_per_dept avg val_wrmsse must be in (0.5, 1.5).",
+)
+def check_model_per_dept_val_wrmsse(model_per_dept: dict) -> AssetCheckResult:
+    return _check_val_wrmsse(model_per_dept["val_wrmsse"])
+
+
 # -- Predictions asset checks --------------------------------------------------
 
 
@@ -833,6 +1063,22 @@ def check_predictions_store_dept(predictions_store_dept: dict) -> AssetCheckResu
 )
 def check_predictions_ylags(predictions_ylags: dict) -> AssetCheckResult:
     return _check_preds_n_series(predictions_ylags, "ylags")
+
+
+@asset_check(
+    asset="predictions_per_store",
+    description="predictions_per_store must contain at least 1 series.",
+)
+def check_predictions_per_store(predictions_per_store: dict) -> AssetCheckResult:
+    return _check_preds_n_series(predictions_per_store, "per_store")
+
+
+@asset_check(
+    asset="predictions_per_dept",
+    description="predictions_per_dept must contain at least 1 series.",
+)
+def check_predictions_per_dept(predictions_per_dept: dict) -> AssetCheckResult:
+    return _check_preds_n_series(predictions_per_dept, "per_dept")
 
 
 @asset_check(asset="ensemble", description="ensemble val_wrmsse must be in (0, 5.0).")
@@ -1184,6 +1430,146 @@ def predictions_ylags(
     return {"eval_path": eval_path, "val_path": val_path, "n_series": n_series}
 
 
+@asset(
+    config_schema={
+        **_PREDS_CONFIG,
+        "preds_dir": Field(str, default_value="data/predictions/per_store"),
+    },
+    description=(
+        "Predict d_1942-d_1969 (eval) and d_1914-d_1941 (val) using the per-store models. "
+        "Loops over all 10 store model sets, assembles full 30,490-series prediction. "
+        "Writes eval.parquet and val.parquet with id + F1..F28. "
+        "Returns dict with eval_path, val_path, n_series."
+    ),
+)
+def predictions_per_store(
+    context,
+    model_per_store: dict,
+    features_validated: str,
+    mlflow_resource: MLflowResource,
+) -> dict:
+    from shelfsense.models.lightgbm.multihorizon import DEFAULT_FEATURE_COLS, MultiHorizonTrainer
+
+    cfg = context.op_config
+    test_mode = cfg["test_mode"]
+    trainer = MultiHorizonTrainer(_TVP13_CFG)
+    stores = _STORES_LIST[:1] if test_mode else _STORES_LIST
+    os.makedirs(cfg["preds_dir"], exist_ok=True)
+
+    eval_dfs: list[pd.DataFrame] = []
+    val_dfs: list[pd.DataFrame] = []
+    for store in stores:
+        store_dir = os.path.join(model_per_store["model_dir"], store)
+        for origin_day, lst in [(_EVAL_ORIGIN, eval_dfs), (_VAL_ORIGIN, val_dfs)]:
+            df_s = trainer.predict(
+                model_dir=store_dir,
+                features_dir=features_validated,
+                forecast_origin_day=origin_day,
+                feature_cols=DEFAULT_FEATURE_COLS,
+                horizon_override=1 if test_mode else None,
+                store_filter=store,
+            )
+            if test_mode:
+                _pad_horizons(df_s)
+            lst.append(df_s)
+
+    eval_df = pd.concat(eval_dfs, ignore_index=True)
+    val_df = pd.concat(val_dfs, ignore_index=True)
+    eval_path = os.path.join(cfg["preds_dir"], "eval.parquet")
+    val_path = os.path.join(cfg["preds_dir"], "val.parquet")
+    eval_df[["id"] + _FCOLS].to_parquet(eval_path, index=False)
+    val_df[["id"] + _FCOLS].to_parquet(val_path, index=False)
+    n_series = len(eval_df)
+    context.log.info(f"predictions_per_store: {n_series} series → {cfg['preds_dir']}")
+    try:
+        mlflow_resource.log_asset_run(
+            run_name="predictions_per_store",
+            metrics={
+                "n_series": float(n_series),
+                "upstream_val_wrmsse": model_per_store["val_wrmsse"],
+            },
+            params={
+                "eval_origin": str(_EVAL_ORIGIN),
+                "val_origin": str(_VAL_ORIGIN),
+                "test_mode": str(test_mode),
+            },
+            tags={"asset": "predictions_per_store", "variant": "per_store"},
+        )
+    except Exception as exc:
+        context.log.warning(f"MLflow logging skipped: {exc}")
+    return {"eval_path": eval_path, "val_path": val_path, "n_series": n_series}
+
+
+@asset(
+    config_schema={
+        **_PREDS_CONFIG,
+        "preds_dir": Field(str, default_value="data/predictions/per_dept"),
+    },
+    description=(
+        "Predict d_1942-d_1969 (eval) and d_1914-d_1941 (val) using the per-dept models. "
+        "Loops over all 7 department model sets, assembles full 30,490-series prediction. "
+        "Writes eval.parquet and val.parquet with id + F1..F28. "
+        "Returns dict with eval_path, val_path, n_series."
+    ),
+)
+def predictions_per_dept(
+    context,
+    model_per_dept: dict,
+    features_validated: str,
+    mlflow_resource: MLflowResource,
+) -> dict:
+    from shelfsense.models.lightgbm.multihorizon import DEFAULT_FEATURE_COLS, MultiHorizonTrainer
+
+    cfg = context.op_config
+    test_mode = cfg["test_mode"]
+    trainer = MultiHorizonTrainer(_TVP13_CFG)
+    depts = _DEPTS_LIST[:1] if test_mode else _DEPTS_LIST
+    os.makedirs(cfg["preds_dir"], exist_ok=True)
+
+    eval_dfs: list[pd.DataFrame] = []
+    val_dfs: list[pd.DataFrame] = []
+    for dept in depts:
+        dept_dir = os.path.join(model_per_dept["model_dir"], dept)
+        for origin_day, lst in [(_EVAL_ORIGIN, eval_dfs), (_VAL_ORIGIN, val_dfs)]:
+            df_s = trainer.predict(
+                model_dir=dept_dir,
+                features_dir=features_validated,
+                forecast_origin_day=origin_day,
+                feature_cols=DEFAULT_FEATURE_COLS,
+                horizon_override=1 if test_mode else None,
+                dept_filter=dept,
+            )
+            if test_mode:
+                _pad_horizons(df_s)
+            lst.append(df_s)
+
+    eval_df = pd.concat(eval_dfs, ignore_index=True)
+    val_df = pd.concat(val_dfs, ignore_index=True)
+    eval_path = os.path.join(cfg["preds_dir"], "eval.parquet")
+    val_path = os.path.join(cfg["preds_dir"], "val.parquet")
+    eval_df[["id"] + _FCOLS].to_parquet(eval_path, index=False)
+    val_df[["id"] + _FCOLS].to_parquet(val_path, index=False)
+    n_series = len(eval_df)
+    context.log.info(f"predictions_per_dept: {n_series} series → {cfg['preds_dir']}")
+    try:
+        mlflow_resource.log_asset_run(
+            run_name="predictions_per_dept",
+            metrics={
+                "n_series": float(n_series),
+                "upstream_val_wrmsse": model_per_dept["val_wrmsse"],
+            },
+            params={
+                "eval_origin": str(_EVAL_ORIGIN),
+                "val_origin": str(_VAL_ORIGIN),
+                "test_mode": str(test_mode),
+            },
+            tags={"asset": "predictions_per_dept", "variant": "per_dept"},
+        )
+    except Exception as exc:
+        context.log.warning(f"MLflow logging skipped: {exc}")
+    return {"eval_path": eval_path, "val_path": val_path, "n_series": n_series}
+
+
 # -- Ensemble ------------------------------------------------------------------
 
 
@@ -1195,11 +1581,13 @@ def predictions_ylags(
             int, default_value=50, description="Optuna trials for weight search (5 in test_mode)."
         ),
         "test_mode": Field(
-            bool, default_value=False, description="Blend only tvp_13+tvp_17, 5 Optuna trials."
+            bool,
+            default_value=False,
+            description="Blend only tvp_13+tvp_17, 5 Optuna trials.",
         ),
     },
     description=(
-        "Optuna weight search over convex combination of all 5 prediction variants. "
+        "Optuna weight search over convex combination of up to 7 prediction variants. "
         "Objective: val WRMSSE from d_1913 origin vs actuals d_1914-d_1941. "
         "In test_mode blends tvp_13+tvp_17 with 5 trials. "
         "Returns dict with blended_eval_path, blended_val_path, weights, val_wrmsse."
@@ -1212,6 +1600,8 @@ def ensemble(
     predictions_rmse_mh: dict,
     predictions_store_dept: dict,
     predictions_ylags: dict,
+    predictions_per_store: dict,
+    predictions_per_dept: dict,
     mlflow_resource: MLflowResource,
 ) -> dict:
     import numpy as np
@@ -1234,6 +1624,8 @@ def ensemble(
             "rmse_mh": predictions_rmse_mh,
             "store_dept": predictions_store_dept,
             "ylags": predictions_ylags,
+            "per_store": predictions_per_store,
+            "per_dept": predictions_per_dept,
         }
     variant_names = list(active.keys())
     n_variants = len(variant_names)
@@ -1454,11 +1846,15 @@ defs = Definitions(
         model_rmse_mh,
         model_store_dept,
         model_ylags,
+        model_per_store,
+        model_per_dept,
         predictions_tvp_13,
         predictions_tvp_17,
         predictions_rmse_mh,
         predictions_store_dept,
         predictions_ylags,
+        predictions_per_store,
+        predictions_per_dept,
         ensemble,
         submission,
     ],
@@ -1476,11 +1872,17 @@ defs = Definitions(
         check_model_store_dept_val_wrmsse,
         check_model_ylags_pkl_count,
         check_model_ylags_val_wrmsse,
+        check_model_per_store_pkl_count,
+        check_model_per_store_val_wrmsse,
+        check_model_per_dept_pkl_count,
+        check_model_per_dept_val_wrmsse,
         check_predictions_tvp_13,
         check_predictions_tvp_17,
         check_predictions_rmse_mh,
         check_predictions_store_dept,
         check_predictions_ylags,
+        check_predictions_per_store,
+        check_predictions_per_dept,
         check_ensemble_val_wrmsse,
         check_submission_row_count,
     ],

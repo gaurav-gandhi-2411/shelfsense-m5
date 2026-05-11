@@ -48,6 +48,8 @@ _MODEL_DIRS: dict[bool, dict[str, str]] = {
         "model_rmse_mh": "data/models/rmse_mh",
         "model_store_dept": "data/models/store_dept",
         "model_ylags": "data/models/ylags",
+        "model_per_store": "data/models/per_store",
+        "model_per_dept": "data/models/per_dept",
     },
     True: {
         "model_tvp_13": "data/models/test_tvp_1p3",
@@ -55,6 +57,8 @@ _MODEL_DIRS: dict[bool, dict[str, str]] = {
         "model_rmse_mh": "data/models/test_rmse_mh",
         "model_store_dept": "data/models/test_store_dept",
         "model_ylags": "data/models/test_ylags",
+        "model_per_store": "data/models/test_per_store",
+        "model_per_dept": "data/models/test_per_dept",
     },
 }
 
@@ -65,6 +69,8 @@ _PREDS_DIRS: dict[bool, dict[str, str]] = {
         "predictions_rmse_mh": "data/predictions/rmse_mh",
         "predictions_store_dept": "data/predictions/store_dept",
         "predictions_ylags": "data/predictions/ylags",
+        "predictions_per_store": "data/predictions/per_store",
+        "predictions_per_dept": "data/predictions/per_dept",
         "ensemble": "data/predictions/ensemble",
     },
     True: {
@@ -73,6 +79,8 @@ _PREDS_DIRS: dict[bool, dict[str, str]] = {
         "predictions_rmse_mh": "data/predictions/test_rmse_mh",
         "predictions_store_dept": "data/predictions/test_store_dept",
         "predictions_ylags": "data/predictions/test_ylags",
+        "predictions_per_store": "data/predictions/test_per_store",
+        "predictions_per_dept": "data/predictions/test_per_dept",
         "ensemble": "data/predictions/test_ensemble",
     },
 }
@@ -135,6 +143,8 @@ def _full_ops_cfg(test_mode: bool, raw_dir: str = _RAW_DIR) -> dict:
         "predictions_rmse_mh",
         "predictions_store_dept",
         "predictions_ylags",
+        "predictions_per_store",
+        "predictions_per_dept",
     ):
         ops[key] = {"config": {"preds_dir": pdirs[key], "raw_dir": raw_dir, "test_mode": test_mode}}
 
@@ -330,12 +340,6 @@ def train_tweedie_mh(
         typer.echo(f"Error: --tvp must be 1.3 or 1.7 (got {tvp}).", err=True)
         raise typer.Exit(code=1)
 
-    if seed != 42:
-        typer.echo(
-            f"Note: --seed={seed} recorded; trainer seed is fixed at 42 in this version.",
-            err=True,
-        )
-
     run_config = {
         "ops": {
             **_raw_ops(_RAW_DIR),
@@ -345,6 +349,7 @@ def train_tweedie_mh(
                     "model_dir": mdirs[asset_name],
                     "raw_dir": _RAW_DIR,
                     "test_mode": _test,
+                    "seed": seed,
                 }
             },
         }
@@ -396,13 +401,6 @@ def train_store_dept(
     _test = _is_test_mode()
     mdirs = _MODEL_DIRS[_test]
 
-    if slices != "all":
-        typer.echo(
-            "Note: custom --slices not supported via Dagster; "
-            "materializing all slices (use SHELFSENSE_TEST_MODE=1 for a fast 1-slice run).",
-            err=True,
-        )
-
     run_config = {
         "ops": {
             **_raw_ops(_RAW_DIR),
@@ -412,6 +410,7 @@ def train_store_dept(
                     "model_dir": mdirs["model_store_dept"],
                     "raw_dir": _RAW_DIR,
                     "test_mode": _test,
+                    "slices": slices,
                 }
             },
         }
@@ -439,16 +438,102 @@ def train_store_dept(
 
 @train_app.command("per-store")
 def train_per_store() -> None:
-    """Train one LightGBM per Walmart store (deferred — no Dagster asset yet)."""
-    typer.echo("per-store training is deferred to Stage 5 — no Dagster asset exists yet.", err=True)
-    raise typer.Exit(code=1)
+    """Materialize model_per_store Dagster asset (10 per-store LightGBM model sets)."""
+    from shelfsense.orchestration.assets import (
+        features,
+        features_validated,
+        model_per_store,
+        raw_calendar,
+        raw_prices,
+        raw_sales,
+        raw_validated,
+    )
+
+    _test = _is_test_mode()
+    mdirs = _MODEL_DIRS[_test]
+
+    run_config = {
+        "ops": {
+            **_raw_ops(_RAW_DIR),
+            **_features_op(_FEATURES_DIR, _test),
+            "model_per_store": {
+                "config": {
+                    "model_dir": mdirs["model_per_store"],
+                    "raw_dir": _RAW_DIR,
+                    "test_mode": _test,
+                }
+            },
+        }
+    }
+
+    typer.echo("Materializing model_per_store ...")
+    ok = _dag_run(
+        [
+            raw_sales,
+            raw_calendar,
+            raw_prices,
+            raw_validated,
+            features,
+            features_validated,
+            model_per_store,
+        ],
+        run_config,
+    )
+    if ok:
+        typer.echo(f"✓ model_per_store trained  |  MLflow: {_mlflow_uri()}")
+    else:
+        typer.echo("✗ model_per_store training failed", err=True)
+        raise typer.Exit(code=1)
 
 
 @train_app.command("per-dept")
 def train_per_dept() -> None:
-    """Train one LightGBM per M5 department (deferred — no Dagster asset yet)."""
-    typer.echo("per-dept training is deferred to Stage 5 — no Dagster asset exists yet.", err=True)
-    raise typer.Exit(code=1)
+    """Materialize model_per_dept Dagster asset (7 per-dept LightGBM model sets)."""
+    from shelfsense.orchestration.assets import (
+        features,
+        features_validated,
+        model_per_dept,
+        raw_calendar,
+        raw_prices,
+        raw_sales,
+        raw_validated,
+    )
+
+    _test = _is_test_mode()
+    mdirs = _MODEL_DIRS[_test]
+
+    run_config = {
+        "ops": {
+            **_raw_ops(_RAW_DIR),
+            **_features_op(_FEATURES_DIR, _test),
+            "model_per_dept": {
+                "config": {
+                    "model_dir": mdirs["model_per_dept"],
+                    "raw_dir": _RAW_DIR,
+                    "test_mode": _test,
+                }
+            },
+        }
+    }
+
+    typer.echo("Materializing model_per_dept ...")
+    ok = _dag_run(
+        [
+            raw_sales,
+            raw_calendar,
+            raw_prices,
+            raw_validated,
+            features,
+            features_validated,
+            model_per_dept,
+        ],
+        run_config,
+    )
+    if ok:
+        typer.echo(f"✓ model_per_dept trained  |  MLflow: {_mlflow_uri()}")
+    else:
+        typer.echo("✗ model_per_dept training failed", err=True)
+        raise typer.Exit(code=1)
 
 
 # ── shelfsense ensemble ───────────────────────────────────────────────────────
@@ -472,11 +557,15 @@ def ensemble_cmd(
         ensemble,
         features,
         features_validated,
+        model_per_dept,
+        model_per_store,
         model_rmse_mh,
         model_store_dept,
         model_tvp_13,
         model_tvp_17,
         model_ylags,
+        predictions_per_dept,
+        predictions_per_store,
         predictions_rmse_mh,
         predictions_store_dept,
         predictions_tvp_13,
@@ -511,11 +600,15 @@ def ensemble_cmd(
             model_rmse_mh,
             model_store_dept,
             model_ylags,
+            model_per_store,
+            model_per_dept,
             predictions_tvp_13,
             predictions_tvp_17,
             predictions_rmse_mh,
             predictions_store_dept,
             predictions_ylags,
+            predictions_per_store,
+            predictions_per_dept,
             ensemble,
         ],
         run_config,
@@ -548,11 +641,15 @@ def submit(
         ensemble,
         features,
         features_validated,
+        model_per_dept,
+        model_per_store,
         model_rmse_mh,
         model_store_dept,
         model_tvp_13,
         model_tvp_17,
         model_ylags,
+        predictions_per_dept,
+        predictions_per_store,
         predictions_rmse_mh,
         predictions_store_dept,
         predictions_tvp_13,
@@ -594,11 +691,15 @@ def submit(
             model_rmse_mh,
             model_store_dept,
             model_ylags,
+            model_per_store,
+            model_per_dept,
             predictions_tvp_13,
             predictions_tvp_17,
             predictions_rmse_mh,
             predictions_store_dept,
             predictions_ylags,
+            predictions_per_store,
+            predictions_per_dept,
             ensemble,
             submission,
         ],

@@ -128,6 +128,8 @@ class MultiHorizonTrainer:
         raw_dir: str = "data/raw/m5-forecasting-accuracy",
         num_boost_round_override: int | None = None,
         horizon_override: int | None = None,
+        store_filter: str | None = None,
+        dept_filter: str | None = None,
     ) -> dict[str, Any]:
         """Train horizon_override (or 28) direct models.
 
@@ -163,6 +165,11 @@ class MultiHorizonTrainer:
             if col in df.columns:
                 df[col] = df[col].astype(dtype)
 
+        if store_filter is not None:
+            df = df[df["store_id"].astype(str) == store_filter].reset_index(drop=True)
+        if dept_filter is not None:
+            df = df[df["dept_id"].astype(str) == dept_filter].reset_index(drop=True)
+
         # drop rows where any lag feature is NaN (earliest rows lack lag history)
         lag_cols_present = [c for c in feature_cols if c.startswith("lag_")]
         if lag_cols_present:
@@ -178,6 +185,14 @@ class MultiHorizonTrainer:
         for col, dtype in CAT_DTYPES.items():
             if col in df_origin.columns:
                 df_origin[col] = df_origin[col].astype(dtype)
+        if store_filter is not None:
+            df_origin = df_origin[df_origin["store_id"].astype(str) == store_filter].reset_index(
+                drop=True
+            )
+        if dept_filter is not None:
+            df_origin = df_origin[df_origin["dept_id"].astype(str) == dept_filter].reset_index(
+                drop=True
+            )
         df_origin = df_origin.sort_values("id").reset_index(drop=True)
         series_ids = df_origin["id"].values
         n_series = len(series_ids)
@@ -314,6 +329,8 @@ class MultiHorizonTrainer:
         forecast_origin_day: int,
         feature_cols: list[str] | None = None,
         horizon_override: int | None = None,
+        store_filter: str | None = None,
+        dept_filter: str | None = None,
     ) -> pd.DataFrame:
         """Load saved models and predict from forecast_origin_day.
 
@@ -332,6 +349,14 @@ class MultiHorizonTrainer:
         for col, dtype in CAT_DTYPES.items():
             if col in df_origin.columns:
                 df_origin[col] = df_origin[col].astype(dtype)
+        if store_filter is not None:
+            df_origin = df_origin[df_origin["store_id"].astype(str) == store_filter].reset_index(
+                drop=True
+            )
+        if dept_filter is not None:
+            df_origin = df_origin[df_origin["dept_id"].astype(str) == dept_filter].reset_index(
+                drop=True
+            )
         df_origin = df_origin.sort_values("id").reset_index(drop=True)
 
         preds = np.zeros((len(df_origin), n_horizon), dtype=np.float32)
