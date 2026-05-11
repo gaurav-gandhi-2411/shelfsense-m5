@@ -1,5 +1,7 @@
 """
 Chart: Private LB progression across all experiments (chronological).
+
+Phase 1/2 history + Phase 3 Dagster-asset variants.
 """
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -14,7 +16,10 @@ from src.shelfsense.visualization.charts import (
 
 CHARTS = os.path.dirname(os.path.abspath(__file__))
 
-methods = [
+# ── Phase 1/2 (left section) ──────────────────────────────────────────────────
+GOLD = "#B8860B"
+
+methods_12 = [
     "SN28\nbaseline",
     "ETS\n(1k fill)",
     "ARIMA\n(1k fill)",
@@ -27,20 +32,38 @@ methods = [
     "Per-store\n(standalone)",
     "Per-store\nblend",
 ]
-private_lb  = [0.8956, 0.8698, 0.8582, 0.8956, 0.8138, 0.7126, 0.7126,
-               0.6095, 0.5854, 0.6410, 0.6430]
-bar_colors  = [GREY, ORANGE, ORANGE, BLUE, BLUE, GREEN, GREEN,
-               PURPLE, PURPLE, TEAL, TEAL]
+private_12 = [0.8956, 0.8698, 0.8582, 0.8956, 0.8138, 0.7126, 0.7126,
+              0.6095, 0.5854, 0.6410, 0.6430]
+colors_12  = [GREY, ORANGE, ORANGE, BLUE, BLUE, GREEN, GREEN,
+              PURPLE, PURPLE, TEAL, TEAL]
+
+# ── Phase 3 Dagster model variants (right section) ───────────────────────────
+methods_p3 = [
+    "tvp=1.7 MH\n(model_tvp_17)",
+    "per_dept\n(model_per_dept)",
+    "RMSE-MH\n(model_rmse_mh)",
+    "per_store\n(model_per_store)",
+    "store×dept\n(model_store_dept)",
+    "ylags\n(model_ylags)",
+    "tvp=1.3 MH\n(model_tvp_13)",
+]
+private_p3 = [0.6623, 0.6137, 0.6205, 0.6410, 0.5882, 0.5749, 0.5693]
+colors_p3  = [GOLD] * 7
+
+methods = methods_12 + methods_p3
+private_lb = private_12 + private_p3
+bar_colors = colors_12 + colors_p3
+
 x = np.arange(len(methods), dtype=float)
 
 canvas = ChartCanvas(
-    figsize=(16, 8),
-    title="ShelfSense-M5: Kaggle Private LB Progression (Chronological)",
+    figsize=(22, 8),
+    title="ShelfSense-M5: Kaggle Private LB Progression — Phase 1/2 → Phase 3 Dagster Variants",
     ylabel="Private LB WRMSSE (lower is better)",
 )
 canvas.add_bars(x, private_lb, colors=bar_colors)
 canvas.set_ylim(0.44, 1.15)
-canvas.set_xticks(x, methods)
+canvas.set_xticks(x, methods, fontsize=8.5)
 
 best_so_far = np.minimum.accumulate(private_lb)
 canvas.add_step_line(
@@ -49,18 +72,15 @@ canvas.add_step_line(
     color=RED, label="Best private LB to date",
 )
 
-for xc in [2.5, 6.5, 8.5]:
+# Phase separators
+for xc in [2.5, 6.5, 8.5, 10.5]:
     canvas.add_phase_separator(xc)
 canvas.add_phase_label(1.0, "Classical\n(1k sample)")
 canvas.add_phase_label(4.5, "LightGBM\nglobal")
 canvas.add_phase_label(7.5, "Multi-horizon")
 canvas.add_phase_label(9.5, "Per-store")
+canvas.add_phase_label(14.5, "Phase 3\nDagster assets")
 
-# Three top-margin callouts share one y-row (same_row=True keeps cursor stationary).
-# Text boxes are horizontally spread so they don't overlap each other.
-# L-shaped arrows (angle connectionstyle) give a vertical descent to each bar:
-#   horizontal leg travels from the text box to directly above the target bar,
-#   then a straight vertical leg drops to the bar tip — satisfying "no diagonal arrows."
 canvas.add_callout(
     target_x=3, target_y=canvas.bar_top_for_arrow(3),
     text="Eval rows filled with SN28\nuntil recursive forecast added",
@@ -75,8 +95,13 @@ canvas.add_callout(
 )
 canvas.add_callout(
     target_x=8, target_y=canvas.bar_top_for_arrow(8),
-    text="Direct 28-step prediction\neliminates compounding  ★ best",
+    text="Direct 28-step prediction\neliminates compounding  ★ Phase 2 best",
     placement="top", x_offset=0, color=PURPLE, fontweight="bold",
+)
+canvas.add_callout(
+    target_x=len(methods) - 1, target_y=canvas.bar_top_for_arrow(len(methods) - 1),
+    text="tvp=1.3 MH\n★ Final best (0.5693)\n36% reduction from SN28",
+    placement="top", x_offset=0, color=GOLD, fontweight="bold",
 )
 
 canvas.add_legend([
@@ -86,6 +111,7 @@ canvas.add_legend([
     mpatches.Patch(color=GREEN,  label="Blend — per-category"),
     mpatches.Patch(color=PURPLE, label="Multi-horizon"),
     mpatches.Patch(color=TEAL,   label="Per-store"),
+    mpatches.Patch(color=GOLD,   label="Phase 3 Dagster variants"),
     plt.Line2D([0], [0], color=RED, lw=2, ls="--", label="Best private LB to date"),
 ], ncol=4)
 
