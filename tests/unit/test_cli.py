@@ -164,6 +164,20 @@ def test_dag_run_returns_true_on_success():
     assert result is True
 
 
+def test_data_validate_success(monkeypatch):
+    """data validate with mocked Dagster succeeds and emits success message."""
+    from unittest.mock import MagicMock, patch
+
+    monkeypatch.setenv("SHELFSENSE_TEST_MODE", "1")
+    result_mock = MagicMock()
+    result_mock.success = True
+
+    with patch("dagster.materialize", return_value=result_mock):
+        result = runner.invoke(app, ["data", "validate"])
+    assert result.exit_code == 0
+    assert "Validation passed" in result.output
+
+
 def test_data_download_success(tmp_path):
     """data download creates directory, runs kaggle, emits success message."""
     from unittest.mock import MagicMock, patch

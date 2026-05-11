@@ -94,16 +94,28 @@ def test_cli_train_invalid_tvp():
 # ── stubs ─────────────────────────────────────────────────────────────────────
 
 
-def test_cli_per_store_stub():
-    result = runner.invoke(app, ["train", "per-store"])
-    assert result.exit_code == 1
-    assert "Stage 5" in result.output or "deferred" in result.output.lower()
+def test_cli_per_store_runs_dag(monkeypatch):
+    from unittest.mock import MagicMock, patch
+
+    monkeypatch.setenv("SHELFSENSE_TEST_MODE", "1")
+    result_mock = MagicMock()
+    result_mock.success = True
+
+    with patch("dagster.materialize", return_value=result_mock):
+        result = runner.invoke(app, ["train", "per-store"])
+    assert result.exit_code == 0
 
 
-def test_cli_per_dept_stub():
-    result = runner.invoke(app, ["train", "per-dept"])
-    assert result.exit_code == 1
-    assert "Stage 5" in result.output or "deferred" in result.output.lower()
+def test_cli_per_dept_runs_dag(monkeypatch):
+    from unittest.mock import MagicMock, patch
+
+    monkeypatch.setenv("SHELFSENSE_TEST_MODE", "1")
+    result_mock = MagicMock()
+    result_mock.success = True
+
+    with patch("dagster.materialize", return_value=result_mock):
+        result = runner.invoke(app, ["train", "per-dept"])
+    assert result.exit_code == 0
 
 
 def test_cli_report_stub():
