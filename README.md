@@ -4,6 +4,10 @@
 
 Best public LB: **0.5422** | Best private LB: **0.5693** | Baseline (Seasonal Naive 28): **0.8377 / 0.8956**
 
+[![CI](https://github.com/gaurav-gandhi-2411/shelfsense-m5/actions/workflows/ci.yml/badge.svg)](https://github.com/gaurav-gandhi-2411/shelfsense-m5/actions/workflows/ci.yml)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
+[![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 ![Private LB Progression](reports/charts/leaderboard_progression.png)
 
 ---
