@@ -10,6 +10,7 @@ Full pipeline:
   -> ensemble
   -> submission
 """
+
 from __future__ import annotations
 
 import glob
@@ -19,7 +20,6 @@ import time
 import pandas as pd
 from dagster import (
     AssetCheckResult,
-    AssetKey,
     Definitions,
     Failure,
     Field,
@@ -29,8 +29,8 @@ from dagster import (
 
 from shelfsense.orchestration.resources import MLflowResource
 
-
 # -- Raw data loaders ----------------------------------------------------------
+
 
 @asset(
     config_schema={"raw_dir": Field(str, default_value="data/raw/m5-forecasting-accuracy")},
@@ -41,6 +41,7 @@ from shelfsense.orchestration.resources import MLflowResource
 )
 def raw_sales(context) -> pd.DataFrame:
     from shelfsense.data.load import M5Dataset
+
     ds = M5Dataset(raw_dir=context.op_config["raw_dir"], features_dir="", validate=False)
     df = ds.sales
     context.log.info(f"Loaded sales: {len(df):,} rows x {len(df.columns)} cols")
@@ -56,6 +57,7 @@ def raw_sales(context) -> pd.DataFrame:
 )
 def raw_calendar(context) -> pd.DataFrame:
     from shelfsense.data.load import M5Dataset
+
     ds = M5Dataset(raw_dir=context.op_config["raw_dir"], features_dir="", validate=False)
     df = ds.calendar
     context.log.info(f"Loaded calendar: {len(df):,} rows")
@@ -71,6 +73,7 @@ def raw_calendar(context) -> pd.DataFrame:
 )
 def raw_prices(context) -> pd.DataFrame:
     from shelfsense.data.load import M5Dataset
+
     ds = M5Dataset(raw_dir=context.op_config["raw_dir"], features_dir="", validate=False)
     df = ds.prices
     context.log.info(f"Loaded prices: {len(df):,} rows")
@@ -78,6 +81,7 @@ def raw_prices(context) -> pd.DataFrame:
 
 
 # -- Data validation -----------------------------------------------------------
+
 
 @asset(
     description=(
@@ -94,6 +98,7 @@ def raw_validated(
     mlflow_resource: MLflowResource,
 ) -> dict:
     import pandera as pa
+
     from shelfsense.data.schemas import (
         raw_calendar_schema,
         raw_prices_schema,
@@ -102,9 +107,9 @@ def raw_validated(
 
     validated: dict[str, pd.DataFrame] = {}
     for name, df, schema in [
-        ("sales",    raw_sales,    raw_sales_schema),
+        ("sales", raw_sales, raw_sales_schema),
         ("calendar", raw_calendar, raw_calendar_schema),
-        ("prices",   raw_prices,   raw_prices_schema),
+        ("prices", raw_prices, raw_prices_schema),
     ]:
         try:
             schema.validate(df, lazy=True)
@@ -125,9 +130,9 @@ def raw_validated(
         mlflow_resource.log_asset_run(
             run_name="raw_validated",
             metrics={
-                "raw_sales_rows":    float(len(raw_sales)),
+                "raw_sales_rows": float(len(raw_sales)),
                 "raw_calendar_rows": float(len(raw_calendar)),
-                "raw_prices_rows":   float(len(raw_prices)),
+                "raw_prices_rows": float(len(raw_prices)),
             },
             tags={"asset": "raw_validated", "stage": "data_validation"},
         )
@@ -139,16 +144,22 @@ def raw_validated(
 
 # -- Feature engineering -------------------------------------------------------
 
+
 @asset(
     config_schema={
-        "output_dir":    Field(str,  default_value="data/processed/features"),
-        "last_day":      Field(int,  default_value=1941),
-        "test_mode":     Field(bool, default_value=False,
-                               description="Subset to test_n_series for fast integration tests."),
-        "test_n_series": Field(int,  default_value=100,
-                               description="Series to keep when test_mode=True."),
-        "test_seed":     Field(int,  default_value=42,
-                               description="RNG seed for series sampling in test_mode."),
+        "output_dir": Field(str, default_value="data/processed/features"),
+        "last_day": Field(int, default_value=1941),
+        "test_mode": Field(
+            bool,
+            default_value=False,
+            description="Subset to test_n_series for fast integration tests.",
+        ),
+        "test_n_series": Field(
+            int, default_value=100, description="Series to keep when test_mode=True."
+        ),
+        "test_seed": Field(
+            int, default_value=42, description="RNG seed for series sampling in test_mode."
+        ),
     },
     description=(
         "Run feature_engineer() over all 30,490 series (or a subset in test_mode). "
@@ -162,6 +173,7 @@ def features(
     mlflow_resource: MLflowResource,
 ) -> str:
     import numpy as np
+
     from shelfsense.features.pipeline import feature_engineer
 
     cfg = context.op_config
@@ -196,8 +208,8 @@ def features(
         mlflow_resource.log_asset_run(
             run_name="features",
             metrics={
-                "total_rows":   float(rows),
-                "n_series":     float(len(sales_df)),
+                "total_rows": float(rows),
+                "n_series": float(len(sales_df)),
                 "build_time_s": elapsed,
             },
             tags={"asset": "features", "output_dir": output_dir},
@@ -220,6 +232,7 @@ def features_validated(
     mlflow_resource: MLflowResource,
 ) -> str:
     import pandera as pa
+
     from shelfsense.data.schemas import feature_schema
 
     parquets = sorted(glob.glob(os.path.join(features, "*.parquet")))
@@ -259,6 +272,7 @@ def features_validated(
 
 
 # -- Asset checks --------------------------------------------------------------
+
 
 @asset_check(
     asset="raw_sales",
@@ -311,20 +325,29 @@ def check_features_no_nan_d_num(features: str) -> AssetCheckResult:
 # -- Model training (wired in commit 26) --------------------------------------
 
 _TVP13_CFG = {
-    "objective": "tweedie", "tvp": 1.3,
-    "learning_rate": 0.025, "num_leaves": 64,
-    "min_data_in_leaf": 100, "feature_fraction": 0.7,
-    "bagging_fraction": 0.9, "lambda_l2": 0.1,
-    "num_boost_round": 3000, "early_stopping_rounds": 75, "horizon": 28,
+    "objective": "tweedie",
+    "tvp": 1.3,
+    "learning_rate": 0.025,
+    "num_leaves": 64,
+    "min_data_in_leaf": 100,
+    "feature_fraction": 0.7,
+    "bagging_fraction": 0.9,
+    "lambda_l2": 0.1,
+    "num_boost_round": 3000,
+    "early_stopping_rounds": 75,
+    "horizon": 28,
 }
 
 
 @asset(
     config_schema={
-        "model_dir": Field(str,  default_value="data/models/tvp_1p3"),
-        "raw_dir":   Field(str,  default_value="data/raw/m5-forecasting-accuracy"),
-        "test_mode": Field(bool, default_value=False,
-                           description="10 boost rounds + horizon=1 for fast integration tests."),
+        "model_dir": Field(str, default_value="data/models/tvp_1p3"),
+        "raw_dir": Field(str, default_value="data/raw/m5-forecasting-accuracy"),
+        "test_mode": Field(
+            bool,
+            default_value=False,
+            description="10 boost rounds + horizon=1 for fast integration tests.",
+        ),
     },
     description=(
         "Train 28 direct-horizon LightGBM models with Tweedie loss (tvp=1.3). "
@@ -337,7 +360,7 @@ def model_tvp_13(
     features_validated: str,
     mlflow_resource: MLflowResource,
 ) -> dict:
-    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer, DEFAULT_FEATURE_COLS
+    from shelfsense.models.lightgbm.multihorizon import DEFAULT_FEATURE_COLS, MultiHorizonTrainer
 
     cfg = context.op_config
     test_mode = cfg["test_mode"]
@@ -372,52 +395,84 @@ def model_tvp_13(
 
 
 _TVP17_CFG = {
-    "objective": "tweedie", "tvp": 1.7,
-    "learning_rate": 0.025, "num_leaves": 64,
-    "min_data_in_leaf": 100, "feature_fraction": 0.7,
-    "bagging_fraction": 0.9, "lambda_l2": 0.1,
-    "num_boost_round": 3000, "early_stopping_rounds": 75, "horizon": 28,
+    "objective": "tweedie",
+    "tvp": 1.7,
+    "learning_rate": 0.025,
+    "num_leaves": 64,
+    "min_data_in_leaf": 100,
+    "feature_fraction": 0.7,
+    "bagging_fraction": 0.9,
+    "lambda_l2": 0.1,
+    "num_boost_round": 3000,
+    "early_stopping_rounds": 75,
+    "horizon": 28,
 }
 
 _RMSE_CFG = {
-    "objective": "regression", "metric": "rmse",
-    "learning_rate": 0.025, "num_leaves": 64,
-    "min_data_in_leaf": 100, "feature_fraction": 0.7,
-    "bagging_fraction": 0.9, "lambda_l2": 0.1,
-    "num_boost_round": 3000, "early_stopping_rounds": 75, "horizon": 28,
+    "objective": "regression",
+    "metric": "rmse",
+    "learning_rate": 0.025,
+    "num_leaves": 64,
+    "min_data_in_leaf": 100,
+    "feature_fraction": 0.7,
+    "bagging_fraction": 0.9,
+    "lambda_l2": 0.1,
+    "num_boost_round": 3000,
+    "early_stopping_rounds": 75,
+    "horizon": 28,
 }
 
 _SD_CFG = {
-    "objective": "tweedie", "tweedie_variance_power": 1.3,
+    "objective": "tweedie",
+    "tweedie_variance_power": 1.3,
     "optuna_trials": 10,
-    "lr_min": 0.01, "lr_max": 0.1,
-    "num_leaves_min": 31, "num_leaves_max": 127,
-    "min_data_in_leaf_min": 20, "min_data_in_leaf_max": 100,
-    "feature_fraction_min": 0.5, "feature_fraction_max": 1.0,
-    "bagging_fraction_min": 0.5, "bagging_fraction_max": 1.0,
-    "num_boost_round": 3000, "early_stopping_rounds": 75,
-    "seed": 42, "num_threads": 0, "history_days": 200,
+    "lr_min": 0.01,
+    "lr_max": 0.1,
+    "num_leaves_min": 31,
+    "num_leaves_max": 127,
+    "min_data_in_leaf_min": 20,
+    "min_data_in_leaf_max": 100,
+    "feature_fraction_min": 0.5,
+    "feature_fraction_max": 1.0,
+    "bagging_fraction_min": 0.5,
+    "bagging_fraction_max": 1.0,
+    "num_boost_round": 3000,
+    "early_stopping_rounds": 75,
+    "seed": 42,
+    "num_threads": 0,
+    "history_days": 200,
 }
 
 _YLAGS_CFG = {
-    "objective": "tweedie", "tvp": 1.3,
-    "learning_rate": 0.025, "num_leaves": 64,
-    "min_data_in_leaf": 100, "feature_fraction": 0.7,
-    "bagging_fraction": 0.9, "lambda_l2": 0.1,
-    "num_boost_round": 3000, "early_stopping_rounds": 75, "horizon": 28,
+    "objective": "tweedie",
+    "tvp": 1.3,
+    "learning_rate": 0.025,
+    "num_leaves": 64,
+    "min_data_in_leaf": 100,
+    "feature_fraction": 0.7,
+    "bagging_fraction": 0.9,
+    "lambda_l2": 0.1,
+    "num_boost_round": 3000,
+    "early_stopping_rounds": 75,
+    "horizon": 28,
 }
 
 _MODEL_CONFIG_SCHEMA = {
-    "model_dir": Field(str,  default_value=""),
-    "raw_dir":   Field(str,  default_value="data/raw/m5-forecasting-accuracy"),
-    "test_mode": Field(bool, default_value=False,
-                       description="10 boost rounds + horizon=1 for fast integration tests."),
+    "model_dir": Field(str, default_value=""),
+    "raw_dir": Field(str, default_value="data/raw/m5-forecasting-accuracy"),
+    "test_mode": Field(
+        bool,
+        default_value=False,
+        description="10 boost rounds + horizon=1 for fast integration tests.",
+    ),
 }
 
 
 @asset(
-    config_schema={**_MODEL_CONFIG_SCHEMA,
-                   "model_dir": Field(str, default_value="data/models/tvp_1p7")},
+    config_schema={
+        **_MODEL_CONFIG_SCHEMA,
+        "model_dir": Field(str, default_value="data/models/tvp_1p7"),
+    },
     description=(
         "Train 28 direct-horizon LightGBM models with Tweedie loss (tvp=1.7). "
         "Spike-emphasis complement to tvp=1.3 for ensemble diversity. "
@@ -429,7 +484,7 @@ def model_tvp_17(
     features_validated: str,
     mlflow_resource: MLflowResource,
 ) -> dict:
-    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer, DEFAULT_FEATURE_COLS
+    from shelfsense.models.lightgbm.multihorizon import DEFAULT_FEATURE_COLS, MultiHorizonTrainer
 
     cfg = context.op_config
     test_mode = cfg["test_mode"]
@@ -455,8 +510,12 @@ def model_tvp_17(
             run_name="model_tvp_17",
             metrics={"val_wrmsse": result["val_wrmsse"], "train_time_s": elapsed},
             params={"objective": "tweedie", "tvp": "1.7", "test_mode": str(test_mode)},
-            tags={"asset": "model_tvp_17", "variant": "tvp_17",
-                  "feature_set": "default", "objective": "tweedie"},
+            tags={
+                "asset": "model_tvp_17",
+                "variant": "tvp_17",
+                "feature_set": "default",
+                "objective": "tweedie",
+            },
         )
     except Exception as exc:
         context.log.warning(f"MLflow logging skipped: {exc}")
@@ -465,8 +524,10 @@ def model_tvp_17(
 
 
 @asset(
-    config_schema={**_MODEL_CONFIG_SCHEMA,
-                   "model_dir": Field(str, default_value="data/models/rmse_mh")},
+    config_schema={
+        **_MODEL_CONFIG_SCHEMA,
+        "model_dir": Field(str, default_value="data/models/rmse_mh"),
+    },
     description=(
         "Train 28 direct-horizon LightGBM models with RMSE objective. "
         "Ensemble diversity component -- different loss surface from Tweedie variants. "
@@ -478,7 +539,7 @@ def model_rmse_mh(
     features_validated: str,
     mlflow_resource: MLflowResource,
 ) -> dict:
-    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer, DEFAULT_FEATURE_COLS
+    from shelfsense.models.lightgbm.multihorizon import DEFAULT_FEATURE_COLS, MultiHorizonTrainer
 
     cfg = context.op_config
     test_mode = cfg["test_mode"]
@@ -504,8 +565,12 @@ def model_rmse_mh(
             run_name="model_rmse_mh",
             metrics={"val_wrmsse": result["val_wrmsse"], "train_time_s": elapsed},
             params={"objective": "regression", "test_mode": str(test_mode)},
-            tags={"asset": "model_rmse_mh", "variant": "rmse_mh",
-                  "feature_set": "default", "objective": "regression"},
+            tags={
+                "asset": "model_rmse_mh",
+                "variant": "rmse_mh",
+                "feature_set": "default",
+                "objective": "regression",
+            },
         )
     except Exception as exc:
         context.log.warning(f"MLflow logging skipped: {exc}")
@@ -515,10 +580,13 @@ def model_rmse_mh(
 
 @asset(
     config_schema={
-        "model_dir": Field(str,  default_value="data/models/store_dept"),
-        "raw_dir":   Field(str,  default_value="data/raw/m5-forecasting-accuracy"),
-        "test_mode": Field(bool, default_value=False,
-                           description="2 slices + 10 boost rounds for fast integration tests."),
+        "model_dir": Field(str, default_value="data/models/store_dept"),
+        "raw_dir": Field(str, default_value="data/raw/m5-forecasting-accuracy"),
+        "test_mode": Field(
+            bool,
+            default_value=False,
+            description="2 slices + 10 boost rounds for fast integration tests.",
+        ),
     },
     description=(
         "Train 70 LightGBM models (one per store x dept slice) with recursive 28-step forecast. "
@@ -531,7 +599,7 @@ def model_store_dept(
     features_validated: str,
     mlflow_resource: MLflowResource,
 ) -> dict:
-    from shelfsense.models.lightgbm.store_dept import StoreDeptTrainer, DEFAULT_FEATURE_COLS
+    from shelfsense.models.lightgbm.store_dept import DEFAULT_FEATURE_COLS, StoreDeptTrainer
 
     cfg = context.op_config
     test_mode = cfg["test_mode"]
@@ -559,11 +627,18 @@ def model_store_dept(
     try:
         mlflow_resource.log_asset_run(
             run_name="model_store_dept",
-            metrics={"val_wrmsse": result["val_wrmsse"], "train_time_s": elapsed,
-                     "n_slices": float(n_slices)},
+            metrics={
+                "val_wrmsse": result["val_wrmsse"],
+                "train_time_s": elapsed,
+                "n_slices": float(n_slices),
+            },
             params={"objective": "tweedie", "tvp": "1.3", "test_mode": str(test_mode)},
-            tags={"asset": "model_store_dept", "variant": "store_dept",
-                  "feature_set": "default", "objective": "tweedie"},
+            tags={
+                "asset": "model_store_dept",
+                "variant": "store_dept",
+                "feature_set": "default",
+                "objective": "tweedie",
+            },
         )
     except Exception as exc:
         context.log.warning(f"MLflow logging skipped: {exc}")
@@ -572,8 +647,10 @@ def model_store_dept(
 
 
 @asset(
-    config_schema={**_MODEL_CONFIG_SCHEMA,
-                   "model_dir": Field(str, default_value="data/models/ylags")},
+    config_schema={
+        **_MODEL_CONFIG_SCHEMA,
+        "model_dir": Field(str, default_value="data/models/ylags"),
+    },
     description=(
         "Train 28 direct-horizon LightGBM models with annual lag features (lag_91/182/364). "
         "Same Tweedie tvp=1.3 params as model_tvp_13; feature set adds lag_91/182/364. "
@@ -586,7 +663,7 @@ def model_ylags(
     features_validated: str,
     mlflow_resource: MLflowResource,
 ) -> dict:
-    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer, YLAGS_FEATURE_COLS
+    from shelfsense.models.lightgbm.multihorizon import YLAGS_FEATURE_COLS, MultiHorizonTrainer
 
     cfg = context.op_config
     test_mode = cfg["test_mode"]
@@ -612,8 +689,12 @@ def model_ylags(
             run_name="model_ylags",
             metrics={"val_wrmsse": result["val_wrmsse"], "train_time_s": elapsed},
             params={"objective": "tweedie", "tvp": "1.3", "test_mode": str(test_mode)},
-            tags={"asset": "model_ylags", "variant": "ylags",
-                  "feature_set": "ylags", "objective": "tweedie"},
+            tags={
+                "asset": "model_ylags",
+                "variant": "ylags",
+                "feature_set": "ylags",
+                "objective": "tweedie",
+            },
         )
     except Exception as exc:
         context.log.warning(f"MLflow logging skipped: {exc}")
@@ -622,6 +703,7 @@ def model_ylags(
 
 
 # -- Model asset checks --------------------------------------------------------
+
 
 def _check_mh_pkl_count(model_dir: str, expected: int = 28) -> AssetCheckResult:
     pkls = glob.glob(os.path.join(model_dir, "h_*.pkl"))
@@ -661,7 +743,9 @@ def check_model_tvp_17_val_wrmsse(model_tvp_17: dict) -> AssetCheckResult:
     return _check_val_wrmsse(model_tvp_17["val_wrmsse"])
 
 
-@asset_check(asset="model_rmse_mh", description="model_rmse_mh must write exactly 28 h_*.pkl files.")
+@asset_check(
+    asset="model_rmse_mh", description="model_rmse_mh must write exactly 28 h_*.pkl files."
+)
 def check_model_rmse_mh_pkl_count(model_rmse_mh: dict) -> AssetCheckResult:
     return _check_mh_pkl_count(model_rmse_mh["model_dir"])
 
@@ -686,7 +770,9 @@ def check_model_store_dept_pkl_count(model_store_dept: dict) -> AssetCheckResult
     )
 
 
-@asset_check(asset="model_store_dept", description="model_store_dept val_wrmsse must be in (0.5, 1.5).")
+@asset_check(
+    asset="model_store_dept", description="model_store_dept val_wrmsse must be in (0.5, 1.5)."
+)
 def check_model_store_dept_val_wrmsse(model_store_dept: dict) -> AssetCheckResult:
     return _check_val_wrmsse(model_store_dept["val_wrmsse"])
 
@@ -703,6 +789,7 @@ def check_model_ylags_val_wrmsse(model_ylags: dict) -> AssetCheckResult:
 
 # -- Predictions asset checks --------------------------------------------------
 
+
 def _check_preds_n_series(preds: dict, variant: str) -> AssetCheckResult:
     n = preds["n_series"]
     return AssetCheckResult(
@@ -712,27 +799,38 @@ def _check_preds_n_series(preds: dict, variant: str) -> AssetCheckResult:
     )
 
 
-@asset_check(asset="predictions_tvp_13", description="predictions_tvp_13 must contain at least 1 series.")
+@asset_check(
+    asset="predictions_tvp_13", description="predictions_tvp_13 must contain at least 1 series."
+)
 def check_predictions_tvp_13(predictions_tvp_13: dict) -> AssetCheckResult:
     return _check_preds_n_series(predictions_tvp_13, "tvp_13")
 
 
-@asset_check(asset="predictions_tvp_17", description="predictions_tvp_17 must contain at least 1 series.")
+@asset_check(
+    asset="predictions_tvp_17", description="predictions_tvp_17 must contain at least 1 series."
+)
 def check_predictions_tvp_17(predictions_tvp_17: dict) -> AssetCheckResult:
     return _check_preds_n_series(predictions_tvp_17, "tvp_17")
 
 
-@asset_check(asset="predictions_rmse_mh", description="predictions_rmse_mh must contain at least 1 series.")
+@asset_check(
+    asset="predictions_rmse_mh", description="predictions_rmse_mh must contain at least 1 series."
+)
 def check_predictions_rmse_mh(predictions_rmse_mh: dict) -> AssetCheckResult:
     return _check_preds_n_series(predictions_rmse_mh, "rmse_mh")
 
 
-@asset_check(asset="predictions_store_dept", description="predictions_store_dept must contain at least 1 series.")
+@asset_check(
+    asset="predictions_store_dept",
+    description="predictions_store_dept must contain at least 1 series.",
+)
 def check_predictions_store_dept(predictions_store_dept: dict) -> AssetCheckResult:
     return _check_preds_n_series(predictions_store_dept, "store_dept")
 
 
-@asset_check(asset="predictions_ylags", description="predictions_ylags must contain at least 1 series.")
+@asset_check(
+    asset="predictions_ylags", description="predictions_ylags must contain at least 1 series."
+)
 def check_predictions_ylags(predictions_ylags: dict) -> AssetCheckResult:
     return _check_preds_n_series(predictions_ylags, "ylags")
 
@@ -765,12 +863,12 @@ def check_submission_row_count(submission: dict) -> AssetCheckResult:
 
 # -- Predictions ---------------------------------------------------------------
 
-_EVAL_ORIGIN = 1941   # forecast d_1942-d_1969 (Kaggle evaluation period)
-_VAL_ORIGIN  = 1913   # forecast d_1914-d_1941 (scoring against known actuals)
-_FCOLS       = [f"F{h}" for h in range(1, 29)]
+_EVAL_ORIGIN = 1941  # forecast d_1942-d_1969 (Kaggle evaluation period)
+_VAL_ORIGIN = 1913  # forecast d_1914-d_1941 (scoring against known actuals)
+_FCOLS = [f"F{h}" for h in range(1, 29)]
 
 _PREDS_CONFIG = {
-    "raw_dir":   Field(str,  default_value="data/raw/m5-forecasting-accuracy"),
+    "raw_dir": Field(str, default_value="data/raw/m5-forecasting-accuracy"),
     "test_mode": Field(bool, default_value=False),
 }
 
@@ -784,8 +882,12 @@ def _pad_horizons(df: pd.DataFrame) -> None:
 
 
 def _write_preds(
-    trainer, model_dir: str, features_validated: str,
-    feature_cols: list, preds_dir: str, test_mode: bool,
+    trainer,
+    model_dir: str,
+    features_validated: str,
+    feature_cols: list,
+    preds_dir: str,
+    test_mode: bool,
     horizon_override,
 ) -> tuple:
     """Predict at both origins; pad in test_mode; write parquets. Returns (eval_path, val_path, n_series)."""
@@ -808,9 +910,9 @@ def _write_preds(
         _pad_horizons(val_df)
     os.makedirs(preds_dir, exist_ok=True)
     eval_path = os.path.join(preds_dir, "eval.parquet")
-    val_path  = os.path.join(preds_dir, "val.parquet")
+    val_path = os.path.join(preds_dir, "val.parquet")
     eval_df[["id"] + _FCOLS].to_parquet(eval_path, index=False)
-    val_df[["id"] + _FCOLS].to_parquet(val_path,  index=False)
+    val_df[["id"] + _FCOLS].to_parquet(val_path, index=False)
     return eval_path, val_path, len(eval_df)
 
 
@@ -831,21 +933,33 @@ def predictions_tvp_13(
     features_validated: str,
     mlflow_resource: MLflowResource,
 ) -> dict:
-    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer, DEFAULT_FEATURE_COLS
+    from shelfsense.models.lightgbm.multihorizon import DEFAULT_FEATURE_COLS, MultiHorizonTrainer
+
     cfg = context.op_config
     test_mode = cfg["test_mode"]
     trainer = MultiHorizonTrainer(_TVP13_CFG)
     eval_path, val_path, n_series = _write_preds(
-        trainer, model_tvp_13["model_dir"], features_validated,
-        DEFAULT_FEATURE_COLS, cfg["preds_dir"], test_mode,
+        trainer,
+        model_tvp_13["model_dir"],
+        features_validated,
+        DEFAULT_FEATURE_COLS,
+        cfg["preds_dir"],
+        test_mode,
         1 if test_mode else None,
     )
     context.log.info(f"predictions_tvp_13: {n_series} series → {cfg['preds_dir']}")
     try:
         mlflow_resource.log_asset_run(
             run_name="predictions_tvp_13",
-            metrics={"n_series": float(n_series), "upstream_val_wrmsse": model_tvp_13["val_wrmsse"]},
-            params={"eval_origin": str(_EVAL_ORIGIN), "val_origin": str(_VAL_ORIGIN), "test_mode": str(test_mode)},
+            metrics={
+                "n_series": float(n_series),
+                "upstream_val_wrmsse": model_tvp_13["val_wrmsse"],
+            },
+            params={
+                "eval_origin": str(_EVAL_ORIGIN),
+                "val_origin": str(_VAL_ORIGIN),
+                "test_mode": str(test_mode),
+            },
             tags={"asset": "predictions_tvp_13", "variant": "tvp_13"},
         )
     except Exception as exc:
@@ -870,21 +984,33 @@ def predictions_tvp_17(
     features_validated: str,
     mlflow_resource: MLflowResource,
 ) -> dict:
-    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer, DEFAULT_FEATURE_COLS
+    from shelfsense.models.lightgbm.multihorizon import DEFAULT_FEATURE_COLS, MultiHorizonTrainer
+
     cfg = context.op_config
     test_mode = cfg["test_mode"]
     trainer = MultiHorizonTrainer(_TVP17_CFG)
     eval_path, val_path, n_series = _write_preds(
-        trainer, model_tvp_17["model_dir"], features_validated,
-        DEFAULT_FEATURE_COLS, cfg["preds_dir"], test_mode,
+        trainer,
+        model_tvp_17["model_dir"],
+        features_validated,
+        DEFAULT_FEATURE_COLS,
+        cfg["preds_dir"],
+        test_mode,
         1 if test_mode else None,
     )
     context.log.info(f"predictions_tvp_17: {n_series} series → {cfg['preds_dir']}")
     try:
         mlflow_resource.log_asset_run(
             run_name="predictions_tvp_17",
-            metrics={"n_series": float(n_series), "upstream_val_wrmsse": model_tvp_17["val_wrmsse"]},
-            params={"eval_origin": str(_EVAL_ORIGIN), "val_origin": str(_VAL_ORIGIN), "test_mode": str(test_mode)},
+            metrics={
+                "n_series": float(n_series),
+                "upstream_val_wrmsse": model_tvp_17["val_wrmsse"],
+            },
+            params={
+                "eval_origin": str(_EVAL_ORIGIN),
+                "val_origin": str(_VAL_ORIGIN),
+                "test_mode": str(test_mode),
+            },
             tags={"asset": "predictions_tvp_17", "variant": "tvp_17"},
         )
     except Exception as exc:
@@ -909,21 +1035,33 @@ def predictions_rmse_mh(
     features_validated: str,
     mlflow_resource: MLflowResource,
 ) -> dict:
-    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer, DEFAULT_FEATURE_COLS
+    from shelfsense.models.lightgbm.multihorizon import DEFAULT_FEATURE_COLS, MultiHorizonTrainer
+
     cfg = context.op_config
     test_mode = cfg["test_mode"]
     trainer = MultiHorizonTrainer(_RMSE_CFG)
     eval_path, val_path, n_series = _write_preds(
-        trainer, model_rmse_mh["model_dir"], features_validated,
-        DEFAULT_FEATURE_COLS, cfg["preds_dir"], test_mode,
+        trainer,
+        model_rmse_mh["model_dir"],
+        features_validated,
+        DEFAULT_FEATURE_COLS,
+        cfg["preds_dir"],
+        test_mode,
         1 if test_mode else None,
     )
     context.log.info(f"predictions_rmse_mh: {n_series} series → {cfg['preds_dir']}")
     try:
         mlflow_resource.log_asset_run(
             run_name="predictions_rmse_mh",
-            metrics={"n_series": float(n_series), "upstream_val_wrmsse": model_rmse_mh["val_wrmsse"]},
-            params={"eval_origin": str(_EVAL_ORIGIN), "val_origin": str(_VAL_ORIGIN), "test_mode": str(test_mode)},
+            metrics={
+                "n_series": float(n_series),
+                "upstream_val_wrmsse": model_rmse_mh["val_wrmsse"],
+            },
+            params={
+                "eval_origin": str(_EVAL_ORIGIN),
+                "val_origin": str(_VAL_ORIGIN),
+                "test_mode": str(test_mode),
+            },
             tags={"asset": "predictions_rmse_mh", "variant": "rmse_mh"},
         )
     except Exception as exc:
@@ -949,7 +1087,9 @@ def predictions_store_dept(
     mlflow_resource: MLflowResource,
 ) -> dict:
     import gc
+
     from shelfsense.models.lightgbm.store_dept import StoreDeptTrainer
+
     cfg = context.op_config
     test_mode = cfg["test_mode"]
     trainer = StoreDeptTrainer(_SD_CFG)
@@ -971,16 +1111,23 @@ def predictions_store_dept(
         slices_override=slices,
     )
     eval_path = os.path.join(cfg["preds_dir"], "eval.parquet")
-    val_path  = os.path.join(cfg["preds_dir"], "val.parquet")
+    val_path = os.path.join(cfg["preds_dir"], "val.parquet")
     eval_df[["id"] + _FCOLS].to_parquet(eval_path, index=False)
-    val_df[["id"] + _FCOLS].to_parquet(val_path,  index=False)
+    val_df[["id"] + _FCOLS].to_parquet(val_path, index=False)
     n_series = len(eval_df)
     context.log.info(f"predictions_store_dept: {n_series} series → {cfg['preds_dir']}")
     try:
         mlflow_resource.log_asset_run(
             run_name="predictions_store_dept",
-            metrics={"n_series": float(n_series), "upstream_val_wrmsse": model_store_dept["val_wrmsse"]},
-            params={"eval_origin": str(_EVAL_ORIGIN), "val_origin": str(_VAL_ORIGIN), "test_mode": str(test_mode)},
+            metrics={
+                "n_series": float(n_series),
+                "upstream_val_wrmsse": model_store_dept["val_wrmsse"],
+            },
+            params={
+                "eval_origin": str(_EVAL_ORIGIN),
+                "val_origin": str(_VAL_ORIGIN),
+                "test_mode": str(test_mode),
+            },
             tags={"asset": "predictions_store_dept", "variant": "store_dept"},
         )
     except Exception as exc:
@@ -1006,13 +1153,18 @@ def predictions_ylags(
     features_validated: str,
     mlflow_resource: MLflowResource,
 ) -> dict:
-    from shelfsense.models.lightgbm.multihorizon import MultiHorizonTrainer, YLAGS_FEATURE_COLS
+    from shelfsense.models.lightgbm.multihorizon import YLAGS_FEATURE_COLS, MultiHorizonTrainer
+
     cfg = context.op_config
     test_mode = cfg["test_mode"]
     trainer = MultiHorizonTrainer(_YLAGS_CFG)
     eval_path, val_path, n_series = _write_preds(
-        trainer, model_ylags["model_dir"], features_validated,
-        YLAGS_FEATURE_COLS, cfg["preds_dir"], test_mode,
+        trainer,
+        model_ylags["model_dir"],
+        features_validated,
+        YLAGS_FEATURE_COLS,
+        cfg["preds_dir"],
+        test_mode,
         1 if test_mode else None,
     )
     context.log.info(f"predictions_ylags: {n_series} series → {cfg['preds_dir']}")
@@ -1020,7 +1172,11 @@ def predictions_ylags(
         mlflow_resource.log_asset_run(
             run_name="predictions_ylags",
             metrics={"n_series": float(n_series), "upstream_val_wrmsse": model_ylags["val_wrmsse"]},
-            params={"eval_origin": str(_EVAL_ORIGIN), "val_origin": str(_VAL_ORIGIN), "test_mode": str(test_mode)},
+            params={
+                "eval_origin": str(_EVAL_ORIGIN),
+                "val_origin": str(_VAL_ORIGIN),
+                "test_mode": str(test_mode),
+            },
             tags={"asset": "predictions_ylags", "variant": "ylags"},
         )
     except Exception as exc:
@@ -1030,14 +1186,17 @@ def predictions_ylags(
 
 # -- Ensemble ------------------------------------------------------------------
 
+
 @asset(
     config_schema={
-        "preds_dir": Field(str,  default_value="data/predictions/ensemble"),
-        "raw_dir":   Field(str,  default_value="data/raw/m5-forecasting-accuracy"),
-        "n_trials":  Field(int,  default_value=50,
-                           description="Optuna trials for weight search (5 in test_mode)."),
-        "test_mode": Field(bool, default_value=False,
-                           description="Blend only tvp_13+tvp_17, 5 Optuna trials."),
+        "preds_dir": Field(str, default_value="data/predictions/ensemble"),
+        "raw_dir": Field(str, default_value="data/raw/m5-forecasting-accuracy"),
+        "n_trials": Field(
+            int, default_value=50, description="Optuna trials for weight search (5 in test_mode)."
+        ),
+        "test_mode": Field(
+            bool, default_value=False, description="Blend only tvp_13+tvp_17, 5 Optuna trials."
+        ),
     },
     description=(
         "Optuna weight search over convex combination of all 5 prediction variants. "
@@ -1057,6 +1216,7 @@ def ensemble(
 ) -> dict:
     import numpy as np
     import optuna
+
     from shelfsense.evaluation.wrmsse import compute_wrmsse
 
     cfg = context.op_config
@@ -1069,38 +1229,34 @@ def ensemble(
         active = {"tvp_13": predictions_tvp_13, "tvp_17": predictions_tvp_17}
     else:
         active = {
-            "tvp_13":     predictions_tvp_13,
-            "tvp_17":     predictions_tvp_17,
-            "rmse_mh":    predictions_rmse_mh,
+            "tvp_13": predictions_tvp_13,
+            "tvp_17": predictions_tvp_17,
+            "rmse_mh": predictions_rmse_mh,
             "store_dept": predictions_store_dept,
-            "ylags":      predictions_ylags,
+            "ylags": predictions_ylags,
         }
     variant_names = list(active.keys())
     n_variants = len(variant_names)
 
     # Load val predictions; intersect series for safety
-    val_indexed = [
-        pd.read_parquet(active[v]["val_path"]).set_index("id")
-        for v in variant_names
-    ]
+    val_indexed = [pd.read_parquet(active[v]["val_path"]).set_index("id") for v in variant_names]
     series_ids = sorted(val_indexed[0].index.tolist())
     for df in val_indexed[1:]:
         series_ids = sorted(set(series_ids) & set(df.index.tolist()))
-    val_preds = [
-        df.reindex(series_ids)[_FCOLS].values.astype(np.float32)
-        for df in val_indexed
-    ]
+    val_preds = [df.reindex(series_ids)[_FCOLS].values.astype(np.float32) for df in val_indexed]
 
     # Load raw CSVs for WRMSSE
     raw_dir = cfg["raw_dir"]
-    sales_eval  = pd.read_csv(os.path.join(raw_dir, "sales_train_evaluation.csv"))
-    prices_df   = pd.read_csv(os.path.join(raw_dir, "sell_prices.csv"))
+    sales_eval = pd.read_csv(os.path.join(raw_dir, "sales_train_evaluation.csv"))
+    prices_df = pd.read_csv(os.path.join(raw_dir, "sell_prices.csv"))
     calendar_df = pd.read_csv(os.path.join(raw_dir, "calendar.csv"))
 
     actual_cols = [f"d_{_VAL_ORIGIN + h}" for h in range(1, 29)]
     sub_sales = (
         sales_eval[sales_eval["id"].isin(series_ids)]
-        .set_index("id").reindex(series_ids).reset_index()
+        .set_index("id")
+        .reindex(series_ids)
+        .reset_index()
     )
     actuals = sub_sales[actual_cols].values.astype(np.float32)
 
@@ -1118,7 +1274,9 @@ def ensemble(
             blended += wi * vp.astype(np.float64)
         blended = np.clip(blended, 0.0, None).astype(np.float32)
         try:
-            score, _ = compute_wrmsse(blended, actuals, sub_sales, prices_df, calendar_df, _VAL_ORIGIN)
+            score, _ = compute_wrmsse(
+                blended, actuals, sub_sales, prices_df, calendar_df, _VAL_ORIGIN
+            )
             return score
         except Exception:
             return float("inf")
@@ -1137,10 +1295,7 @@ def ensemble(
     context.log.info(f"ensemble: weights={weights_dict}  val_wrmsse={val_wrmsse:.4f}")
 
     # Apply weights to eval predictions
-    eval_indexed = [
-        pd.read_parquet(active[v]["eval_path"]).set_index("id")
-        for v in variant_names
-    ]
+    eval_indexed = [pd.read_parquet(active[v]["eval_path"]).set_index("id") for v in variant_names]
     eval_ids = sorted(eval_indexed[0].index.tolist())
     for df in eval_indexed[1:]:
         eval_ids = sorted(set(eval_ids) & set(df.index.tolist()))
@@ -1161,9 +1316,9 @@ def ensemble(
     val_df_out.insert(0, "id", series_ids)
 
     blended_eval_path = os.path.join(cfg["preds_dir"], "ensemble_eval.parquet")
-    blended_val_path  = os.path.join(cfg["preds_dir"], "ensemble_val.parquet")
+    blended_val_path = os.path.join(cfg["preds_dir"], "ensemble_val.parquet")
     eval_df_out.to_parquet(blended_eval_path, index=False)
-    val_df_out.to_parquet(blended_val_path,   index=False)
+    val_df_out.to_parquet(blended_val_path, index=False)
 
     try:
         mlflow_resource.log_asset_run(
@@ -1180,21 +1335,25 @@ def ensemble(
 
     return {
         "blended_eval_path": blended_eval_path,
-        "blended_val_path":  blended_val_path,
-        "weights":           weights_dict,
-        "val_wrmsse":        val_wrmsse,
+        "blended_val_path": blended_val_path,
+        "weights": weights_dict,
+        "val_wrmsse": val_wrmsse,
     }
 
 
 # -- Submission ----------------------------------------------------------------
 
+
 @asset(
     config_schema={
-        "submissions_dir": Field(str,  default_value="submissions"),
-        "raw_dir":         Field(str,  default_value="data/raw/m5-forecasting-accuracy"),
-        "kaggle_submit":   Field(bool, default_value=False,
-                                 description="Upload to Kaggle via CLI when True (skipped in test_mode)."),
-        "test_mode":       Field(bool, default_value=False),
+        "submissions_dir": Field(str, default_value="submissions"),
+        "raw_dir": Field(str, default_value="data/raw/m5-forecasting-accuracy"),
+        "kaggle_submit": Field(
+            bool,
+            default_value=False,
+            description="Upload to Kaggle via CLI when True (skipped in test_mode).",
+        ),
+        "test_mode": Field(bool, default_value=False),
     },
     description=(
         "Build Kaggle-format submission CSV (60,980 rows: 30,490 validation + 30,490 evaluation). "
@@ -1205,7 +1364,9 @@ def ensemble(
 )
 def submission(context, ensemble: dict, mlflow_resource: MLflowResource) -> dict:
     import datetime
+
     import pandera as pa
+
     from shelfsense.data.schemas import submission_schema
 
     cfg = context.op_config
@@ -1213,14 +1374,13 @@ def submission(context, ensemble: dict, mlflow_resource: MLflowResource) -> dict
     os.makedirs(cfg["submissions_dir"], exist_ok=True)
 
     eval_df = pd.read_parquet(ensemble["blended_eval_path"])
-    val_df  = pd.read_parquet(ensemble["blended_val_path"])
+    val_df = pd.read_parquet(ensemble["blended_val_path"])
 
     val_rows = val_df.copy()
     val_rows["id"] = val_rows["id"].str.replace("_evaluation", "_validation", regex=False)
 
     sub_df = pd.concat(
-        [val_rows[["id"] + _FCOLS].sort_values("id"),
-         eval_df[["id"] + _FCOLS].sort_values("id")],
+        [val_rows[["id"] + _FCOLS].sort_values("id"), eval_df[["id"] + _FCOLS].sort_values("id")],
         ignore_index=True,
     )
 
@@ -1240,10 +1400,21 @@ def submission(context, ensemble: dict, mlflow_resource: MLflowResource) -> dict
     kaggle_submitted = False
     if cfg["kaggle_submit"] and not test_mode:
         import subprocess
+
         res = subprocess.run(
-            ["kaggle", "competitions", "submit", "-c", "m5-forecasting-accuracy",
-             "-f", csv_path, "-m", "shelfsense-ensemble"],
-            capture_output=True, text=True,
+            [
+                "kaggle",
+                "competitions",
+                "submit",
+                "-c",
+                "m5-forecasting-accuracy",
+                "-f",
+                csv_path,
+                "-m",
+                "shelfsense-ensemble",
+            ],
+            capture_output=True,
+            text=True,
         )
         if res.returncode == 0:
             kaggle_submitted = True
@@ -1255,8 +1426,11 @@ def submission(context, ensemble: dict, mlflow_resource: MLflowResource) -> dict
         mlflow_resource.log_asset_run(
             run_name="submission",
             metrics={"n_rows": float(n_rows)},
-            params={"csv_path": csv_path, "test_mode": str(test_mode),
-                    "kaggle_submitted": str(kaggle_submitted)},
+            params={
+                "csv_path": csv_path,
+                "test_mode": str(test_mode),
+                "kaggle_submitted": str(kaggle_submitted),
+            },
             tags={"asset": "submission"},
         )
     except Exception as exc:

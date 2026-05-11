@@ -23,37 +23,38 @@ Usage (multi-panel — blend_dynamics style):
     # ... populate each panel ...
     left.save_fig(fig, "reports/charts/two_panel.png")
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 
-import numpy as np
 import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches  # noqa: F401 — re-exported for callers
+import numpy as np
 
+matplotlib.use("Agg")
+import matplotlib.patches as mpatches  # noqa: F401 — re-exported for callers
+import matplotlib.pyplot as plt
 
 # ── palette (importable by chart scripts) ────────────────────────────────────
-BLUE       = "#2C6FAC"
-ORANGE     = "#E07B39"
-GREEN      = "#3A8C5C"
-RED        = "#C0392B"
-PURPLE     = "#7B3FA0"
-TEAL       = "#1A7F7A"
+BLUE = "#2C6FAC"
+ORANGE = "#E07B39"
+GREEN = "#3A8C5C"
+RED = "#C0392B"
+PURPLE = "#7B3FA0"
+TEAL = "#1A7F7A"
 TEAL_LIGHT = "#5AADA8"
-GREY       = "#888888"
-LGREY      = "#CCCCCC"
+GREY = "#888888"
+LGREY = "#CCCCCC"
 
 _FACECOLOR = {
-    BLUE:   "#EEF4FB",
-    RED:    "#FDECEA",
-    GREEN:  "#E8F5E9",
+    BLUE: "#EEF4FB",
+    RED: "#FDECEA",
+    GREEN: "#E8F5E9",
     PURPLE: "#F0E8F8",
     ORANGE: "#FFF3E0",
-    TEAL:   "#E0F4F3",
-    GREY:   "#F5F5F5",
+    TEAL: "#E0F4F3",
+    GREY: "#F5F5F5",
 }
 
 
@@ -65,8 +66,8 @@ def _fc(color: str) -> str:
 @dataclass
 class _Bar:
     x: float
-    y: float          # top of bar (= bar height for positive bars)
-    w: float          # bar width
+    y: float  # top of bar (= bar height for positive bars)
+    w: float  # bar width
     label_top: float  # bottom edge of the value label (bar_top + value_pad)
 
 
@@ -176,8 +177,7 @@ class ChartCanvas:
         obj.ax = ax
         obj._top_margin_pct = top_margin_pct
         ax.set_facecolor("white")
-        ax.set_title(title, fontsize=12, fontweight="bold",
-                     color=title_color, pad=10)
+        ax.set_title(title, fontsize=12, fontweight="bold", color=title_color, pad=10)
         ax.set_ylabel(ylabel, fontsize=11)
         ax.grid(axis="y", alpha=0.25, zorder=0)
         obj._init_state()
@@ -187,11 +187,11 @@ class ChartCanvas:
         self._bars: List[_Bar] = []
         self._callouts: List[_Callout] = []
         self._phase_labels: List[Tuple[float, str]] = []  # (x_center, text)
-        self._phase_seps: List[float] = []                # separator x positions
+        self._phase_seps: List[float] = []  # separator x positions
         self._ylim: Optional[Tuple[float, float]] = None
-        self._callout_cursor: float = 0.0   # auto-stacking y cursor
+        self._callout_cursor: float = 0.0  # auto-stacking y cursor
         self._bar_width: float = 0.62
-        self._title_ymin_data: Optional[float] = None   # populated by _render_and_cache_title()
+        self._title_ymin_data: Optional[float] = None  # populated by _render_and_cache_title()
 
     # ── data methods ──────────────────────────────────────────────────────────
 
@@ -217,8 +217,7 @@ class ChartCanvas:
         matplotlib bar container.
         """
         self._bar_width = width
-        kw: dict = dict(width=width, zorder=zorder,
-                        edgecolor=edgecolor, linewidth=linewidth)
+        kw: dict = dict(width=width, zorder=zorder, edgecolor=edgecolor, linewidth=linewidth)
         if hatch:
             kw["hatch"] = hatch
         if alpha < 1.0:
@@ -230,14 +229,23 @@ class ChartCanvas:
             cx = rect.get_x() + rect.get_width() / 2
             if value_labels:
                 self.ax.text(
-                    cx, v + value_pad, value_fmt.format(v),
-                    ha="center", va="bottom",
-                    fontsize=value_size, fontweight="bold", color="#333333",
+                    cx,
+                    v + value_pad,
+                    value_fmt.format(v),
+                    ha="center",
+                    va="bottom",
+                    fontsize=value_size,
+                    fontweight="bold",
+                    color="#333333",
                 )
-            self._bars.append(_Bar(
-                x=cx, y=float(v), w=float(width),
-                label_top=float(v) + value_pad,
-            ))
+            self._bars.append(
+                _Bar(
+                    x=cx,
+                    y=float(v),
+                    w=float(width),
+                    label_top=float(v) + value_pad,
+                )
+            )
         return bars
 
     def add_bar_label(
@@ -255,9 +263,14 @@ class ChartCanvas:
         this text's bottom edge.
         """
         self.ax.text(
-            bar_center_x, bar_top_y + pad, text,
-            ha="center", va="bottom",
-            fontsize=fontsize, fontweight="bold", color=color,
+            bar_center_x,
+            bar_top_y + pad,
+            text,
+            ha="center",
+            va="bottom",
+            fontsize=fontsize,
+            fontweight="bold",
+            color=color,
         )
         # Raise label_top on the nearest registered bar so validate() knows
         # there is text here.
@@ -275,8 +288,9 @@ class ChartCanvas:
         label: str = "Best to date",
     ) -> None:
         """Horizontal step line (best-to-date trace) with terminal diamond."""
-        self.ax.step(x_edges, y_steps, where="post",
-                     color=color, lw=lw, ls="--", zorder=6, label=label)
+        self.ax.step(
+            x_edges, y_steps, where="post", color=color, lw=lw, ls="--", zorder=6, label=label
+        )
         self.ax.plot(x_edges[-1], y_steps[-1], "D", color=color, ms=7, zorder=7)
 
     def add_hline(
@@ -292,9 +306,15 @@ class ChartCanvas:
         """Horizontal reference line (e.g. SN28 reference, clip boundary)."""
         self.ax.axhline(y, color=color, lw=lw, ls=ls, alpha=alpha, zorder=zorder)
         if label:
-            self.ax.text(0.02, y + 0.004, label, color=color, fontsize=8,
-                         fontstyle="italic",
-                         transform=self.ax.get_yaxis_transform())
+            self.ax.text(
+                0.02,
+                y + 0.004,
+                label,
+                color=color,
+                fontsize=8,
+                fontstyle="italic",
+                transform=self.ax.get_yaxis_transform(),
+            )
 
     def add_phase_separator(self, x: float) -> None:
         """Draw a vertical dashed separator line at x."""
@@ -387,8 +407,9 @@ class ChartCanvas:
             text_y = self._callout_cursor + y_offset
 
         else:
-            raise ValueError(f"Unknown placement {placement!r}. "
-                             "Use 'top', 'right', 'left', or 'free'.")
+            raise ValueError(
+                f"Unknown placement {placement!r}. Use 'top', 'right', 'left', or 'free'."
+            )
 
         fc = facecolor or _fc(color)
         ap: dict = dict(arrowstyle=arrowstyle, color=color, lw=arrowlw)
@@ -399,18 +420,26 @@ class ChartCanvas:
             text,
             xy=(target_x, target_y),
             xytext=(text_x, text_y),
-            ha="center", va="bottom",
-            fontsize=fontsize, color=color, fontweight=fontweight,
+            ha="center",
+            va="bottom",
+            fontsize=fontsize,
+            color=color,
+            fontweight=fontweight,
             arrowprops=ap,
-            bbox=dict(boxstyle="round,pad=0.3", facecolor=fc,
-                      edgecolor=color, alpha=0.9),
+            bbox=dict(boxstyle="round,pad=0.3", facecolor=fc, edgecolor=color, alpha=0.9),
             zorder=8,
         )
-        self._callouts.append(_Callout(
-            text=text, text_x=text_x, text_y=text_y,
-            target_x=target_x, target_y=target_y,
-            color=color, placement=placement,
-        ))
+        self._callouts.append(
+            _Callout(
+                text=text,
+                text_x=text_x,
+                text_y=text_y,
+                target_x=target_x,
+                target_y=target_y,
+                color=color,
+                placement=placement,
+            )
+        )
 
     def add_legend(
         self,
@@ -513,7 +542,9 @@ class ChartCanvas:
                     if _segment_crosses_bar(
                         (c.text_x, c.text_y),
                         (c.target_x, c.target_y),
-                        bar.x, bar.y, bar.w,
+                        bar.x,
+                        bar.y,
+                        bar.w,
                         obs_top=obs_top,
                     ):
                         violations.append(
@@ -547,11 +578,17 @@ class ChartCanvas:
         label_y = ylo + (yhi - ylo) * (1.0 - self._top_margin_pct * 0.55)
         for x_center, text in self._phase_labels:
             self.ax.text(
-                x_center, label_y, text,
-                ha="center", va="bottom", fontsize=10, color="#444444",
+                x_center,
+                label_y,
+                text,
+                ha="center",
+                va="bottom",
+                fontsize=10,
+                color="#444444",
                 fontstyle="italic",
-                bbox=dict(boxstyle="round,pad=0.3", facecolor="#F5F5F5",
-                          edgecolor=LGREY, alpha=0.9),
+                bbox=dict(
+                    boxstyle="round,pad=0.3", facecolor="#F5F5F5", edgecolor=LGREY, alpha=0.9
+                ),
             )
 
     def save(
@@ -566,9 +603,7 @@ class ChartCanvas:
         violations = self.validate()
         if violations:
             bullet = "\n".join(f"  • {v}" for v in violations)
-            raise ValueError(
-                f"Chart has {len(violations)} placement violation(s):\n{bullet}"
-            )
+            raise ValueError(f"Chart has {len(violations)} placement violation(s):\n{bullet}")
         plt.tight_layout()
         plt.subplots_adjust(bottom=bottom_adjust)
         plt.savefig(path, dpi=dpi, bbox_inches="tight", facecolor="white")

@@ -9,10 +9,9 @@ Public API:
     run_batch(method, sample_ids, sales_train, prices_df, calendar_df, n_jobs=4, horizon=28)
         -> (preds array shape (n_sample, 28), metadata dict)
 """
+
 from __future__ import annotations
 
-import sys
-import os
 import time
 import warnings
 
@@ -22,10 +21,11 @@ import pandas as pd
 warnings.filterwarnings("ignore")
 
 HORIZON = 28
-ZERO_THRESHOLD = 0.80   # series with >80% zeros => zero forecast
+ZERO_THRESHOLD = 0.80  # series with >80% zeros => zero forecast
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+
 
 def _is_sparse(series: pd.Series) -> bool:
     """Return True if >80% of values are zero."""
@@ -48,6 +48,7 @@ def _last_value_fallback(series: pd.Series, horizon: int) -> np.ndarray:
 
 
 # ── ETS ───────────────────────────────────────────────────────────────────────
+
 
 def fit_ets(series: pd.Series, horizon: int = HORIZON) -> np.ndarray:
     """
@@ -99,6 +100,7 @@ def fit_ets(series: pd.Series, horizon: int = HORIZON) -> np.ndarray:
 
 # ── ARIMA ─────────────────────────────────────────────────────────────────────
 
+
 def fit_arima(series: pd.Series, horizon: int = HORIZON) -> np.ndarray:
     """
     Auto ARIMA (non-seasonal) via pmdarima.
@@ -116,7 +118,9 @@ def fit_arima(series: pd.Series, horizon: int = HORIZON) -> np.ndarray:
             warnings.simplefilter("ignore")
             model = pm.auto_arima(
                 vals,
-                max_p=3, max_q=3, max_d=1,
+                max_p=3,
+                max_q=3,
+                max_d=1,
                 seasonal=False,
                 error_action="ignore",
                 suppress_warnings=True,
@@ -131,6 +135,7 @@ def fit_arima(series: pd.Series, horizon: int = HORIZON) -> np.ndarray:
 
 
 # ── SARIMA ────────────────────────────────────────────────────────────────────
+
 
 def fit_sarima(series: pd.Series, horizon: int = HORIZON) -> np.ndarray:
     """
@@ -149,9 +154,14 @@ def fit_sarima(series: pd.Series, horizon: int = HORIZON) -> np.ndarray:
             warnings.simplefilter("ignore")
             model = pm.auto_arima(
                 vals,
-                max_p=2, max_q=2, max_d=1,
-                seasonal=True, m=7,
-                D=1, max_P=1, max_Q=1,
+                max_p=2,
+                max_q=2,
+                max_d=1,
+                seasonal=True,
+                m=7,
+                D=1,
+                max_P=1,
+                max_Q=1,
                 error_action="ignore",
                 suppress_warnings=True,
                 stepwise=True,
@@ -165,6 +175,7 @@ def fit_sarima(series: pd.Series, horizon: int = HORIZON) -> np.ndarray:
 
 
 # ── SARIMAX ───────────────────────────────────────────────────────────────────
+
 
 def fit_sarimax(
     series: pd.Series,
@@ -189,9 +200,14 @@ def fit_sarimax(
             model = pm.auto_arima(
                 vals,
                 exogenous=exog_train.values,
-                max_p=2, max_q=2, max_d=1,
-                seasonal=True, m=7,
-                D=1, max_P=1, max_Q=1,
+                max_p=2,
+                max_q=2,
+                max_d=1,
+                seasonal=True,
+                m=7,
+                D=1,
+                max_P=1,
+                max_Q=1,
                 error_action="ignore",
                 suppress_warnings=True,
                 stepwise=True,
@@ -205,6 +221,7 @@ def fit_sarimax(
 
 
 # ── exogenous feature builder ─────────────────────────────────────────────────
+
 
 def build_exog(
     series_id: str,
@@ -237,9 +254,16 @@ def build_exog(
         rows = cal[cal["d"].isin(day_cols)].set_index("d").reindex(day_cols)
         feat = pd.DataFrame(index=day_cols)
         feat["is_holiday"] = rows["event_name_1"].notna().astype(int).values
-        feat["snap"] = rows[snap_col].fillna(0).astype(int).values if snap_col in rows.columns else 0
+        feat["snap"] = (
+            rows[snap_col].fillna(0).astype(int).values if snap_col in rows.columns else 0
+        )
         feat["is_weekend"] = rows["wday"].isin([1, 7]).astype(int).values
-        feat["month"] = rows["month"].fillna(rows["month"].mode()[0] if len(rows["month"].dropna()) > 0 else 1).astype(int).values
+        feat["month"] = (
+            rows["month"]
+            .fillna(rows["month"].mode()[0] if len(rows["month"].dropna()) > 0 else 1)
+            .astype(int)
+            .values
+        )
         return feat
 
     exog_train = _make_features(train_day_cols)
@@ -247,9 +271,9 @@ def build_exog(
 
     # sell_price: merge by wm_yr_wk
     cal_indexed = cal.set_index("d")
-    price_sub = prices_df[
-        (prices_df["store_id"] == store_id) & (prices_df["item_id"] == item_id)
-    ][["wm_yr_wk", "sell_price"]].copy()
+    price_sub = prices_df[(prices_df["store_id"] == store_id) & (prices_df["item_id"] == item_id)][
+        ["wm_yr_wk", "sell_price"]
+    ].copy()
 
     def _add_price(feat, day_cols):
         wks = cal_indexed.reindex(day_cols)["wm_yr_wk"].values
@@ -268,6 +292,7 @@ def build_exog(
 
 # ── single-series dispatcher ──────────────────────────────────────────────────
 
+
 def _fit_one(
     args: tuple,
 ) -> tuple[int, np.ndarray, bool, bool, float]:
@@ -275,10 +300,7 @@ def _fit_one(
     Fit one series. Returns (idx, preds, is_fallback, is_zero, fit_time).
     Catches all exceptions.
     """
-    (
-        idx, method, series, row_meta,
-        prices_df, calendar_df, horizon, last_train_day
-    ) = args
+    (idx, method, series, row_meta, prices_df, calendar_df, horizon, last_train_day) = args
 
     t0 = time.time()
     is_fallback = False
@@ -309,7 +331,7 @@ def _fit_one(
         if (preds == 0).all():
             is_zero = True
 
-    except Exception as e:
+    except Exception:
         is_fallback = True
         preds = np.zeros(horizon)
 
@@ -318,6 +340,7 @@ def _fit_one(
 
 
 # ── batch runner ──────────────────────────────────────────────────────────────
+
 
 def run_batch(
     method: str,
@@ -344,8 +367,9 @@ def run_batch(
     # Reindex to match sample_ids order
     sales_sub = sales_sub.set_index("id").reindex(sample_ids).reset_index()
 
-    train_cols = [c for c in (f"d_{d}" for d in range(1, last_train_day + 1))
-                  if c in sales_sub.columns]
+    train_cols = [
+        c for c in (f"d_{d}" for d in range(1, last_train_day + 1)) if c in sales_sub.columns
+    ]
 
     meta_cols = ["id", "item_id", "dept_id", "cat_id", "store_id", "state_id"]
 
@@ -356,10 +380,9 @@ def run_batch(
             [getattr(row, c) for c in train_cols],
             name=row_meta["id"],
         )
-        args_list.append((
-            i, method, series, row_meta,
-            prices_df, calendar_df, horizon, last_train_day
-        ))
+        args_list.append(
+            (i, method, series, row_meta, prices_df, calendar_df, horizon, last_train_day)
+        )
 
     results = Parallel(n_jobs=n_jobs, backend="loky", verbose=5)(
         delayed(_fit_one)(a) for a in args_list

@@ -3,6 +3,7 @@
 Skipped automatically when MLflow is not reachable at localhost:5000.
 Run after: docker compose up -d
 """
+
 from __future__ import annotations
 
 import pytest
@@ -27,6 +28,7 @@ pytestmark = pytest.mark.skipif(
 
 def test_mlflow_resource_smoke():
     import mlflow
+
     from shelfsense.orchestration.resources import MLflowResource
 
     resource = MLflowResource(tracking_uri=TRACKING_URI)
@@ -60,6 +62,7 @@ def test_get_experiment_idempotent():
 
 def test_log_metrics_to_run():
     import mlflow
+
     from shelfsense.orchestration.resources import MLflowResource
 
     resource = MLflowResource(tracking_uri=TRACKING_URI)

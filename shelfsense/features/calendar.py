@@ -7,6 +7,7 @@ build_calendar_lookup(calendar_df) -> pd.DataFrame indexed by 'd' (e.g. 'd_1')
 add_calendar_features(df, cal_lookup) -> df
     Joins calendar features onto long-format sales DataFrame via 'd' column.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -35,17 +36,15 @@ def build_calendar_lookup(calendar_df: pd.DataFrame) -> pd.DataFrame:
 
     cal["d_num"] = cal["d"].str.replace("d_", "", regex=False).astype(np.int16)
 
-    cal["weekday"]      = cal["date"].dt.dayofweek.astype(np.int8)
-    cal["month"]        = cal["date"].dt.month.astype(np.int8)
-    cal["quarter"]      = cal["date"].dt.quarter.astype(np.int8)
-    cal["year"]         = cal["date"].dt.year.astype(np.int16)
+    cal["weekday"] = cal["date"].dt.dayofweek.astype(np.int8)
+    cal["month"] = cal["date"].dt.month.astype(np.int8)
+    cal["quarter"] = cal["date"].dt.quarter.astype(np.int8)
+    cal["year"] = cal["date"].dt.year.astype(np.int16)
     cal["day_of_month"] = cal["date"].dt.day.astype(np.int8)
     cal["week_of_year"] = cal["date"].dt.isocalendar().week.astype(np.int8)
-    cal["is_weekend"]   = cal["weekday"].isin([5, 6]).astype(np.int8)
+    cal["is_weekend"] = cal["weekday"].isin([5, 6]).astype(np.int8)
 
-    cal["is_holiday"] = (
-        cal["event_name_1"].notna() | cal["event_name_2"].notna()
-    ).astype(np.int8)
+    cal["is_holiday"] = (cal["event_name_1"].notna() | cal["event_name_2"].notna()).astype(np.int8)
 
     cal["is_snap_ca"] = cal["snap_CA"].astype(np.int8)
     cal["is_snap_tx"] = cal["snap_TX"].astype(np.int8)
@@ -55,7 +54,7 @@ def build_calendar_lookup(calendar_df: pd.DataFrame) -> pd.DataFrame:
     d_nums = cal["d_num"].values
 
     idx_after = np.searchsorted(event_days, d_nums, side="right")
-    idx_prev  = idx_after - 1
+    idx_prev = idx_after - 1
 
     days_since = np.where(
         idx_prev >= 0,
@@ -71,14 +70,25 @@ def build_calendar_lookup(calendar_df: pd.DataFrame) -> pd.DataFrame:
     )
     days_until = np.where(days_until < 0, np.nan, days_until)
 
-    cal["days_since_event"]      = days_since.astype(np.float32)
+    cal["days_since_event"] = days_since.astype(np.float32)
     cal["days_until_next_event"] = days_until.astype(np.float32)
 
     keep = [
-        "d", "d_num", "weekday", "month", "quarter", "year",
-        "day_of_month", "week_of_year", "is_weekend", "is_holiday",
-        "is_snap_ca", "is_snap_tx", "is_snap_wi",
-        "days_since_event", "days_until_next_event",
+        "d",
+        "d_num",
+        "weekday",
+        "month",
+        "quarter",
+        "year",
+        "day_of_month",
+        "week_of_year",
+        "is_weekend",
+        "is_holiday",
+        "is_snap_ca",
+        "is_snap_tx",
+        "is_snap_wi",
+        "days_since_event",
+        "days_until_next_event",
         "wm_yr_wk",
     ]
     return cal[keep].set_index("d")

@@ -13,6 +13,7 @@ Runtime budget: < 5 min when model pkls are already cached from prior test runs.
 Run:
     RUN_CLI_INTEGRATION=1 uv run --no-dev pytest tests/integration/test_cli_dagster.py -v
 """
+
 from __future__ import annotations
 
 import os
@@ -37,6 +38,7 @@ _ENV = {**os.environ, "SHELFSENSE_TEST_MODE": "1"}
 
 # ── data ──────────────────────────────────────────────────────────────────────
 
+
 @_cli_test
 def test_cli_data_validate():
     result = runner.invoke(app, ["data", "validate"], env=_ENV)
@@ -45,6 +47,7 @@ def test_cli_data_validate():
 
 
 # ── features ──────────────────────────────────────────────────────────────────
+
 
 @_cli_test
 def test_cli_features_build():
@@ -55,6 +58,7 @@ def test_cli_features_build():
 
 
 # ── train ─────────────────────────────────────────────────────────────────────
+
 
 @_cli_test
 def test_cli_train_tvp_13():
@@ -89,6 +93,7 @@ def test_cli_train_invalid_tvp():
 
 # ── stubs ─────────────────────────────────────────────────────────────────────
 
+
 def test_cli_per_store_stub():
     result = runner.invoke(app, ["train", "per-store"])
     assert result.exit_code == 1
@@ -108,6 +113,7 @@ def test_cli_report_stub():
 
 
 # ── ensemble + submit (heavier, same gate) ────────────────────────────────────
+
 
 @_cli_test
 def test_cli_ensemble():

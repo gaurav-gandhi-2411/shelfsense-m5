@@ -10,6 +10,7 @@ lag_91/182/364 are always populated for d_num >= 365. For training at d_num >= 1
 (FEAT_START) all three are fully available. They will be NaN for d_num < 365 in the
 full parquet — expected and benign (those rows are excluded at training time).
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -47,9 +48,5 @@ def add_lags(
         NaN where history is insufficient (first N days of each series).
     """
     for lag in lags:
-        df[f"lag_{lag}"] = (
-            df.groupby(id_col)[sales_col]
-            .shift(lag)
-            .astype(np.float32)
-        )
+        df[f"lag_{lag}"] = df.groupby(id_col)[sales_col].shift(lag).astype(np.float32)
     return df

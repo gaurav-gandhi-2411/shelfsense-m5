@@ -8,6 +8,7 @@ add_price_features(df, price_lookup) -> df
     Joins price features onto long-format sales DataFrame via (item_id, store_id, wm_yr_wk).
     wm_yr_wk must already be present in df (added by add_calendar_features).
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -32,29 +33,34 @@ def build_price_lookup(
 
     # week-over-week price change
     p["price_prev"] = p.groupby(["store_id", "item_id"])["sell_price"].shift(1)
-    p["price_change_pct"] = (
-        (p["sell_price"] - p["price_prev"]) / p["price_prev"]
-    ).astype(np.float32)
+    p["price_change_pct"] = ((p["sell_price"] - p["price_prev"]) / p["price_prev"]).astype(
+        np.float32
+    )
     p["has_price_change"] = (p["price_change_pct"].abs() > 0.01).astype(np.int8)
 
     # price relative to item-store mean (computed over all available weeks)
     p["price_relative_mean"] = (
-        p["sell_price"]
-        / p.groupby(["store_id", "item_id"])["sell_price"].transform("mean")
+        p["sell_price"] / p.groupby(["store_id", "item_id"])["sell_price"].transform("mean")
     ).astype(np.float32)
 
     # price volatility: rolling std over 28 weeks (shift 1 to avoid same-week leakage)
     p["price_volatility"] = (
-        p.groupby(["store_id", "item_id"])["sell_price"]
-        .transform(lambda x: x.shift(1).rolling(28, min_periods=2).std())
+        p.groupby(["store_id", "item_id"])["sell_price"].transform(
+            lambda x: x.shift(1).rolling(28, min_periods=2).std()
+        )
     ).astype(np.float32)
 
     p["sell_price"] = p["sell_price"].astype(np.float32)
 
     keep = [
-        "store_id", "item_id", "wm_yr_wk",
-        "sell_price", "price_change_pct", "price_relative_mean",
-        "price_volatility", "has_price_change",
+        "store_id",
+        "item_id",
+        "wm_yr_wk",
+        "sell_price",
+        "price_change_pct",
+        "price_relative_mean",
+        "price_volatility",
+        "has_price_change",
     ]
     return p[keep]
 

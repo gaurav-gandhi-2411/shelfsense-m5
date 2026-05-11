@@ -7,27 +7,57 @@ Column taxonomy:
   future_covariates: calendar + price columns (available for test period)
   id_cols:          id, item_id, dept_id, cat_id, store_id, state_id, d (dropped)
 """
+
 from __future__ import annotations
 
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 
 M5_START_DATE = pd.Timestamp("2011-01-29")  # d_1 in M5 calendar
 
 PAST_COV_COLS = [
-    "lag_7", "lag_14", "lag_28", "lag_56",
-    "roll_mean_7", "roll_std_7", "roll_min_7", "roll_max_7",
-    "roll_mean_28", "roll_std_28", "roll_min_28", "roll_max_28",
-    "roll_mean_56", "roll_std_56", "roll_min_56", "roll_max_56",
-    "roll_mean_180", "roll_std_180", "roll_min_180", "roll_max_180",
+    "lag_7",
+    "lag_14",
+    "lag_28",
+    "lag_56",
+    "roll_mean_7",
+    "roll_std_7",
+    "roll_min_7",
+    "roll_max_7",
+    "roll_mean_28",
+    "roll_std_28",
+    "roll_min_28",
+    "roll_max_28",
+    "roll_mean_56",
+    "roll_std_56",
+    "roll_min_56",
+    "roll_max_56",
+    "roll_mean_180",
+    "roll_std_180",
+    "roll_min_180",
+    "roll_max_180",
 ]
 
 FUTURE_COV_COLS = [
-    "weekday", "month", "quarter", "year", "day_of_month", "week_of_year",
-    "is_weekend", "is_holiday", "is_snap_ca", "is_snap_tx", "is_snap_wi",
-    "days_since_event", "days_until_next_event",
-    "sell_price", "price_change_pct", "price_relative_mean",
-    "price_volatility", "has_price_change",
+    "weekday",
+    "month",
+    "quarter",
+    "year",
+    "day_of_month",
+    "week_of_year",
+    "is_weekend",
+    "is_holiday",
+    "is_snap_ca",
+    "is_snap_tx",
+    "is_snap_wi",
+    "days_since_event",
+    "days_until_next_event",
+    "sell_price",
+    "price_change_pct",
+    "price_relative_mean",
+    "price_volatility",
+    "has_price_change",
 ]
 
 ID_COLS = ["item_id", "dept_id", "cat_id", "store_id", "state_id", "d"]
@@ -63,12 +93,13 @@ def to_long_format(
     # ~50% have partial NaN. Forward-fill then back-fill per series is standard
     # M5 practice — prices are sticky and the item does return at the same price.
     _price_cols = [
-        "sell_price", "price_change_pct", "price_relative_mean",
-        "price_volatility", "has_price_change",
+        "sell_price",
+        "price_change_pct",
+        "price_relative_mean",
+        "price_volatility",
+        "has_price_change",
     ]
-    df[_price_cols] = df.groupby("id")[_price_cols].transform(
-        lambda x: x.ffill().bfill()
-    )
+    df[_price_cols] = df.groupby("id")[_price_cols].transform(lambda x: x.ffill().bfill())
 
     df["ds"] = M5_START_DATE + pd.to_timedelta(df["d_num"] - 1, unit="D")
     df = df.rename(columns={"id": "unique_id", "sales": "y"})
@@ -107,12 +138,8 @@ def to_darts_datasets(
     for uid, grp in df.groupby("unique_id", sort=False):
         grp = grp.sort_values("ds").set_index("ds")
 
-        targets.append(
-            TimeSeries.from_series(grp["y"], freq="D")
-        )
-        past_covs.append(
-            TimeSeries.from_dataframe(grp[PAST_COV_COLS].astype("float32"), freq="D")
-        )
+        targets.append(TimeSeries.from_series(grp["y"], freq="D"))
+        past_covs.append(TimeSeries.from_dataframe(grp[PAST_COV_COLS].astype("float32"), freq="D"))
         future_covs.append(
             TimeSeries.from_dataframe(grp[FUTURE_COV_COLS].astype("float32"), freq="D")
         )

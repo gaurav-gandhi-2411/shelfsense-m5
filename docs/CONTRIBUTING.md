@@ -24,8 +24,12 @@ The repo uses [pre-commit](https://pre-commit.com/) for automated checks on ever
 | `trailing-whitespace` | No trailing spaces |
 | `end-of-file-fixer` | Files end with a newline |
 | `check-yaml` / `check-toml` | Config files parse cleanly |
-| `ruff` | Lint + auto-fix (E, F, I rules) |
-| `ruff-format` | Code formatting |
+| `check-merge-conflict` | No unresolved merge markers |
+| `debug-statements` | No leftover `breakpoint()` / `pdb` calls |
+| `check-added-large-files` | Blocks files >500 KB from being committed |
+| `ruff` | Lint + auto-fix (E, F, I, W rules) |
+| `ruff-format` | Code formatting (authoritative formatter) |
+| `mypy` | Type checking (`shelfsense/` only, lenient — `--allow-untyped-defs`) |
 | `dvc-status` | Warns if DVC-tracked data was modified without updating `.dvc` files |
 | `shelfsense-data-validate` | Runs Pandera schema checks on raw CSVs and feature parquets (skipped when data absent) |
 
@@ -53,8 +57,8 @@ proceeding.
 
 ```bash
 make test        # pytest --cov with term-missing report
-make lint        # ruff + black --check + mypy
-make format      # ruff --fix + black (auto-formats)
+make lint        # ruff + mypy
+make format      # ruff --fix + ruff-format (auto-formats)
 ```
 
 ## Commit conventions

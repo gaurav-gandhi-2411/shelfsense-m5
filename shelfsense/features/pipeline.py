@@ -23,6 +23,7 @@ Output schema (per row = one series x one day):
   Lags    : lag_7, lag_14, lag_28, lag_56, lag_91, lag_182, lag_364
   Rolling : roll_{mean,std,min,max}_{7,28,56,180}  (16 cols)
 """
+
 from __future__ import annotations
 
 import os
@@ -32,11 +33,11 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from shelfsense.features.lags import add_lags
-from shelfsense.features.rolling import add_rolling
-from shelfsense.features.calendar import build_calendar_lookup, add_calendar_features
-from shelfsense.features.price import build_price_lookup, add_price_features
+from shelfsense.features.calendar import add_calendar_features, build_calendar_lookup
 from shelfsense.features.hierarchy import add_hierarchy_features
+from shelfsense.features.lags import add_lags
+from shelfsense.features.price import add_price_features, build_price_lookup
+from shelfsense.features.rolling import add_rolling
 
 warnings.filterwarnings("ignore")
 
@@ -97,6 +98,7 @@ def feature_engineer(
             if verbose:
                 print(f"  [{store}] Already exists ({size_mb:.1f} MB), skipping.", flush=True)
             import pyarrow.parquet as pq
+
             meta = pq.read_metadata(out_path)
             total_rows += meta.num_rows
             continue
@@ -138,15 +140,22 @@ def feature_engineer(
         elapsed = time.time() - t_store
         if verbose:
             size_mb = os.path.getsize(out_path) / 1e6
-            print(f"    Wrote {n_rows:,} rows -> {out_path} ({size_mb:.1f} MB) in {elapsed:.1f}s", flush=True)
+            print(
+                f"    Wrote {n_rows:,} rows -> {out_path} ({size_mb:.1f} MB) in {elapsed:.1f}s",
+                flush=True,
+            )
 
         del df, store_sales
 
     total_elapsed = time.time() - t_total
     if verbose:
-        print(f"\n  Done. Total rows: {total_rows:,}  Time: {total_elapsed:.1f}s ({total_elapsed/60:.1f} min)")
+        print(
+            f"\n  Done. Total rows: {total_rows:,}  Time: {total_elapsed:.1f}s"
+            f" ({total_elapsed / 60:.1f} min)"
+        )
 
     return total_rows
+
 
 def feature_engineer_from_config(cfg, output_dir: str | None = None) -> int:
     """

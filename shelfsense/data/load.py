@@ -111,9 +111,9 @@ class M5Dataset:
     # Batch validation helpers (used by CLI)
     # ------------------------------------------------------------------
 
-    def validate_raw(self) -> dict[str, bool]:
+    def validate_raw(self) -> dict[str, bool | str]:
         """Validate all three raw CSVs. Returns {filename: passed}."""
-        results: dict[str, bool] = {}
+        results: dict[str, bool | str] = {}
         for attr, fname in (
             ("sales", "sales_train_evaluation.csv"),
             ("calendar", "calendar.csv"),
@@ -127,9 +127,9 @@ class M5Dataset:
                 results[f"{fname}__error"] = str(exc)
         return results
 
-    def validate_features(self) -> dict[str, bool]:
+    def validate_features(self) -> dict[str, bool | str]:
         """Validate each feature parquet. Returns {filename: passed}."""
-        results: dict[str, bool] = {}
+        results: dict[str, bool | str] = {}
         for path in self.feature_paths():
             fname = os.path.basename(path)
             try:

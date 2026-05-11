@@ -4,6 +4,7 @@ Trains one single-horizon Tweedie model per (store, dept) slice (70 total).
 Predictions use recursive autoregression via predict_horizon() from recursive.py.
 Models are cached by a design-hash so any constant change forces full retrain.
 """
+
 from __future__ import annotations
 
 import gc
@@ -19,17 +20,17 @@ import pandas as pd
 
 from shelfsense.features.hierarchy import CAT_DTYPES
 
-LAST_TRAIN   = 1913
-VAL_START    = 1886
-FEAT_START   = 1000
-HORIZON      = 28
-
-STORES = ["CA_1","CA_2","CA_3","CA_4","TX_1","TX_2","TX_3","WI_1","WI_2","WI_3"]
-DEPTS  = ["FOODS_1","FOODS_2","FOODS_3","HOBBIES_1","HOBBIES_2","HOUSEHOLD_1","HOUSEHOLD_2"]
-CAT_FEATURES = ["cat_id", "dept_id", "store_id", "state_id"]
-
 # Feature columns must match what predict_horizon() builds internally
 from shelfsense.models.lightgbm.multihorizon import DEFAULT_FEATURE_COLS
+
+LAST_TRAIN = 1913
+VAL_START = 1886
+FEAT_START = 1000
+HORIZON = 28
+
+STORES = ["CA_1", "CA_2", "CA_3", "CA_4", "TX_1", "TX_2", "TX_3", "WI_1", "WI_2", "WI_3"]
+DEPTS = ["FOODS_1", "FOODS_2", "FOODS_3", "HOBBIES_1", "HOBBIES_2", "HOUSEHOLD_1", "HOUSEHOLD_2"]
+CAT_FEATURES = ["cat_id", "dept_id", "store_id", "state_id"]
 
 
 def _model_filename(store: str, dept: str, design_hash: str) -> str:
@@ -38,12 +39,12 @@ def _model_filename(store: str, dept: str, design_hash: str) -> str:
 
 def _compute_design_hash(cfg: dict[str, Any]) -> str:
     design = {
-        "objective":   cfg.get("objective", "tweedie"),
-        "tvp":         cfg.get("tweedie_variance_power", cfg.get("tvp", 1.3)),
-        "feat_start":  FEAT_START,
-        "last_train":  LAST_TRAIN,
-        "val_start":   VAL_START,
-        "n_optuna":    cfg.get("optuna_trials", 10),
+        "objective": cfg.get("objective", "tweedie"),
+        "tvp": cfg.get("tweedie_variance_power", cfg.get("tvp", 1.3)),
+        "feat_start": FEAT_START,
+        "last_train": LAST_TRAIN,
+        "val_start": VAL_START,
+        "n_optuna": cfg.get("optuna_trials", 10),
         "feature_set": "v1_38num_4cat",
     }
     return hashlib.md5(json.dumps(design, sort_keys=True).encode()).hexdigest()[:8]
@@ -57,12 +58,10 @@ def _build_hist_from_wide(
 ) -> pd.DataFrame:
     """Build long-format history DataFrame from wide-format sales CSV."""
     first_day = last_day - history_days + 1
-    day_cols  = [f"d_{d}" for d in range(first_day, last_day + 1)
-                 if f"d_{d}" in sales_df.columns]
+    day_cols = [f"d_{d}" for d in range(first_day, last_day + 1) if f"d_{d}" in sales_df.columns]
     meta = ["id", "item_id", "cat_id", "dept_id", "store_id", "state_id"]
     sub = (
-        sales_df[sales_df["id"].isin(series_ids)]
-        .set_index("id").reindex(series_ids).reset_index()
+        sales_df[sales_df["id"].isin(series_ids)].set_index("id").reindex(series_ids).reset_index()
     )
     df = sub[meta + day_cols].melt(id_vars=meta, var_name="d", value_name="sales")
     df["d_num"] = df["d"].str.replace("d_", "", regex=False).astype(np.int32)
@@ -93,33 +92,33 @@ class StoreDeptTrainer:
         self.cfg = cfg
         self.n_optuna = int(cfg.get("optuna_trials", 10))
         self.stores = list(cfg.get("stores", STORES))
-        self.depts  = list(cfg.get("departments", DEPTS))
-        self.num_boost_round      = int(cfg.get("num_boost_round", 3000))
+        self.depts = list(cfg.get("departments", DEPTS))
+        self.num_boost_round = int(cfg.get("num_boost_round", 3000))
         self.early_stopping_rounds = int(cfg.get("early_stopping_rounds", 75))
         self.history_days = int(cfg.get("history_days", 200))
-        self.design_hash  = _compute_design_hash(cfg)
+        self.design_hash = _compute_design_hash(cfg)
 
         tvp = cfg.get("tweedie_variance_power", cfg.get("tvp", 1.3))
         self._base_params: dict[str, Any] = {
-            "objective":              cfg.get("objective", "tweedie"),
-            "metric":                 "tweedie",
-            "verbose":               -1,
-            "num_threads":            int(cfg.get("num_threads", 0)),
-            "bagging_freq":           1,
+            "objective": cfg.get("objective", "tweedie"),
+            "metric": "tweedie",
+            "verbose": -1,
+            "num_threads": int(cfg.get("num_threads", 0)),
+            "bagging_freq": 1,
             "tweedie_variance_power": float(tvp),
-            "seed":                   int(cfg.get("seed", 42)),
+            "seed": int(cfg.get("seed", 42)),
         }
         self._search_space = {
-            "lr_min":              float(cfg.get("lr_min", 0.01)),
-            "lr_max":              float(cfg.get("lr_max", 0.1)),
-            "num_leaves_min":      int(cfg.get("num_leaves_min", 31)),
-            "num_leaves_max":      int(cfg.get("num_leaves_max", 127)),
-            "min_leaf_min":        int(cfg.get("min_data_in_leaf_min", 20)),
-            "min_leaf_max":        int(cfg.get("min_data_in_leaf_max", 100)),
-            "ff_min":              float(cfg.get("feature_fraction_min", 0.5)),
-            "ff_max":              float(cfg.get("feature_fraction_max", 1.0)),
-            "bf_min":              float(cfg.get("bagging_fraction_min", 0.5)),
-            "bf_max":              float(cfg.get("bagging_fraction_max", 1.0)),
+            "lr_min": float(cfg.get("lr_min", 0.01)),
+            "lr_max": float(cfg.get("lr_max", 0.1)),
+            "num_leaves_min": int(cfg.get("num_leaves_min", 31)),
+            "num_leaves_max": int(cfg.get("num_leaves_max", 127)),
+            "min_leaf_min": int(cfg.get("min_data_in_leaf_min", 20)),
+            "min_leaf_max": int(cfg.get("min_data_in_leaf_max", 100)),
+            "ff_min": float(cfg.get("feature_fraction_min", 0.5)),
+            "ff_max": float(cfg.get("feature_fraction_max", 1.0)),
+            "bf_min": float(cfg.get("bagging_fraction_min", 0.5)),
+            "bf_max": float(cfg.get("bagging_fraction_max", 1.0)),
         }
 
     # ------------------------------------------------------------------
@@ -136,6 +135,7 @@ class StoreDeptTrainer:
     ) -> tuple[Any, float, dict, int]:
         """Run Optuna on one (store, dept) slice. Returns (model, val_tweedie, params, iter)."""
         import optuna
+
         optuna.logging.set_verbosity(optuna.logging.WARNING)
 
         cat_features = [c for c in CAT_FEATURES if c in feature_cols]
@@ -145,12 +145,17 @@ class StoreDeptTrainer:
         y_vl = df_vl["sales"].values.astype(np.float32)
 
         ds_tr = lgb.Dataset(
-            X_tr, label=y_tr,
-            categorical_feature=cat_features, free_raw_data=False,
+            X_tr,
+            label=y_tr,
+            categorical_feature=cat_features,
+            free_raw_data=False,
         )
         ds_vl = lgb.Dataset(
-            X_vl, label=y_vl,
-            categorical_feature=cat_features, reference=ds_tr, free_raw_data=False,
+            X_vl,
+            label=y_vl,
+            categorical_feature=cat_features,
+            reference=ds_tr,
+            free_raw_data=False,
         )
 
         ss = self._search_space
@@ -159,14 +164,19 @@ class StoreDeptTrainer:
         def _obj(trial: "optuna.Trial") -> float:
             params = {
                 **self._base_params,
-                "learning_rate":    trial.suggest_float("lr", ss["lr_min"], ss["lr_max"], log=True),
-                "num_leaves":       trial.suggest_int("num_leaves", ss["num_leaves_min"], ss["num_leaves_max"]),
-                "min_data_in_leaf": trial.suggest_int("min_leaf", ss["min_leaf_min"], ss["min_leaf_max"]),
+                "learning_rate": trial.suggest_float("lr", ss["lr_min"], ss["lr_max"], log=True),
+                "num_leaves": trial.suggest_int(
+                    "num_leaves", ss["num_leaves_min"], ss["num_leaves_max"]
+                ),
+                "min_data_in_leaf": trial.suggest_int(
+                    "min_leaf", ss["min_leaf_min"], ss["min_leaf_max"]
+                ),
                 "feature_fraction": trial.suggest_float("ff", ss["ff_min"], ss["ff_max"]),
                 "bagging_fraction": trial.suggest_float("bf", ss["bf_min"], ss["bf_max"]),
             }
             model = lgb.train(
-                params, ds_tr,
+                params,
+                ds_tr,
                 num_boost_round=num_boost_round,
                 valid_sets=[ds_vl],
                 callbacks=[
@@ -176,7 +186,9 @@ class StoreDeptTrainer:
             )
             val = float(model.best_score["valid_0"]["tweedie"])
             if val < best["val"]:
-                best.update(val=val, model=model, params=dict(trial.params), iter=model.best_iteration)
+                best.update(
+                    val=val, model=model, params=dict(trial.params), iter=model.best_iteration
+                )
             return val
 
         study = optuna.create_study(direction="minimize")
@@ -216,27 +228,26 @@ class StoreDeptTrainer:
 
         if feature_cols is None:
             feature_cols = DEFAULT_FEATURE_COLS
-        cat_features = [c for c in CAT_FEATURES if c in feature_cols]
-        n_boost   = num_boost_round_override or self.num_boost_round
-        n_optuna  = optuna_trials_override or self.n_optuna
-        slices  = slices_override or [(s, d) for s in self.stores for d in self.depts]
+        n_boost = num_boost_round_override or self.num_boost_round
+        n_optuna = optuna_trials_override or self.n_optuna
+        slices = slices_override or [(s, d) for s in self.stores for d in self.depts]
 
         os.makedirs(model_dir, exist_ok=True)
 
         # Load raw CSVs once (needed for history building + WRMSSE)
-        sales_eval  = pd.read_csv(os.path.join(raw_dir, "sales_train_evaluation.csv"))
-        prices_df   = pd.read_csv(os.path.join(raw_dir, "sell_prices.csv"))
+        sales_eval = pd.read_csv(os.path.join(raw_dir, "sales_train_evaluation.csv"))
+        prices_df = pd.read_csv(os.path.join(raw_dir, "sell_prices.csv"))
         calendar_df = pd.read_csv(os.path.join(raw_dir, "calendar.csv"))
 
         actual_val_cols = [f"d_{LAST_TRAIN + h}" for h in range(1, HORIZON + 1)]
 
-        load_cols = list(dict.fromkeys(
-            ["id", "item_id", "dept_id", "d_num", "sales"] + feature_cols
-        ))
+        load_cols = list(
+            dict.fromkeys(["id", "item_id", "dept_id", "d_num", "sales"] + feature_cols)
+        )
 
         slice_results: dict[tuple, dict] = {}
         n_trained = 0
-        n_cached  = 0
+        n_cached = 0
         store_cache: dict[str, pd.DataFrame] = {}
 
         for store, dept in slices:
@@ -261,7 +272,9 @@ class StoreDeptTrainer:
                 for col, dtype in CAT_DTYPES.items():
                     if col in df_store.columns:
                         df_store[col] = df_store[col].astype(dtype)
-                df_store = df_store.dropna(subset=["lag_7", "lag_14", "lag_28", "lag_56"]).reset_index(drop=True)
+                df_store = df_store.dropna(
+                    subset=["lag_7", "lag_14", "lag_28", "lag_56"]
+                ).reset_index(drop=True)
                 store_cache[store] = df_store
 
             df = store_cache[store]
@@ -270,7 +283,7 @@ class StoreDeptTrainer:
                 continue
 
             series_ids = sorted(df_dept["id"].unique())
-            n_series   = len(series_ids)
+            n_series = len(series_ids)
 
             df_tr = df_dept[df_dept["d_num"] <= VAL_START - 1]
             df_vl = df_dept[df_dept["d_num"] >= VAL_START]
@@ -282,39 +295,51 @@ class StoreDeptTrainer:
 
             # ── Recursive val predictions ──────────────────────────────
             hist_val = _build_hist_from_wide(
-                sales_eval, series_ids, last_day=LAST_TRAIN,
+                sales_eval,
+                series_ids,
+                last_day=LAST_TRAIN,
                 history_days=self.history_days,
             )
             val_preds, _ = predict_horizon(
-                model, hist_val, calendar_df, prices_df,
-                days_out=HORIZON, verbose=False,
+                model,
+                hist_val,
+                calendar_df,
+                prices_df,
+                days_out=HORIZON,
+                verbose=False,
             )
 
             # ── Per-slice WRMSSE ───────────────────────────────────────
             try:
                 sub_sales = (
                     sales_eval[sales_eval["id"].isin(series_ids)]
-                    .set_index("id").reindex(series_ids).reset_index()
+                    .set_index("id")
+                    .reindex(series_ids)
+                    .reset_index()
                 )
                 actuals_sl = sub_sales[actual_val_cols].values.astype(np.float32)
                 slice_wrmsse, _ = compute_wrmsse(
-                    val_preds, actuals_sl,
-                    sub_sales, prices_df, calendar_df, LAST_TRAIN,
+                    val_preds,
+                    actuals_sl,
+                    sub_sales,
+                    prices_df,
+                    calendar_df,
+                    LAST_TRAIN,
                 )
                 slice_wrmsse = float(slice_wrmsse)
             except Exception:
                 slice_wrmsse = float("nan")
 
             result = {
-                "store":       store,
-                "dept":        dept,
-                "n_series":    n_series,
+                "store": store,
+                "dept": dept,
+                "n_series": n_series,
                 "val_tweedie": float(val_tweedie),
-                "val_wrmsse":  slice_wrmsse,
-                "best_iter":   int(best_iter),
+                "val_wrmsse": slice_wrmsse,
+                "best_iter": int(best_iter),
                 "best_params": best_params,
-                "val_preds":   val_preds.astype(np.float32),
-                "series_ids":  series_ids,
+                "val_preds": val_preds.astype(np.float32),
+                "series_ids": series_ids,
             }
 
             with open(pkl_path, "wb") as fh:
@@ -337,13 +362,19 @@ class StoreDeptTrainer:
             covered_ids = all_ids_list
             sub_all = (
                 sales_eval[sales_eval["id"].isin(covered_ids)]
-                .set_index("id").reindex(covered_ids).reset_index()
+                .set_index("id")
+                .reindex(covered_ids)
+                .reset_index()
             )
             actuals_all = sub_all[actual_val_cols].values.astype(np.float32)
             try:
                 full_wrmsse, _ = compute_wrmsse(
-                    preds_mat, actuals_all,
-                    sub_all, prices_df, calendar_df, LAST_TRAIN,
+                    preds_mat,
+                    actuals_all,
+                    sub_all,
+                    prices_df,
+                    calendar_df,
+                    LAST_TRAIN,
                 )
                 full_wrmsse = float(full_wrmsse)
             except Exception:
@@ -352,16 +383,16 @@ class StoreDeptTrainer:
             full_wrmsse = float("nan")
 
         return {
-            "model_dir":        model_dir,
-            "val_wrmsse":       full_wrmsse,
-            "n_slices":         n_trained,
-            "n_slices_cached":  n_cached,
+            "model_dir": model_dir,
+            "val_wrmsse": full_wrmsse,
+            "n_slices": n_trained,
+            "n_slices_cached": n_cached,
             "slice_results": {
                 f"{s}_{d}": {
-                    "val_wrmsse":  r["val_wrmsse"],
+                    "val_wrmsse": r["val_wrmsse"],
                     "val_tweedie": r["val_tweedie"],
-                    "n_series":    r["n_series"],
-                    "best_iter":   r["best_iter"],
+                    "n_series": r["n_series"],
+                    "best_iter": r["best_iter"],
                 }
                 for (s, d), r in slice_results.items()
             },
@@ -390,7 +421,7 @@ class StoreDeptTrainer:
             with open(pkl_path, "rb") as fh:
                 cached = pickle.load(fh)
             series_ids = cached["series_ids"]
-            val_preds  = cached["val_preds"]   # (n_series, 28), stored by fit()
+            val_preds = cached["val_preds"]  # (n_series, 28), stored by fit()
             for i, sid in enumerate(series_ids):
                 row = {"id": sid}
                 for h in range(1, HORIZON + 1):
@@ -422,8 +453,8 @@ class StoreDeptTrainer:
             feature_cols = DEFAULT_FEATURE_COLS
         slices = slices_override or [(s, d) for s in self.stores for d in self.depts]
 
-        sales_eval  = pd.read_csv(os.path.join(raw_dir, "sales_train_evaluation.csv"))
-        prices_df   = pd.read_csv(os.path.join(raw_dir, "sell_prices.csv"))
+        sales_eval = pd.read_csv(os.path.join(raw_dir, "sales_train_evaluation.csv"))
+        prices_df = pd.read_csv(os.path.join(raw_dir, "sell_prices.csv"))
         calendar_df = pd.read_csv(os.path.join(raw_dir, "calendar.csv"))
 
         rows: list[dict] = []
@@ -434,17 +465,22 @@ class StoreDeptTrainer:
                 continue
             with open(pkl_path, "rb") as fh:
                 cached = pickle.load(fh)
-            model      = cached["model"]
+            model = cached["model"]
             series_ids = cached["series_ids"]
 
             hist_df = _build_hist_from_wide(
-                sales_eval, series_ids,
+                sales_eval,
+                series_ids,
                 last_day=forecast_origin_day,
                 history_days=self.history_days,
             )
             preds, pred_ids = predict_horizon(
-                model, hist_df, calendar_df, prices_df,
-                days_out=HORIZON, verbose=False,
+                model,
+                hist_df,
+                calendar_df,
+                prices_df,
+                days_out=HORIZON,
+                verbose=False,
             )
             for i, sid in enumerate(pred_ids):
                 row = {"id": sid}

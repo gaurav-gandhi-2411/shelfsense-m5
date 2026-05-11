@@ -6,31 +6,31 @@ Real-data tests are gated by RUN_REAL_DATA_TESTS=1; they also require:
 - Feature parquets at data/processed/features/
 - MLflow reachable (soft — assets skip log on failure)
 """
+
 from __future__ import annotations
 
 import os
 
 import pytest
 
-RAW_DIR      = "data/raw/m5-forecasting-accuracy"
+RAW_DIR = "data/raw/m5-forecasting-accuracy"
 FEATURES_DIR = "data/processed/features"
 
 _real_data = pytest.mark.skipif(
     os.environ.get("RUN_REAL_DATA_TESTS") != "1",
     reason=(
-        "Real-data tests disabled — set RUN_REAL_DATA_TESTS=1. "
-        "Requires M5 CSVs + feature parquets."
+        "Real-data tests disabled — set RUN_REAL_DATA_TESTS=1. Requires M5 CSVs + feature parquets."
     ),
 )
 
 
 # ── synthetic (no env var required) ──────────────────────────────────────────
 
+
 def test_m5dataset_raw_validate_synthetic(tmp_path):
     """Pandera raw schemas pass on synthetic M5-shaped CSVs."""
-    from tests.fixtures.synthetic_m5 import write_synthetic_csvs
-
     from shelfsense.data.load import M5Dataset
+    from tests.fixtures.synthetic_m5 import write_synthetic_csvs
 
     raw_dir = write_synthetic_csvs(str(tmp_path / "raw"))
     ds = M5Dataset(raw_dir=raw_dir, features_dir="", validate=False)
@@ -41,9 +41,8 @@ def test_m5dataset_raw_validate_synthetic(tmp_path):
 
 def test_m5dataset_prices_property_synthetic(tmp_path):
     """M5Dataset.prices returns expected columns on synthetic data."""
-    from tests.fixtures.synthetic_m5 import write_synthetic_csvs
-
     from shelfsense.data.load import M5Dataset
+    from tests.fixtures.synthetic_m5 import write_synthetic_csvs
 
     raw_dir = write_synthetic_csvs(str(tmp_path / "raw"))
     ds = M5Dataset(raw_dir=raw_dir, features_dir="", validate=False)
@@ -53,6 +52,7 @@ def test_m5dataset_prices_property_synthetic(tmp_path):
 
 
 # ── real-data (gated) ─────────────────────────────────────────────────────────
+
 
 @_real_data
 def test_m5dataset_raw_validate():

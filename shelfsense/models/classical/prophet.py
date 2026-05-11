@@ -20,11 +20,11 @@ Design notes:
 - n_jobs=2 to avoid the SARIMA OOM pattern (each Prophet process is heavier
   than ETS due to Stan backend).
 """
+
 from __future__ import annotations
 
 import time
 import warnings
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -36,6 +36,7 @@ ZERO_THRESHOLD = 0.80
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+
 
 def _is_sparse(series: np.ndarray) -> bool:
     return (series == 0).mean() > ZERO_THRESHOLD
@@ -52,6 +53,7 @@ def _seasonal_naive_fallback(series: np.ndarray, horizon: int, period: int = 7) 
 
 
 # ── M5 holiday builder ────────────────────────────────────────────────────────
+
 
 def build_m5_holidays(calendar_df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -70,14 +72,14 @@ def build_m5_holidays(calendar_df: pd.DataFrame) -> pd.DataFrame:
         for col in ["event_name_1", "event_name_2"]:
             name = r.get(col)
             if pd.notna(name) and str(name).strip():
-                rows.append({"holiday": str(name), "ds": ds,
-                             "lower_window": -1, "upper_window": 1})
+                rows.append({"holiday": str(name), "ds": ds, "lower_window": -1, "upper_window": 1})
     if not rows:
         return pd.DataFrame(columns=["holiday", "ds"])
     return pd.DataFrame(rows).drop_duplicates()
 
 
 # ── single-series fit ─────────────────────────────────────────────────────────
+
 
 def fit_prophet(
     series: np.ndarray,
@@ -130,6 +132,7 @@ def fit_prophet(
 
 # ── single-series dispatcher for joblib ──────────────────────────────────────
 
+
 def _fit_one(args: tuple) -> tuple:
     """Returns (idx, preds, is_fallback, is_zero, fit_time)."""
     (idx, series, dates, holidays_df, horizon, changepoint_prior_scale) = args
@@ -147,6 +150,7 @@ def _fit_one(args: tuple) -> tuple:
 
 
 # ── batch runner ──────────────────────────────────────────────────────────────
+
 
 def run_batch(
     sample_ids: list,
@@ -175,8 +179,7 @@ def run_batch(
         .reset_index()
     )
 
-    train_cols = [f"d_{d}" for d in range(1, last_train_day + 1)
-                  if f"d_{d}" in sales_sub.columns]
+    train_cols = [f"d_{d}" for d in range(1, last_train_day + 1) if f"d_{d}" in sales_sub.columns]
 
     # Build date index: M5 d_1 = 2011-01-29
     d1 = pd.Timestamp("2011-01-29")

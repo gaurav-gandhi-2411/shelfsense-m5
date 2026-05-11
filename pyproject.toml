@@ -83,10 +83,22 @@ exclude_lines = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+exclude = ["scripts/legacy/"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+select = ["E", "F", "I", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# Long run_config dicts and assertion strings in test/integration files are
+# hard to wrap without losing readability — E501 is tolerated there.
+"tests/**" = ["E501"]
+# Dagster asset bodies contain long type annotations and config chains.
+"shelfsense/orchestration/assets.py" = ["E501"]
+# Phase-1 classical model wrappers are archival — not actively maintained.
+"shelfsense/models/classical/**" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"
+warn_return_any = false
 ignore_missing_imports = true
+check_untyped_defs = false

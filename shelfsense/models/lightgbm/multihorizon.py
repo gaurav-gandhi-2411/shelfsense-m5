@@ -4,6 +4,7 @@ Trains one model per horizon h in [1, 28].  Each model predicts sales h days
 ahead; the target is shift(-h) per series.  All models share the same
 hyperparameters (no per-horizon Optuna search).
 """
+
 from __future__ import annotations
 
 import gc
@@ -18,24 +19,51 @@ import pandas as pd
 from shelfsense.features.hierarchy import CAT_DTYPES
 
 LAST_TRAIN = 1913
-VAL_START  = 1886
+VAL_START = 1886
 FEAT_START = 1000
-HORIZON    = 28
+HORIZON = 28
 
 CAT_FEATURES = ["cat_id", "dept_id", "store_id", "state_id"]
 
 DEFAULT_NUM_FEATURES = [
-    "weekday", "month", "quarter", "year", "day_of_month", "week_of_year",
-    "is_weekend", "is_holiday",
-    "is_snap_ca", "is_snap_tx", "is_snap_wi",
-    "days_since_event", "days_until_next_event",
-    "sell_price", "price_change_pct", "price_relative_mean",
-    "price_volatility", "has_price_change",
-    "lag_7", "lag_14", "lag_28", "lag_56",
-    "roll_mean_7",  "roll_std_7",  "roll_min_7",  "roll_max_7",
-    "roll_mean_28", "roll_std_28", "roll_min_28", "roll_max_28",
-    "roll_mean_56", "roll_std_56", "roll_min_56", "roll_max_56",
-    "roll_mean_180","roll_std_180","roll_min_180","roll_max_180",
+    "weekday",
+    "month",
+    "quarter",
+    "year",
+    "day_of_month",
+    "week_of_year",
+    "is_weekend",
+    "is_holiday",
+    "is_snap_ca",
+    "is_snap_tx",
+    "is_snap_wi",
+    "days_since_event",
+    "days_until_next_event",
+    "sell_price",
+    "price_change_pct",
+    "price_relative_mean",
+    "price_volatility",
+    "has_price_change",
+    "lag_7",
+    "lag_14",
+    "lag_28",
+    "lag_56",
+    "roll_mean_7",
+    "roll_std_7",
+    "roll_min_7",
+    "roll_max_7",
+    "roll_mean_28",
+    "roll_std_28",
+    "roll_min_28",
+    "roll_max_28",
+    "roll_mean_56",
+    "roll_std_56",
+    "roll_min_56",
+    "roll_max_56",
+    "roll_mean_180",
+    "roll_std_180",
+    "roll_min_180",
+    "roll_max_180",
 ]
 DEFAULT_FEATURE_COLS = DEFAULT_NUM_FEATURES + CAT_FEATURES
 
@@ -69,17 +97,17 @@ class MultiHorizonTrainer:
     def _build_lgb_params(self, cfg: dict[str, Any]) -> dict[str, Any]:
         objective = cfg["objective"]
         params: dict[str, Any] = {
-            "objective":        objective,
-            "verbose":         -1,
-            "num_threads":      0,
-            "seed":             42,
-            "bagging_freq":     1,
-            "learning_rate":    cfg.get("learning_rate", 0.025),
-            "num_leaves":       int(cfg.get("num_leaves", 64)),
+            "objective": objective,
+            "verbose": -1,
+            "num_threads": 0,
+            "seed": 42,
+            "bagging_freq": 1,
+            "learning_rate": cfg.get("learning_rate", 0.025),
+            "num_leaves": int(cfg.get("num_leaves", 64)),
             "min_data_in_leaf": int(cfg.get("min_data_in_leaf", 100)),
             "feature_fraction": cfg.get("feature_fraction", 0.7),
             "bagging_fraction": cfg.get("bagging_fraction", 0.9),
-            "lambda_l2":        cfg.get("lambda_l2", 0.1),
+            "lambda_l2": cfg.get("lambda_l2", 0.1),
         }
         if objective == "tweedie":
             params["metric"] = "tweedie"
@@ -125,9 +153,7 @@ class MultiHorizonTrainer:
         os.makedirs(model_dir, exist_ok=True)
 
         # ── load training data ──────────────────────────────────────────
-        load_cols = list(dict.fromkeys(
-            ["id"] + feature_cols + ["d_num", "sales"]
-        ))
+        load_cols = list(dict.fromkeys(["id"] + feature_cols + ["d_num", "sales"]))
         df = pd.read_parquet(
             features_dir,
             filters=[("d_num", ">=", FEAT_START), ("d_num", "<=", LAST_TRAIN)],
@@ -170,16 +196,8 @@ class MultiHorizonTrainer:
             y_h = df.groupby("id")["sales"].shift(-h)
             valid_h = y_h.notna()
 
-            train_mask = (
-                (df["d_num"] >= FEAT_START) &
-                (df["d_num"] <= VAL_START - h - 1) &
-                valid_h
-            )
-            val_mask = (
-                (df["d_num"] >= VAL_START - h) &
-                (df["d_num"] <= LAST_TRAIN - h) &
-                valid_h
-            )
+            train_mask = (df["d_num"] >= FEAT_START) & (df["d_num"] <= VAL_START - h - 1) & valid_h
+            val_mask = (df["d_num"] >= VAL_START - h) & (df["d_num"] <= LAST_TRAIN - h) & valid_h
 
             X_tr = df.loc[train_mask, feature_cols]
             y_tr = y_h[train_mask].astype(np.float32)
@@ -187,12 +205,17 @@ class MultiHorizonTrainer:
             y_vl = y_h[val_mask].astype(np.float32)
 
             ds_tr = lgb.Dataset(
-                X_tr, label=y_tr.values,
-                categorical_feature=cat_features, free_raw_data=False,
+                X_tr,
+                label=y_tr.values,
+                categorical_feature=cat_features,
+                free_raw_data=False,
             )
             ds_vl = lgb.Dataset(
-                X_vl, label=y_vl.values,
-                categorical_feature=cat_features, reference=ds_tr, free_raw_data=False,
+                X_vl,
+                label=y_vl.values,
+                categorical_feature=cat_features,
+                reference=ds_tr,
+                free_raw_data=False,
             )
 
             model = lgb.train(
@@ -211,7 +234,7 @@ class MultiHorizonTrainer:
 
             metric_key = next(iter(model.best_score["valid_0"]))
             h_scores[h] = {
-                "best_iter":  model.best_iteration,
+                "best_iter": model.best_iteration,
                 "val_metric": float(model.best_score["valid_0"][metric_key]),
             }
             models[h] = model
@@ -222,37 +245,42 @@ class MultiHorizonTrainer:
         # ── val WRMSSE ──────────────────────────────────────────────────
         val_preds = np.zeros((n_series, n_horizon), dtype=np.float32)
         for h in range(1, n_horizon + 1):
-            val_preds[:, h - 1] = np.clip(
-                models[h].predict(df_origin[feature_cols]), 0.0, None
-            )
+            val_preds[:, h - 1] = np.clip(models[h].predict(df_origin[feature_cols]), 0.0, None)
 
-        sales_eval  = pd.read_csv(os.path.join(raw_dir, "sales_train_evaluation.csv"))
-        prices_df   = pd.read_csv(os.path.join(raw_dir, "sell_prices.csv"))
+        sales_eval = pd.read_csv(os.path.join(raw_dir, "sales_train_evaluation.csv"))
+        prices_df = pd.read_csv(os.path.join(raw_dir, "sell_prices.csv"))
         calendar_df = pd.read_csv(os.path.join(raw_dir, "calendar.csv"))
 
         actual_cols = [f"d_{LAST_TRAIN + h}" for h in range(1, n_horizon + 1)]
         sub = (
             sales_eval[sales_eval["id"].isin(series_ids)]
-            .set_index("id").reindex(series_ids).reset_index()
+            .set_index("id")
+            .reindex(series_ids)
+            .reset_index()
         )
         actuals = sub[actual_cols].values.astype(np.float32)
 
         if n_horizon == HORIZON:
             val_wrmsse, _ = compute_wrmsse(
-                preds=val_preds, actuals=actuals,
-                sales_df=sub, prices_df=prices_df,
-                calendar_df=calendar_df, last_train_day=LAST_TRAIN,
+                preds=val_preds,
+                actuals=actuals,
+                sales_df=sub,
+                prices_df=prices_df,
+                calendar_df=calendar_df,
+                last_train_day=LAST_TRAIN,
             )
         else:
             # Partial horizon — pad with zeros to keep compute_wrmsse happy
-            preds_full   = np.zeros((n_series, HORIZON), dtype=np.float32)
+            preds_full = np.zeros((n_series, HORIZON), dtype=np.float32)
             actuals_full = np.zeros((n_series, HORIZON), dtype=np.float32)
-            preds_full[:, :n_horizon]   = val_preds
+            preds_full[:, :n_horizon] = val_preds
             actuals_full[:, :n_horizon] = actuals
             actual_cols_full = [f"d_{LAST_TRAIN + h}" for h in range(1, HORIZON + 1)]
             sub_full = (
                 sales_eval[sales_eval["id"].isin(series_ids)]
-                .set_index("id").reindex(series_ids).reset_index()
+                .set_index("id")
+                .reindex(series_ids)
+                .reset_index()
             )
             # fill missing day cols with zeros
             for c in actual_cols_full:
@@ -260,15 +288,18 @@ class MultiHorizonTrainer:
                     sub_full[c] = 0.0
             actuals_full = sub_full[actual_cols_full].values.astype(np.float32)
             val_wrmsse, _ = compute_wrmsse(
-                preds=preds_full, actuals=actuals_full,
-                sales_df=sub_full, prices_df=prices_df,
-                calendar_df=calendar_df, last_train_day=LAST_TRAIN,
+                preds=preds_full,
+                actuals=actuals_full,
+                sales_df=sub_full,
+                prices_df=prices_df,
+                calendar_df=calendar_df,
+                last_train_day=LAST_TRAIN,
             )
 
         return {
-            "model_dir":      model_dir,
-            "val_wrmsse":     float(val_wrmsse),
-            "n_series":       n_series,
+            "model_dir": model_dir,
+            "val_wrmsse": float(val_wrmsse),
+            "n_series": n_series,
             "horizon_scores": h_scores,
         }
 
@@ -310,8 +341,6 @@ class MultiHorizonTrainer:
                 model = pickle.load(fh)
             preds[:, h - 1] = np.clip(model.predict(df_origin[feature_cols]), 0.0, None)
 
-        result = pd.DataFrame(
-            preds, columns=[f"F{i}" for i in range(1, n_horizon + 1)]
-        )
+        result = pd.DataFrame(preds, columns=[f"F{i}" for i in range(1, n_horizon + 1)])
         result.insert(0, "id", df_origin["id"].values)
         return result

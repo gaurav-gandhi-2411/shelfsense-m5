@@ -20,26 +20,28 @@ Key fix vs original implementation:
   excluded from the weighted sum (weight contribution dropped), matching the
   reference implementation.
 """
+
 from __future__ import annotations
+
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
 
 # ── 12 M5 hierarchical levels ────────────────────────────────────────────────
 LEVEL_SPECS: Dict[str, List[str]] = {
-    "level_1":  [],
-    "level_2":  ["state_id"],
-    "level_3":  ["store_id"],
-    "level_4":  ["cat_id"],
-    "level_5":  ["dept_id"],
-    "level_6":  ["state_id", "cat_id"],
-    "level_7":  ["state_id", "dept_id"],
-    "level_8":  ["store_id", "cat_id"],
-    "level_9":  ["store_id", "dept_id"],
+    "level_1": [],
+    "level_2": ["state_id"],
+    "level_3": ["store_id"],
+    "level_4": ["cat_id"],
+    "level_5": ["dept_id"],
+    "level_6": ["state_id", "cat_id"],
+    "level_7": ["state_id", "dept_id"],
+    "level_8": ["store_id", "cat_id"],
+    "level_9": ["store_id", "dept_id"],
     "level_10": ["item_id"],
     "level_11": ["item_id", "state_id"],
-    "level_12": ["item_id", "store_id"],   # base: 30 490 series
+    "level_12": ["item_id", "store_id"],  # base: 30 490 series
 }
 
 META_COLS = ["id", "item_id", "dept_id", "cat_id", "store_id", "state_id"]
@@ -48,20 +50,17 @@ HORIZON = 28
 
 # ── internal helpers ─────────────────────────────────────────────────────────
 
+
 def _group_keys(meta: pd.DataFrame, cols: List[str]) -> np.ndarray:
     if not cols:
         return np.full(len(meta), "total")
     if len(cols) == 1:
         return meta[cols[0]].values.astype(str)
-    return (
-        meta[cols]
-        .apply(lambda r: "__".join(r.values.astype(str)), axis=1)
-        .values
-    )
+    return meta[cols].apply(lambda r: "__".join(r.values.astype(str)), axis=1).values
 
 
 def _aggregate(
-    mat: np.ndarray,   # (n_series, T)
+    mat: np.ndarray,  # (n_series, T)
     keys: np.ndarray,  # (n_series,)
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Sum rows of *mat* by *keys*.  Returns (agg_mat, unique_keys)."""
@@ -72,6 +71,7 @@ def _aggregate(
 
 
 # ── public building blocks ────────────────────────────────────────────────────
+
 
 def build_scales(train_mat: np.ndarray) -> np.ndarray:
     """
@@ -90,15 +90,15 @@ def build_scales(train_mat: np.ndarray) -> np.ndarray:
         row = mat[i]
         first_nz = int(np.argmax(row != 0))
         # argmax returns 0 for all-False; distinguish true first-nz from all-zeros
-        if row[first_nz] == 0:          # all-zero series
+        if row[first_nz] == 0:  # all-zero series
             scales[i] = 0.0
             continue
         active = row[first_nz:]
         if len(active) < 2:
-            scales[i] = 1.0             # can't compute diff — use neutral scale
+            scales[i] = 1.0  # can't compute diff — use neutral scale
         else:
             d = np.diff(active)
-            scales[i] = float(np.mean(d ** 2))
+            scales[i] = float(np.mean(d**2))
 
     return scales
 
@@ -118,15 +118,15 @@ def build_revenue_weights(
     Returns {level: (sorted_group_keys, weights)}, weights sum to 1 per level.
     """
     start_day = last_train_day - HORIZON + 1
-    day_cols = [c for c in (f"d_{d}" for d in range(start_day, last_train_day + 1))
-                if c in sales_df.columns]
+    day_cols = [
+        c for c in (f"d_{d}" for d in range(start_day, last_train_day + 1)) if c in sales_df.columns
+    ]
 
     day_to_week = calendar_df.set_index("d")["wm_yr_wk"].to_dict()
 
     # Melt to long format for exact day-level price join (matches reference)
-    weight_long = (
-        sales_df[["item_id", "store_id"] + day_cols]
-        .melt(id_vars=["item_id", "store_id"], var_name="d", value_name="sales")
+    weight_long = sales_df[["item_id", "store_id"] + day_cols].melt(
+        id_vars=["item_id", "store_id"], var_name="d", value_name="sales"
     )
     weight_long["wm_yr_wk"] = weight_long["d"].map(day_to_week)
     weight_long = weight_long.merge(
@@ -138,11 +138,7 @@ def build_revenue_weights(
     weight_long["revenue"] = weight_long["sales"] * weight_long["sell_price"]
 
     # Aggregate back to series level in sales_df row order
-    rev_by_series = (
-        weight_long.groupby(["item_id", "store_id"])["revenue"]
-        .sum()
-        .reset_index()
-    )
+    rev_by_series = weight_long.groupby(["item_id", "store_id"])["revenue"].sum().reset_index()
     # META_COLS already contains item_id and store_id — no duplicate needed
     meta = sales_df[META_COLS].copy()
     meta = meta.merge(rev_by_series, on=["item_id", "store_id"], how="left")
@@ -164,19 +160,19 @@ def build_revenue_weights(
 
 
 def compute_rmsse_per_series(
-    preds: np.ndarray,    # (30 490, 28)
+    preds: np.ndarray,  # (30 490, 28)
     actuals: np.ndarray,  # (30 490, 28)
-    scales: np.ndarray,   # (30 490,)  — from build_scales
+    scales: np.ndarray,  # (30 490,)  — from build_scales
 ) -> np.ndarray:
     """RMSSE for each of the 30 490 base series (may contain inf for scale=0)."""
     mse = np.mean((preds.astype(np.float64) - actuals.astype(np.float64)) ** 2, axis=1)
-    return np.sqrt(mse / scales)   # scale=0 → inf, handled by caller
+    return np.sqrt(mse / scales)  # scale=0 → inf, handled by caller
 
 
 def compute_wrmsse(
-    preds: np.ndarray,          # (30 490, 28) — row-aligned with sales_df
-    actuals: np.ndarray,        # (30 490, 28)
-    sales_df: pd.DataFrame,     # training data (sales_train_validation or _evaluation)
+    preds: np.ndarray,  # (30 490, 28) — row-aligned with sales_df
+    actuals: np.ndarray,  # (30 490, 28)
+    sales_df: pd.DataFrame,  # training data (sales_train_validation or _evaluation)
     prices_df: pd.DataFrame,
     calendar_df: pd.DataFrame,
     last_train_day: int = 1913,
@@ -190,8 +186,9 @@ def compute_wrmsse(
     """
     meta = sales_df[META_COLS].copy()
 
-    train_cols = [c for c in (f"d_{d}" for d in range(1, last_train_day + 1))
-                  if c in sales_df.columns]
+    train_cols = [
+        c for c in (f"d_{d}" for d in range(1, last_train_day + 1)) if c in sales_df.columns
+    ]
     train_mat = sales_df[train_cols].values.astype(np.float64)
 
     weights = build_revenue_weights(sales_df, prices_df, calendar_df, last_train_day)
@@ -201,13 +198,13 @@ def compute_wrmsse(
     for level, cols in LEVEL_SPECS.items():
         keys = _group_keys(meta, cols)
 
-        pred_agg,  ukeys = _aggregate(preds.astype(np.float64), keys)
-        act_agg,   _     = _aggregate(actuals.astype(np.float64), keys)
-        train_agg, _     = _aggregate(train_mat, keys)
+        pred_agg, ukeys = _aggregate(preds.astype(np.float64), keys)
+        act_agg, _ = _aggregate(actuals.astype(np.float64), keys)
+        train_agg, _ = _aggregate(train_mat, keys)
 
         level_scales = build_scales(train_agg)
         mse = np.mean((pred_agg - act_agg) ** 2, axis=1)
-        rmsse = np.sqrt(mse / level_scales)   # may contain inf
+        rmsse = np.sqrt(mse / level_scales)  # may contain inf
 
         ukeys_w, w_vals = weights[level]
         key_to_w = dict(zip(ukeys_w, w_vals))
@@ -226,7 +223,7 @@ def compute_wrmsse(
 
 
 def submission_to_matrix(
-    sub_df: pd.DataFrame,    # Kaggle-format: id + F1..F28
+    sub_df: pd.DataFrame,  # Kaggle-format: id + F1..F28
     sales_df: pd.DataFrame,  # to get the canonical row ordering
     suffix: str = "_validation",
 ) -> np.ndarray:
@@ -234,9 +231,6 @@ def submission_to_matrix(
     Align a Kaggle submission DataFrame to a (30 490, 28) array in sales_df row order.
     """
     fcols = [f"F{i}" for i in range(1, HORIZON + 1)]
-    val_rows = (
-        sub_df[sub_df["id"].str.endswith(suffix)]
-        .set_index("id")
-    )
+    val_rows = sub_df[sub_df["id"].str.endswith(suffix)].set_index("id")
     result = val_rows.reindex(sales_df["id"].values)[fcols].fillna(0.0).values
     return result.astype(np.float32)

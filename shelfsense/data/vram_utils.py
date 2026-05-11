@@ -17,6 +17,7 @@ WINDOWS IMPORT ORDER CONSTRAINT:
     cap_vram(0.80)                              # hard cap after CUDA is live
     model.fit(...)                              # GPU training
 """
+
 import torch
 
 
@@ -55,4 +56,4 @@ def vram_status() -> str:
     free, total = torch.cuda.mem_get_info(device=0)
     used_gb = (total - free) / 1e9
     total_gb = total / 1e9
-    return f"VRAM {used_gb:.2f}/{total_gb:.1f} GB used ({100*(total-free)/total:.0f}%)"
+    return f"VRAM {used_gb:.2f}/{total_gb:.1f} GB used ({100 * (total - free) / total:.0f}%)"

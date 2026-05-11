@@ -127,8 +127,7 @@ _PRED_COLS = {
     for h in range(_HORIZON)
 }
 _SUB_COLS = {
-    f"F{h + 1}": Column(pa.Float, nullable=False, checks=pa.Check.ge(0))
-    for h in range(_HORIZON)
+    f"F{h + 1}": Column(pa.Float, nullable=False, checks=pa.Check.ge(0)) for h in range(_HORIZON)
 }
 
 predictions_schema = DataFrameSchema(

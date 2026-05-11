@@ -10,13 +10,13 @@ Note: The single-process dagster.materialize() call trains all 5 models back-to-
 On first run this takes ~5-7 min. On subsequent runs (pkls cached) it takes ~3-4 min.
 WSL2 memory cap of ~8 GB is tight; close other processes if it OOMs.
 """
+
 from __future__ import annotations
 
 import os
 
 import pytest
 import requests
-
 
 TRACKING_URI = "http://localhost:5000"
 RAW_DIR = "data/raw/m5-forecasting-accuracy"
@@ -46,6 +46,7 @@ def test_full_pipeline_test_mode():
     """Materialize raw → submission in test_mode: 100 series, 1 horizon, 5 Optuna trials."""
     import pandas as pd
     from dagster import materialize
+
     from shelfsense.orchestration.assets import (
         ensemble,
         features,
@@ -70,40 +71,125 @@ def test_full_pipeline_test_mode():
 
     run_config = {
         "ops": {
-            "raw_sales":    {"config": {"raw_dir": RAW_DIR}},
+            "raw_sales": {"config": {"raw_dir": RAW_DIR}},
             "raw_calendar": {"config": {"raw_dir": RAW_DIR}},
-            "raw_prices":   {"config": {"raw_dir": RAW_DIR}},
+            "raw_prices": {"config": {"raw_dir": RAW_DIR}},
             "features": {
                 "config": {
-                    "output_dir":    "data/processed/features",
-                    "last_day":      1941,
-                    "test_mode":     True,
+                    "output_dir": "data/processed/features",
+                    "last_day": 1941,
+                    "test_mode": True,
                     "test_n_series": 100,
-                    "test_seed":     42,
+                    "test_seed": 42,
                 }
             },
-            "model_tvp_13":    {"config": {"model_dir": "data/models/test_tvp_1p3",    "raw_dir": RAW_DIR, "test_mode": True}},
-            "model_tvp_17":    {"config": {"model_dir": "data/models/test_tvp_1p7",    "raw_dir": RAW_DIR, "test_mode": True}},
-            "model_rmse_mh":   {"config": {"model_dir": "data/models/test_rmse_mh",    "raw_dir": RAW_DIR, "test_mode": True}},
-            "model_store_dept":{"config": {"model_dir": "data/models/test_store_dept", "raw_dir": RAW_DIR, "test_mode": True}},
-            "model_ylags":     {"config": {"model_dir": "data/models/test_ylags",      "raw_dir": RAW_DIR, "test_mode": True}},
-            "predictions_tvp_13":    {"config": {"preds_dir": "data/predictions/test_tvp_1p3",    "raw_dir": RAW_DIR, "test_mode": True}},
-            "predictions_tvp_17":    {"config": {"preds_dir": "data/predictions/test_tvp_1p7",    "raw_dir": RAW_DIR, "test_mode": True}},
-            "predictions_rmse_mh":   {"config": {"preds_dir": "data/predictions/test_rmse_mh",    "raw_dir": RAW_DIR, "test_mode": True}},
-            "predictions_store_dept":{"config": {"preds_dir": "data/predictions/test_store_dept", "raw_dir": RAW_DIR, "test_mode": True}},
-            "predictions_ylags":     {"config": {"preds_dir": "data/predictions/test_ylags",      "raw_dir": RAW_DIR, "test_mode": True}},
-            "ensemble":   {"config": {"preds_dir": "data/predictions/test_ensemble", "raw_dir": RAW_DIR, "test_mode": True}},
-            "submission": {"config": {"submissions_dir": "submissions/test", "raw_dir": RAW_DIR, "kaggle_submit": False, "test_mode": True}},
+            "model_tvp_13": {
+                "config": {
+                    "model_dir": "data/models/test_tvp_1p3",
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "model_tvp_17": {
+                "config": {
+                    "model_dir": "data/models/test_tvp_1p7",
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "model_rmse_mh": {
+                "config": {
+                    "model_dir": "data/models/test_rmse_mh",
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "model_store_dept": {
+                "config": {
+                    "model_dir": "data/models/test_store_dept",
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "model_ylags": {
+                "config": {
+                    "model_dir": "data/models/test_ylags",
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "predictions_tvp_13": {
+                "config": {
+                    "preds_dir": "data/predictions/test_tvp_1p3",
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "predictions_tvp_17": {
+                "config": {
+                    "preds_dir": "data/predictions/test_tvp_1p7",
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "predictions_rmse_mh": {
+                "config": {
+                    "preds_dir": "data/predictions/test_rmse_mh",
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "predictions_store_dept": {
+                "config": {
+                    "preds_dir": "data/predictions/test_store_dept",
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "predictions_ylags": {
+                "config": {
+                    "preds_dir": "data/predictions/test_ylags",
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "ensemble": {
+                "config": {
+                    "preds_dir": "data/predictions/test_ensemble",
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "submission": {
+                "config": {
+                    "submissions_dir": "submissions/test",
+                    "raw_dir": RAW_DIR,
+                    "kaggle_submit": False,
+                    "test_mode": True,
+                }
+            },
         }
     }
 
     all_assets = [
-        raw_sales, raw_calendar, raw_prices, raw_validated,
-        features, features_validated,
-        model_tvp_13, model_tvp_17, model_rmse_mh, model_store_dept, model_ylags,
-        predictions_tvp_13, predictions_tvp_17, predictions_rmse_mh,
-        predictions_store_dept, predictions_ylags,
-        ensemble, submission,
+        raw_sales,
+        raw_calendar,
+        raw_prices,
+        raw_validated,
+        features,
+        features_validated,
+        model_tvp_13,
+        model_tvp_17,
+        model_rmse_mh,
+        model_store_dept,
+        model_ylags,
+        predictions_tvp_13,
+        predictions_tvp_17,
+        predictions_rmse_mh,
+        predictions_store_dept,
+        predictions_ylags,
+        ensemble,
+        submission,
     ]
 
     result = materialize(
@@ -132,6 +218,7 @@ def test_full_pipeline_test_mode():
 
     # MLflow: check key assets logged
     import mlflow
+
     mlflow.set_tracking_uri(TRACKING_URI)
     client = mlflow.tracking.MlflowClient()
     exp = client.get_experiment_by_name("shelfsense-m5")

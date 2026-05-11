@@ -1,12 +1,11 @@
 """Smoke tests: every Hydra config combination must load without errors."""
+
 import os
 
 import pytest
 from hydra import compose, initialize_config_dir
 
-CONFIG_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../shelfsense/config")
-)
+CONFIG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../shelfsense/config"))
 
 
 def test_default_config_loads():

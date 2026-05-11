@@ -1,4 +1,5 @@
 """ShelfSense CLI — entry point for all pipeline commands."""
+
 from __future__ import annotations
 
 import os
@@ -29,7 +30,7 @@ app.add_typer(train_app, name="train")
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-_RAW_DIR      = "data/raw/m5-forecasting-accuracy"
+_RAW_DIR = "data/raw/m5-forecasting-accuracy"
 _FEATURES_DIR = "data/processed/features"
 
 _EXPECTED_RAW_FILES = [
@@ -42,42 +43,43 @@ _EXPECTED_RAW_FILES = [
 # Model dirs indexed by asset name (test_mode vs production)
 _MODEL_DIRS: dict[bool, dict[str, str]] = {
     False: {
-        "model_tvp_13":    "data/models/tvp_1p3",
-        "model_tvp_17":    "data/models/tvp_1p7",
-        "model_rmse_mh":   "data/models/rmse_mh",
-        "model_store_dept":"data/models/store_dept",
-        "model_ylags":     "data/models/ylags",
+        "model_tvp_13": "data/models/tvp_1p3",
+        "model_tvp_17": "data/models/tvp_1p7",
+        "model_rmse_mh": "data/models/rmse_mh",
+        "model_store_dept": "data/models/store_dept",
+        "model_ylags": "data/models/ylags",
     },
     True: {
-        "model_tvp_13":    "data/models/test_tvp_1p3",
-        "model_tvp_17":    "data/models/test_tvp_1p7",
-        "model_rmse_mh":   "data/models/test_rmse_mh",
-        "model_store_dept":"data/models/test_store_dept",
-        "model_ylags":     "data/models/test_ylags",
+        "model_tvp_13": "data/models/test_tvp_1p3",
+        "model_tvp_17": "data/models/test_tvp_1p7",
+        "model_rmse_mh": "data/models/test_rmse_mh",
+        "model_store_dept": "data/models/test_store_dept",
+        "model_ylags": "data/models/test_ylags",
     },
 }
 
 _PREDS_DIRS: dict[bool, dict[str, str]] = {
     False: {
-        "predictions_tvp_13":    "data/predictions/tvp_1p3",
-        "predictions_tvp_17":    "data/predictions/tvp_1p7",
-        "predictions_rmse_mh":   "data/predictions/rmse_mh",
-        "predictions_store_dept":"data/predictions/store_dept",
-        "predictions_ylags":     "data/predictions/ylags",
-        "ensemble":              "data/predictions/ensemble",
+        "predictions_tvp_13": "data/predictions/tvp_1p3",
+        "predictions_tvp_17": "data/predictions/tvp_1p7",
+        "predictions_rmse_mh": "data/predictions/rmse_mh",
+        "predictions_store_dept": "data/predictions/store_dept",
+        "predictions_ylags": "data/predictions/ylags",
+        "ensemble": "data/predictions/ensemble",
     },
     True: {
-        "predictions_tvp_13":    "data/predictions/test_tvp_1p3",
-        "predictions_tvp_17":    "data/predictions/test_tvp_1p7",
-        "predictions_rmse_mh":   "data/predictions/test_rmse_mh",
-        "predictions_store_dept":"data/predictions/test_store_dept",
-        "predictions_ylags":     "data/predictions/test_ylags",
-        "ensemble":              "data/predictions/test_ensemble",
+        "predictions_tvp_13": "data/predictions/test_tvp_1p3",
+        "predictions_tvp_17": "data/predictions/test_tvp_1p7",
+        "predictions_rmse_mh": "data/predictions/test_rmse_mh",
+        "predictions_store_dept": "data/predictions/test_store_dept",
+        "predictions_ylags": "data/predictions/test_ylags",
+        "ensemble": "data/predictions/test_ensemble",
     },
 }
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _mlflow_uri() -> str:
     return os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000")
@@ -90,6 +92,7 @@ def _is_test_mode() -> bool:
 def _dag_run(assets: list, run_config: dict) -> bool:
     """Materialize assets, return True on success."""
     from dagster import materialize
+
     from shelfsense.orchestration.resources import MLflowResource
 
     result = materialize(
@@ -102,9 +105,9 @@ def _dag_run(assets: list, run_config: dict) -> bool:
 
 def _raw_ops(raw_dir: str) -> dict:
     return {
-        "raw_sales":    {"config": {"raw_dir": raw_dir}},
+        "raw_sales": {"config": {"raw_dir": raw_dir}},
         "raw_calendar": {"config": {"raw_dir": raw_dir}},
-        "raw_prices":   {"config": {"raw_dir": raw_dir}},
+        "raw_prices": {"config": {"raw_dir": raw_dir}},
     }
 
 
@@ -126,15 +129,23 @@ def _full_ops_cfg(test_mode: bool, raw_dir: str = _RAW_DIR) -> dict:
         ops[key] = {"config": {"model_dir": model_dir, "raw_dir": raw_dir, "test_mode": test_mode}}
 
     pdirs = _PREDS_DIRS[test_mode]
-    for key in ("predictions_tvp_13", "predictions_tvp_17", "predictions_rmse_mh",
-                "predictions_store_dept", "predictions_ylags"):
+    for key in (
+        "predictions_tvp_13",
+        "predictions_tvp_17",
+        "predictions_rmse_mh",
+        "predictions_store_dept",
+        "predictions_ylags",
+    ):
         ops[key] = {"config": {"preds_dir": pdirs[key], "raw_dir": raw_dir, "test_mode": test_mode}}
 
-    ops["ensemble"] = {"config": {"preds_dir": pdirs["ensemble"], "raw_dir": raw_dir, "test_mode": test_mode}}
+    ops["ensemble"] = {
+        "config": {"preds_dir": pdirs["ensemble"], "raw_dir": raw_dir, "test_mode": test_mode}
+    }
     return ops
 
 
 # ── shelfsense version ────────────────────────────────────────────────────────
+
 
 @app.command("version")
 def version_cmd() -> None:
@@ -143,6 +154,7 @@ def version_cmd() -> None:
 
 
 # ── shelfsense data ───────────────────────────────────────────────────────────
+
 
 @data_app.command("download")
 def data_download(
@@ -156,8 +168,16 @@ def data_download(
     os.makedirs(raw_dir, exist_ok=True)
     typer.echo(f"Downloading m5-forecasting-accuracy → {raw_dir} ...")
     r = subprocess.run(
-        ["kaggle", "competitions", "download",
-         "-c", "m5-forecasting-accuracy", "-p", raw_dir, "--unzip"],
+        [
+            "kaggle",
+            "competitions",
+            "download",
+            "-c",
+            "m5-forecasting-accuracy",
+            "-p",
+            raw_dir,
+            "--unzip",
+        ],
         capture_output=True,
         text=True,
     )
@@ -184,18 +204,24 @@ def data_validate(
 ) -> None:
     """Materialize raw_validated + features_validated Dagster assets."""
     from shelfsense.orchestration.assets import (
-        raw_sales, raw_calendar, raw_prices,
-        raw_validated, features, features_validated,
+        features,
+        features_validated,
+        raw_calendar,
+        raw_prices,
+        raw_sales,
+        raw_validated,
     )
 
-    _raw  = raw_dir or _RAW_DIR
+    _raw = raw_dir or _RAW_DIR
     _feat = features_dir or _FEATURES_DIR
     _test = _is_test_mode()
 
-    run_config = {"ops": {
-        **_raw_ops(_raw),
-        **_features_op(_feat, _test),
-    }}
+    run_config = {
+        "ops": {
+            **_raw_ops(_raw),
+            **_features_op(_feat, _test),
+        }
+    }
 
     typer.echo("Materializing raw_validated + features_validated ...")
     ok = _dag_run(
@@ -210,6 +236,7 @@ def data_validate(
 
 
 # ── shelfsense features ───────────────────────────────────────────────────────
+
 
 @features_app.command("build")
 def features_build(
@@ -226,7 +253,11 @@ def features_build(
 ) -> None:
     """Materialize features Dagster asset (writes per-store snappy parquets)."""
     from shelfsense.orchestration.assets import (
-        raw_sales, raw_calendar, raw_prices, raw_validated, features,
+        features,
+        raw_calendar,
+        raw_prices,
+        raw_sales,
+        raw_validated,
     )
 
     _feat = output_dir or _FEATURES_DIR
@@ -238,10 +269,12 @@ def features_build(
             err=True,
         )
 
-    run_config = {"ops": {
-        **_raw_ops(_RAW_DIR),
-        **_features_op(_feat, _test),
-    }}
+    run_config = {
+        "ops": {
+            **_raw_ops(_RAW_DIR),
+            **_features_op(_feat, _test),
+        }
+    }
 
     typer.echo(f"Materializing features → {_feat} ...")
     ok = _dag_run(
@@ -258,6 +291,7 @@ def features_build(
 
 # ── shelfsense train ──────────────────────────────────────────────────────────
 
+
 @train_app.command("tweedie-mh")
 def train_tweedie_mh(
     tvp: float = typer.Option(
@@ -273,9 +307,14 @@ def train_tweedie_mh(
 ) -> None:
     """Materialize model_tvp_13 or model_tvp_17 Dagster asset."""
     from shelfsense.orchestration.assets import (
-        raw_sales, raw_calendar, raw_prices, raw_validated,
-        features, features_validated,
-        model_tvp_13, model_tvp_17,
+        features,
+        features_validated,
+        model_tvp_13,
+        model_tvp_17,
+        raw_calendar,
+        raw_prices,
+        raw_sales,
+        raw_validated,
     )
 
     _test = _is_test_mode()
@@ -283,31 +322,45 @@ def train_tweedie_mh(
 
     if tvp == 1.3:
         model_asset = model_tvp_13
-        asset_name  = "model_tvp_13"
+        asset_name = "model_tvp_13"
     elif tvp == 1.7:
         model_asset = model_tvp_17
-        asset_name  = "model_tvp_17"
+        asset_name = "model_tvp_17"
     else:
         typer.echo(f"Error: --tvp must be 1.3 or 1.7 (got {tvp}).", err=True)
         raise typer.Exit(code=1)
 
     if seed != 42:
-        typer.echo(f"Note: --seed={seed} recorded; trainer seed is fixed at 42 in this version.", err=True)
+        typer.echo(
+            f"Note: --seed={seed} recorded; trainer seed is fixed at 42 in this version.",
+            err=True,
+        )
 
-    run_config = {"ops": {
-        **_raw_ops(_RAW_DIR),
-        **_features_op(_FEATURES_DIR, _test),
-        asset_name: {"config": {
-            "model_dir": mdirs[asset_name],
-            "raw_dir":   _RAW_DIR,
-            "test_mode": _test,
-        }},
-    }}
+    run_config = {
+        "ops": {
+            **_raw_ops(_RAW_DIR),
+            **_features_op(_FEATURES_DIR, _test),
+            asset_name: {
+                "config": {
+                    "model_dir": mdirs[asset_name],
+                    "raw_dir": _RAW_DIR,
+                    "test_mode": _test,
+                }
+            },
+        }
+    }
 
     typer.echo(f"Materializing {asset_name} (tvp={tvp}) ...")
     ok = _dag_run(
-        [raw_sales, raw_calendar, raw_prices, raw_validated,
-         features, features_validated, model_asset],
+        [
+            raw_sales,
+            raw_calendar,
+            raw_prices,
+            raw_validated,
+            features,
+            features_validated,
+            model_asset,
+        ],
         run_config,
     )
     if ok:
@@ -331,8 +384,13 @@ def train_store_dept(
 ) -> None:
     """Materialize model_store_dept Dagster asset (70 per-slice LightGBM models)."""
     from shelfsense.orchestration.assets import (
-        raw_sales, raw_calendar, raw_prices, raw_validated,
-        features, features_validated, model_store_dept,
+        features,
+        features_validated,
+        model_store_dept,
+        raw_calendar,
+        raw_prices,
+        raw_sales,
+        raw_validated,
     )
 
     _test = _is_test_mode()
@@ -345,20 +403,31 @@ def train_store_dept(
             err=True,
         )
 
-    run_config = {"ops": {
-        **_raw_ops(_RAW_DIR),
-        **_features_op(_FEATURES_DIR, _test),
-        "model_store_dept": {"config": {
-            "model_dir": mdirs["model_store_dept"],
-            "raw_dir":   _RAW_DIR,
-            "test_mode": _test,
-        }},
-    }}
+    run_config = {
+        "ops": {
+            **_raw_ops(_RAW_DIR),
+            **_features_op(_FEATURES_DIR, _test),
+            "model_store_dept": {
+                "config": {
+                    "model_dir": mdirs["model_store_dept"],
+                    "raw_dir": _RAW_DIR,
+                    "test_mode": _test,
+                }
+            },
+        }
+    }
 
     typer.echo("Materializing model_store_dept ...")
     ok = _dag_run(
-        [raw_sales, raw_calendar, raw_prices, raw_validated,
-         features, features_validated, model_store_dept],
+        [
+            raw_sales,
+            raw_calendar,
+            raw_prices,
+            raw_validated,
+            features,
+            features_validated,
+            model_store_dept,
+        ],
         run_config,
     )
     if ok:
@@ -384,6 +453,7 @@ def train_per_dept() -> None:
 
 # ── shelfsense ensemble ───────────────────────────────────────────────────────
 
+
 @app.command("ensemble")
 def ensemble_cmd(
     candidates: str = typer.Option(
@@ -399,12 +469,23 @@ def ensemble_cmd(
 ) -> None:
     """Materialize ensemble Dagster asset (Optuna convex-weight search on val WRMSSE)."""
     from shelfsense.orchestration.assets import (
-        raw_sales, raw_calendar, raw_prices, raw_validated,
-        features, features_validated,
-        model_tvp_13, model_tvp_17, model_rmse_mh, model_store_dept, model_ylags,
-        predictions_tvp_13, predictions_tvp_17, predictions_rmse_mh,
-        predictions_store_dept, predictions_ylags,
         ensemble,
+        features,
+        features_validated,
+        model_rmse_mh,
+        model_store_dept,
+        model_tvp_13,
+        model_tvp_17,
+        model_ylags,
+        predictions_rmse_mh,
+        predictions_store_dept,
+        predictions_tvp_13,
+        predictions_tvp_17,
+        predictions_ylags,
+        raw_calendar,
+        raw_prices,
+        raw_sales,
+        raw_validated,
     )
 
     _test = _is_test_mode()
@@ -419,11 +500,22 @@ def ensemble_cmd(
     typer.echo("Materializing ensemble (runs full pipeline: models → predictions → blend) ...")
     ok = _dag_run(
         [
-            raw_sales, raw_calendar, raw_prices, raw_validated,
-            features, features_validated,
-            model_tvp_13, model_tvp_17, model_rmse_mh, model_store_dept, model_ylags,
-            predictions_tvp_13, predictions_tvp_17, predictions_rmse_mh,
-            predictions_store_dept, predictions_ylags,
+            raw_sales,
+            raw_calendar,
+            raw_prices,
+            raw_validated,
+            features,
+            features_validated,
+            model_tvp_13,
+            model_tvp_17,
+            model_rmse_mh,
+            model_store_dept,
+            model_ylags,
+            predictions_tvp_13,
+            predictions_tvp_17,
+            predictions_rmse_mh,
+            predictions_store_dept,
+            predictions_ylags,
             ensemble,
         ],
         run_config,
@@ -436,6 +528,7 @@ def ensemble_cmd(
 
 
 # ── shelfsense submit ─────────────────────────────────────────────────────────
+
 
 @app.command("submit")
 def submit(
@@ -452,36 +545,62 @@ def submit(
 ) -> None:
     """Materialize submission Dagster asset and optionally push to Kaggle."""
     from shelfsense.orchestration.assets import (
-        raw_sales, raw_calendar, raw_prices, raw_validated,
-        features, features_validated,
-        model_tvp_13, model_tvp_17, model_rmse_mh, model_store_dept, model_ylags,
-        predictions_tvp_13, predictions_tvp_17, predictions_rmse_mh,
-        predictions_store_dept, predictions_ylags,
-        ensemble, submission,
+        ensemble,
+        features,
+        features_validated,
+        model_rmse_mh,
+        model_store_dept,
+        model_tvp_13,
+        model_tvp_17,
+        model_ylags,
+        predictions_rmse_mh,
+        predictions_store_dept,
+        predictions_tvp_13,
+        predictions_tvp_17,
+        predictions_ylags,
+        raw_calendar,
+        raw_prices,
+        raw_sales,
+        raw_validated,
+        submission,
     )
 
     _test = _is_test_mode()
     submissions_dir = "submissions/test" if _test else "submissions"
 
     ops = _full_ops_cfg(_test)
-    ops["submission"] = {"config": {
-        "submissions_dir": submissions_dir,
-        "raw_dir":         _RAW_DIR,
-        "kaggle_submit":   kaggle and not _test,
-        "test_mode":       _test,
-    }}
+    ops["submission"] = {
+        "config": {
+            "submissions_dir": submissions_dir,
+            "raw_dir": _RAW_DIR,
+            "kaggle_submit": kaggle and not _test,
+            "test_mode": _test,
+        }
+    }
     run_config = {"ops": ops}
 
     kaggle_note = " (--kaggle flag active)" if kaggle and not _test else ""
     typer.echo(f"Materializing submission{kaggle_note} ...")
     ok = _dag_run(
         [
-            raw_sales, raw_calendar, raw_prices, raw_validated,
-            features, features_validated,
-            model_tvp_13, model_tvp_17, model_rmse_mh, model_store_dept, model_ylags,
-            predictions_tvp_13, predictions_tvp_17, predictions_rmse_mh,
-            predictions_store_dept, predictions_ylags,
-            ensemble, submission,
+            raw_sales,
+            raw_calendar,
+            raw_prices,
+            raw_validated,
+            features,
+            features_validated,
+            model_tvp_13,
+            model_tvp_17,
+            model_rmse_mh,
+            model_store_dept,
+            model_ylags,
+            predictions_tvp_13,
+            predictions_tvp_17,
+            predictions_rmse_mh,
+            predictions_store_dept,
+            predictions_ylags,
+            ensemble,
+            submission,
         ],
         run_config,
     )
@@ -493,6 +612,7 @@ def submit(
 
 
 # ── shelfsense report ─────────────────────────────────────────────────────────
+
 
 @app.command("report")
 def report(

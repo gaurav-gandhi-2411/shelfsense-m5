@@ -3,6 +3,7 @@
 The Dagster resource (MLflowResource in orchestration/resources.py) wraps these
 for use inside asset bodies. Call these directly for scripts or notebooks.
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -49,9 +50,7 @@ def log_run(
     uri = tracking_uri or get_tracking_uri()
     mlflow.set_tracking_uri(uri)
     experiment_id = get_or_create_experiment(experiment_name, tracking_uri=uri)
-    with mlflow.start_run(
-        experiment_id=experiment_id, run_name=run_name, tags=tags
-    ) as run:
+    with mlflow.start_run(experiment_id=experiment_id, run_name=run_name, tags=tags) as run:
         if params:
             mlflow.log_params(params)
         if metrics:

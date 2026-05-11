@@ -2,16 +2,18 @@
 
 All tests mock the MLflow client so no MLflow server is required.
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-
 # ── mlflow_utils.get_tracking_uri ─────────────────────────────────────────────
+
 
 def test_get_tracking_uri_default(monkeypatch):
     monkeypatch.delenv("MLFLOW_TRACKING_URI", raising=False)
     from shelfsense.tracking.mlflow_utils import get_tracking_uri
+
     uri = get_tracking_uri()
     assert "localhost" in uri and "5000" in uri
 
@@ -19,11 +21,13 @@ def test_get_tracking_uri_default(monkeypatch):
 def test_get_tracking_uri_from_env(monkeypatch):
     monkeypatch.setenv("MLFLOW_TRACKING_URI", "http://my-mlflow:9999")
     from shelfsense.tracking.mlflow_utils import get_tracking_uri
+
     assert get_tracking_uri() == "http://my-mlflow:9999"
 
 
 def test_get_or_create_experiment_creates_when_absent():
     from shelfsense.tracking.mlflow_utils import get_or_create_experiment
+
     with patch("shelfsense.tracking.mlflow_utils.MlflowClient") as MockClient:
         client = MagicMock()
         MockClient.return_value = client
@@ -38,8 +42,10 @@ def test_get_or_create_experiment_creates_when_absent():
 
 # ── MLflowResource (resources.py) ─────────────────────────────────────────────
 
+
 def test_mlflow_resource_default_fields():
     from shelfsense.orchestration.resources import MLflowResource
+
     r = MLflowResource(tracking_uri="http://localhost:5000")
     assert r.tracking_uri == "http://localhost:5000"
     assert r.experiment_name == "shelfsense-m5"
@@ -47,6 +53,7 @@ def test_mlflow_resource_default_fields():
 
 def test_mlflow_resource_log_asset_run_returns_run_id():
     from shelfsense.orchestration.resources import MLflowResource
+
     r = MLflowResource(tracking_uri="http://localhost:5000")
 
     run_mock = MagicMock()
@@ -64,15 +71,14 @@ def test_mlflow_resource_log_asset_run_returns_run_id():
         ),
     ):
         mock_mlflow.start_run.return_value = ctx
-        run_id = r.log_asset_run(
-            "my-run", metrics={"val_wrmsse": 0.5}, params={"lr": 0.01}
-        )
+        run_id = r.log_asset_run("my-run", metrics={"val_wrmsse": 0.5}, params={"lr": 0.01})
         assert run_id == "abc123"
         mock_mlflow.set_tracking_uri.assert_called_once_with("http://localhost:5000")
 
 
 def test_mlflow_resource_log_metrics_to_run_calls_client():
     from shelfsense.orchestration.resources import MLflowResource
+
     r = MLflowResource(tracking_uri="http://localhost:5000")
 
     with patch("shelfsense.orchestration.resources.MlflowClient") as MockClient:
@@ -84,9 +90,11 @@ def test_mlflow_resource_log_metrics_to_run_calls_client():
 
 # ── mlflow_utils.log_run context manager ──────────────────────────────────────
 
+
 def test_get_or_create_experiment_returns_existing_id():
     """When the experiment already exists, returns its experiment_id."""
     from shelfsense.tracking.mlflow_utils import get_or_create_experiment
+
     with patch("shelfsense.tracking.mlflow_utils.MlflowClient") as MockClient:
         client = MagicMock()
         MockClient.return_value = client

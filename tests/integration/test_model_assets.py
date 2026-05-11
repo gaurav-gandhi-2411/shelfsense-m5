@@ -14,6 +14,7 @@ Skip when MLflow is not reachable. Run after: docker compose up -d
 Each model test < 90s. predictions/ensemble/submission tests < 120s each
 (models already trained on first run, pkls reused on subsequent runs).
 """
+
 from __future__ import annotations
 
 import os
@@ -21,9 +22,8 @@ import os
 import pytest
 import requests
 
-
 TRACKING_URI = "http://localhost:5000"
-RAW_DIR      = "data/raw/m5-forecasting-accuracy"
+RAW_DIR = "data/raw/m5-forecasting-accuracy"
 FEATURES_DIR = "data/processed/features"
 
 
@@ -45,11 +45,7 @@ pytestmark = pytest.mark.skipif(
 
 # Apply @_forked only when tests will actually run (RUN_REAL_DATA_TESTS=1).
 # Avoids pytest-forked teardown corruption of session state for subsequent tests.
-_forked = (
-    pytest.mark.forked
-    if os.environ.get("RUN_REAL_DATA_TESTS") == "1"
-    else lambda f: f
-)
+_forked = pytest.mark.forked if os.environ.get("RUN_REAL_DATA_TESTS") == "1" else lambda f: f
 
 
 def _upstream_assets():
@@ -61,21 +57,22 @@ def _upstream_assets():
         raw_sales,
         raw_validated,
     )
+
     return [raw_sales, raw_calendar, raw_prices, raw_validated, features, features_validated]
 
 
 def _test_features_run_config(test_mode: bool = True) -> dict:
     return {
-        "raw_sales":    {"config": {"raw_dir": RAW_DIR}},
+        "raw_sales": {"config": {"raw_dir": RAW_DIR}},
         "raw_calendar": {"config": {"raw_dir": RAW_DIR}},
-        "raw_prices":   {"config": {"raw_dir": RAW_DIR}},
+        "raw_prices": {"config": {"raw_dir": RAW_DIR}},
         "features": {
             "config": {
-                "output_dir":    FEATURES_DIR,
-                "last_day":      1941,
-                "test_mode":     test_mode,
+                "output_dir": FEATURES_DIR,
+                "last_day": 1941,
+                "test_mode": test_mode,
                 "test_n_series": 100,
-                "test_seed":     42,
+                "test_seed": 42,
             }
         },
     }
@@ -83,6 +80,7 @@ def _test_features_run_config(test_mode: bool = True) -> dict:
 
 def _check_mlflow_run(asset_name: str) -> None:
     import mlflow
+
     mlflow.set_tracking_uri(TRACKING_URI)
     client = mlflow.tracking.MlflowClient()
     exp = client.get_experiment_by_name("shelfsense-m5")
@@ -101,10 +99,12 @@ def _check_mlflow_run(asset_name: str) -> None:
 # model_tvp_13
 # ---------------------------------------------------------------------------
 
+
 @_forked
 def test_model_tvp_13_test_mode():
     """Materialize model_tvp_13 via the full upstream chain in test_mode."""
     from dagster import materialize
+
     from shelfsense.orchestration.assets import model_tvp_13
     from shelfsense.orchestration.resources import MLflowResource
 
@@ -136,10 +136,12 @@ def test_model_tvp_13_test_mode():
 # model_tvp_17
 # ---------------------------------------------------------------------------
 
+
 @_forked
 def test_model_tvp_17_test_mode():
     """Materialize model_tvp_17 via the full upstream chain in test_mode."""
     from dagster import materialize
+
     from shelfsense.orchestration.assets import model_tvp_17
     from shelfsense.orchestration.resources import MLflowResource
 
@@ -171,10 +173,12 @@ def test_model_tvp_17_test_mode():
 # model_rmse_mh
 # ---------------------------------------------------------------------------
 
+
 @_forked
 def test_model_rmse_mh_test_mode():
     """Materialize model_rmse_mh via the full upstream chain in test_mode."""
     from dagster import materialize
+
     from shelfsense.orchestration.assets import model_rmse_mh
     from shelfsense.orchestration.resources import MLflowResource
 
@@ -206,6 +210,7 @@ def test_model_rmse_mh_test_mode():
 # model_store_dept
 # ---------------------------------------------------------------------------
 
+
 @_forked
 def test_model_store_dept_test_mode():
     """Materialize model_store_dept in test_mode (1 slice, 100-series features_test).
@@ -214,6 +219,7 @@ def test_model_store_dept_test_mode():
     model_store_dept trains CA_1×FOODS_1 only (20 series in features_test seed=42).
     """
     from dagster import materialize
+
     from shelfsense.orchestration.assets import model_store_dept
     from shelfsense.orchestration.resources import MLflowResource
 
@@ -239,6 +245,7 @@ def test_model_store_dept_test_mode():
     assert 0 < output["val_wrmsse"] < 10.0
 
     import glob as glob_mod
+
     pkls = glob_mod.glob(os.path.join(model_dir, "lgbm_SD_*.pkl"))
     assert len(pkls) >= 1, f"No pkl files found in {model_dir}"
     _check_mlflow_run("model_store_dept")
@@ -248,6 +255,7 @@ def test_model_store_dept_test_mode():
 # model_ylags
 # ---------------------------------------------------------------------------
 
+
 @_forked
 def test_model_ylags_test_mode():
     """Materialize model_ylags via the full upstream chain in test_mode.
@@ -255,6 +263,7 @@ def test_model_ylags_test_mode():
     Uses same features as model_tvp_13 — annual lags already present on disk.
     """
     from dagster import materialize
+
     from shelfsense.orchestration.assets import model_ylags
     from shelfsense.orchestration.resources import MLflowResource
 
@@ -286,10 +295,12 @@ def test_model_ylags_test_mode():
 # predictions_tvp_13
 # ---------------------------------------------------------------------------
 
+
 @_forked
 def test_predictions_tvp_13_test_mode():
     """Predict eval+val parquets from the cached test tvp=1.3 model."""
     from dagster import materialize
+
     from shelfsense.orchestration.assets import model_tvp_13, predictions_tvp_13
     from shelfsense.orchestration.resources import MLflowResource
 
@@ -321,6 +332,7 @@ def test_predictions_tvp_13_test_mode():
     assert output["n_series"] > 0
 
     import pandas as pd
+
     eval_df = pd.read_parquet(output["eval_path"])
     assert "id" in eval_df.columns
     assert all(f"F{h}" in eval_df.columns for h in range(1, 29))
@@ -330,10 +342,12 @@ def test_predictions_tvp_13_test_mode():
 # predictions_tvp_17
 # ---------------------------------------------------------------------------
 
+
 @_forked
 def test_predictions_tvp_17_test_mode():
     """Predict eval+val parquets from the cached test tvp=1.7 model."""
     from dagster import materialize
+
     from shelfsense.orchestration.assets import model_tvp_17, predictions_tvp_17
     from shelfsense.orchestration.resources import MLflowResource
 
@@ -368,10 +382,12 @@ def test_predictions_tvp_17_test_mode():
 # predictions_rmse_mh
 # ---------------------------------------------------------------------------
 
+
 @_forked
 def test_predictions_rmse_mh_test_mode():
     """Predict eval+val parquets from the cached test rmse_mh model."""
     from dagster import materialize
+
     from shelfsense.orchestration.assets import model_rmse_mh, predictions_rmse_mh
     from shelfsense.orchestration.resources import MLflowResource
 
@@ -406,10 +422,12 @@ def test_predictions_rmse_mh_test_mode():
 # predictions_store_dept
 # ---------------------------------------------------------------------------
 
+
 @_forked
 def test_predictions_store_dept_test_mode():
     """Predict eval+val parquets for CA_1xFOODS_1 from the cached test model."""
     from dagster import materialize
+
     from shelfsense.orchestration.assets import model_store_dept, predictions_store_dept
     from shelfsense.orchestration.resources import MLflowResource
 
@@ -444,10 +462,12 @@ def test_predictions_store_dept_test_mode():
 # predictions_ylags
 # ---------------------------------------------------------------------------
 
+
 @_forked
 def test_predictions_ylags_test_mode():
     """Predict eval+val parquets from the cached test ylags model."""
     from dagster import materialize
+
     from shelfsense.orchestration.assets import model_ylags, predictions_ylags
     from shelfsense.orchestration.resources import MLflowResource
 
@@ -483,43 +503,55 @@ def test_predictions_ylags_test_mode():
 # ---------------------------------------------------------------------------
 
 _MODEL_DIRS = {
-    "model_tvp_13":    "data/models/test_tvp_1p3",
-    "model_tvp_17":    "data/models/test_tvp_1p7",
-    "model_rmse_mh":   "data/models/test_rmse_mh",
-    "model_store_dept":"data/models/test_store_dept",
-    "model_ylags":     "data/models/test_ylags",
+    "model_tvp_13": "data/models/test_tvp_1p3",
+    "model_tvp_17": "data/models/test_tvp_1p7",
+    "model_rmse_mh": "data/models/test_rmse_mh",
+    "model_store_dept": "data/models/test_store_dept",
+    "model_ylags": "data/models/test_ylags",
 }
 _PREDS_DIRS = {
-    "predictions_tvp_13":    "data/predictions/test_tvp_1p3",
-    "predictions_tvp_17":    "data/predictions/test_tvp_1p7",
-    "predictions_rmse_mh":   "data/predictions/test_rmse_mh",
-    "predictions_store_dept":"data/predictions/test_store_dept",
-    "predictions_ylags":     "data/predictions/test_ylags",
-    "ensemble":              "data/predictions/test_ensemble",
+    "predictions_tvp_13": "data/predictions/test_tvp_1p3",
+    "predictions_tvp_17": "data/predictions/test_tvp_1p7",
+    "predictions_rmse_mh": "data/predictions/test_rmse_mh",
+    "predictions_store_dept": "data/predictions/test_store_dept",
+    "predictions_ylags": "data/predictions/test_ylags",
+    "ensemble": "data/predictions/test_ensemble",
 }
 
 _ensemble_test_enabled = pytest.mark.skipif(
     os.environ.get("RUN_ENSEMBLE_TEST") != "1",
     reason="Ensemble/submission tests disabled — set RUN_ENSEMBLE_TEST=1 to enable. "
-           "Requires ~12GB RAM; materializes 17 assets in one process.",
+    "Requires ~12GB RAM; materializes 17 assets in one process.",
 )
 
 
 def _all_model_assets():
     from shelfsense.orchestration.assets import (
-        model_tvp_13, model_tvp_17, model_rmse_mh, model_store_dept, model_ylags,
+        model_rmse_mh,
+        model_store_dept,
+        model_tvp_13,
+        model_tvp_17,
+        model_ylags,
     )
+
     return [model_tvp_13, model_tvp_17, model_rmse_mh, model_store_dept, model_ylags]
 
 
 def _all_predictions_assets():
     from shelfsense.orchestration.assets import (
-        predictions_tvp_13, predictions_tvp_17, predictions_rmse_mh,
-        predictions_store_dept, predictions_ylags,
+        predictions_rmse_mh,
+        predictions_store_dept,
+        predictions_tvp_13,
+        predictions_tvp_17,
+        predictions_ylags,
     )
+
     return [
-        predictions_tvp_13, predictions_tvp_17, predictions_rmse_mh,
-        predictions_store_dept, predictions_ylags,
+        predictions_tvp_13,
+        predictions_tvp_17,
+        predictions_rmse_mh,
+        predictions_store_dept,
+        predictions_ylags,
     ]
 
 
@@ -527,17 +559,83 @@ def _full_run_config(include_submission: bool = False) -> dict:
     cfg = {
         "ops": {
             **_test_features_run_config(test_mode=True),
-            "model_tvp_13":    {"config": {"model_dir": _MODEL_DIRS["model_tvp_13"],    "raw_dir": RAW_DIR, "test_mode": True}},
-            "model_tvp_17":    {"config": {"model_dir": _MODEL_DIRS["model_tvp_17"],    "raw_dir": RAW_DIR, "test_mode": True}},
-            "model_rmse_mh":   {"config": {"model_dir": _MODEL_DIRS["model_rmse_mh"],   "raw_dir": RAW_DIR, "test_mode": True}},
-            "model_store_dept":{"config": {"model_dir": _MODEL_DIRS["model_store_dept"],"raw_dir": RAW_DIR, "test_mode": True}},
-            "model_ylags":     {"config": {"model_dir": _MODEL_DIRS["model_ylags"],     "raw_dir": RAW_DIR, "test_mode": True}},
-            "predictions_tvp_13":    {"config": {"preds_dir": _PREDS_DIRS["predictions_tvp_13"],    "raw_dir": RAW_DIR, "test_mode": True}},
-            "predictions_tvp_17":    {"config": {"preds_dir": _PREDS_DIRS["predictions_tvp_17"],    "raw_dir": RAW_DIR, "test_mode": True}},
-            "predictions_rmse_mh":   {"config": {"preds_dir": _PREDS_DIRS["predictions_rmse_mh"],   "raw_dir": RAW_DIR, "test_mode": True}},
-            "predictions_store_dept":{"config": {"preds_dir": _PREDS_DIRS["predictions_store_dept"],"raw_dir": RAW_DIR, "test_mode": True}},
-            "predictions_ylags":     {"config": {"preds_dir": _PREDS_DIRS["predictions_ylags"],     "raw_dir": RAW_DIR, "test_mode": True}},
-            "ensemble":              {"config": {"preds_dir": _PREDS_DIRS["ensemble"],              "raw_dir": RAW_DIR, "test_mode": True}},
+            "model_tvp_13": {
+                "config": {
+                    "model_dir": _MODEL_DIRS["model_tvp_13"],
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "model_tvp_17": {
+                "config": {
+                    "model_dir": _MODEL_DIRS["model_tvp_17"],
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "model_rmse_mh": {
+                "config": {
+                    "model_dir": _MODEL_DIRS["model_rmse_mh"],
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "model_store_dept": {
+                "config": {
+                    "model_dir": _MODEL_DIRS["model_store_dept"],
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "model_ylags": {
+                "config": {
+                    "model_dir": _MODEL_DIRS["model_ylags"],
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "predictions_tvp_13": {
+                "config": {
+                    "preds_dir": _PREDS_DIRS["predictions_tvp_13"],
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "predictions_tvp_17": {
+                "config": {
+                    "preds_dir": _PREDS_DIRS["predictions_tvp_17"],
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "predictions_rmse_mh": {
+                "config": {
+                    "preds_dir": _PREDS_DIRS["predictions_rmse_mh"],
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "predictions_store_dept": {
+                "config": {
+                    "preds_dir": _PREDS_DIRS["predictions_store_dept"],
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "predictions_ylags": {
+                "config": {
+                    "preds_dir": _PREDS_DIRS["predictions_ylags"],
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
+            "ensemble": {
+                "config": {
+                    "preds_dir": _PREDS_DIRS["ensemble"],
+                    "raw_dir": RAW_DIR,
+                    "test_mode": True,
+                }
+            },
         }
     }
     if include_submission:
@@ -557,6 +655,7 @@ def _full_run_config(include_submission: bool = False) -> dict:
 def test_ensemble_test_mode():
     """Ensemble: 5-trial Optuna over tvp_13+tvp_17 val preds (test_mode)."""
     from dagster import materialize
+
     from shelfsense.orchestration.assets import ensemble
     from shelfsense.orchestration.resources import MLflowResource
 
@@ -582,6 +681,7 @@ def test_ensemble_test_mode():
 def test_submission_test_mode():
     """Submission: build Kaggle-format CSV from ensemble predictions (test_mode)."""
     from dagster import materialize
+
     from shelfsense.orchestration.assets import ensemble, submission
     from shelfsense.orchestration.resources import MLflowResource
 
@@ -604,6 +704,7 @@ def test_submission_test_mode():
     assert output["test_mode"] is True
 
     import pandas as pd
+
     sub_df = pd.read_csv(output["path"])
     assert "id" in sub_df.columns
     assert all(f"F{h}" in sub_df.columns for h in range(1, 29))

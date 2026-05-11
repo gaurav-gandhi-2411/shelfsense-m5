@@ -9,6 +9,7 @@ Features: roll_{stat}_{window} for stat in {mean, std, min, max}, window in {7, 
 Leakage note: sales is shifted by 1 day before rolling so the most recent observed
 value at day d is d-1.  Rolling window [d-w-1 .. d-1] -> no future leakage.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -56,9 +57,11 @@ def add_rolling(
     for window in windows:
         roll = shifted.groupby(df[id_col]).rolling(window, min_periods=1)
         if "mean" in stats:
-            df[f"roll_mean_{window}"] = roll.mean().reset_index(level=0, drop=True).astype(np.float32)
+            val = roll.mean().reset_index(level=0, drop=True).astype(np.float32)
+            df[f"roll_mean_{window}"] = val
         if "std" in stats:
-            df[f"roll_std_{window}"] = roll.std(ddof=1).reset_index(level=0, drop=True).astype(np.float32)
+            val = roll.std(ddof=1).reset_index(level=0, drop=True).astype(np.float32)
+            df[f"roll_std_{window}"] = val
         if "min" in stats:
             df[f"roll_min_{window}"] = roll.min().reset_index(level=0, drop=True).astype(np.float32)
         if "max" in stats:

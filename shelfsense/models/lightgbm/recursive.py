@@ -21,36 +21,47 @@ Known issue: LAGS = [7, 14, 28, 56] here does not match shelfsense/features/lags
   feature set would receive zeros for those lags at recursive inference. Not a concern
   for tvp=1.3 multi-horizon (direct prediction, not recursive) — the production path.
 """
+
 from __future__ import annotations
 
 import time
+
 import numpy as np
 import pandas as pd
 
-from shelfsense.features.hierarchy import CAT_DTYPES as DEFAULT_CAT_DTYPES
 from shelfsense.features.calendar import build_calendar_lookup
+from shelfsense.features.hierarchy import CAT_DTYPES as DEFAULT_CAT_DTYPES
 from shelfsense.features.price import build_price_lookup
 
-LAGS    = [7, 14, 28, 56]
+LAGS = [7, 14, 28, 56]
 WINDOWS = [7, 28, 56, 180]
 
 CAL_FEATURE_COLS = [
-    "weekday", "month", "quarter", "year", "day_of_month", "week_of_year",
-    "is_weekend", "is_holiday", "is_snap_ca", "is_snap_tx", "is_snap_wi",
-    "days_since_event", "days_until_next_event",
+    "weekday",
+    "month",
+    "quarter",
+    "year",
+    "day_of_month",
+    "week_of_year",
+    "is_weekend",
+    "is_holiday",
+    "is_snap_ca",
+    "is_snap_tx",
+    "is_snap_wi",
+    "days_since_event",
+    "days_until_next_event",
 ]
 PRICE_FEATURE_COLS = [
-    "sell_price", "price_change_pct", "price_relative_mean",
-    "price_volatility", "has_price_change",
+    "sell_price",
+    "price_change_pct",
+    "price_relative_mean",
+    "price_volatility",
+    "has_price_change",
 ]
-LAG_FEATURES  = [f"lag_{l}" for l in LAGS]
-ROLL_FEATURES = [
-    f"roll_{stat}_{w}"
-    for w in WINDOWS
-    for stat in ["mean", "std", "min", "max"]
-]
+LAG_FEATURES = [f"lag_{lag}" for lag in LAGS]
+ROLL_FEATURES = [f"roll_{stat}_{w}" for w in WINDOWS for stat in ["mean", "std", "min", "max"]]
 NUM_FEATURES = CAL_FEATURE_COLS + PRICE_FEATURE_COLS + LAG_FEATURES + ROLL_FEATURES
-CAT_COLS     = ["cat_id", "dept_id", "store_id", "state_id"]
+CAT_COLS = ["cat_id", "dept_id", "store_id", "state_id"]
 ALL_FEATURES = NUM_FEATURES + CAT_COLS
 
 HISTORY_DAYS = 200  # days of sales history kept; covers max window (180) + lag_56 margin
@@ -68,22 +79,18 @@ def _build_price_by_day(
     Groups by wm_yr_wk (at most ~5 unique weeks in a 28-day window).
     Missing item/store combos → 0.
     """
-    d_to_wk = {
-        d: int(cal_lookup.loc[f"d_{d}", "wm_yr_wk"])
-        for d in range(start_day, end_day + 1)
-    }
+    d_to_wk = {d: int(cal_lookup.loc[f"d_{d}", "wm_yr_wk"]) for d in range(start_day, end_day + 1)}
     unique_wks = sorted(set(d_to_wk.values()))
 
     wk_arrays: dict[int, np.ndarray] = {}
     for wk in unique_wks:
         wk_rows = price_lookup[price_lookup["wm_yr_wk"] == wk].set_index(["item_id", "store_id"])
-        merged = (
-            series_meta[["item_id", "store_id"]]
-            .merge(wk_rows[PRICE_FEATURE_COLS].reset_index(), on=["item_id", "store_id"], how="left")
+        merged = series_meta[["item_id", "store_id"]].merge(
+            wk_rows[PRICE_FEATURE_COLS].reset_index(),
+            on=["item_id", "store_id"],
+            how="left",
         )
-        wk_arrays[wk] = np.nan_to_num(
-            merged[PRICE_FEATURE_COLS].values.astype(np.float32), nan=0.0
-        )
+        wk_arrays[wk] = np.nan_to_num(merged[PRICE_FEATURE_COLS].values.astype(np.float32), nan=0.0)
 
     return {d: wk_arrays[d_to_wk[d]] for d in range(start_day, end_day + 1)}
 
@@ -111,11 +118,11 @@ def _build_history_df(
 
     sub = (
         sales_eval[sales_eval["id"].isin(series_order)]
-        .set_index("id").reindex(series_order).reset_index()
+        .set_index("id")
+        .reindex(series_order)
+        .reset_index()
     )
-    df = sub[meta_cols + day_cols].melt(
-        id_vars=meta_cols, var_name="d", value_name="sales"
-    )
+    df = sub[meta_cols + day_cols].melt(id_vars=meta_cols, var_name="d", value_name="sales")
     df["d_num"] = df["d"].str.replace("d_", "", regex=False).astype(np.int32)
     df["sales"] = df["sales"].fillna(0.0).astype(np.float32)
     return df.drop(columns=["d"])
@@ -152,7 +159,7 @@ def predict_horizon(
         cat_dtypes = DEFAULT_CAT_DTYPES
 
     # Lookups (cheap; built once)
-    cal_lookup   = build_calendar_lookup(calendar_df)
+    cal_lookup = build_calendar_lookup(calendar_df)
     price_lookup = build_price_lookup(prices_df, calendar_df)
 
     series_meta = (
@@ -162,16 +169,19 @@ def predict_horizon(
         .reset_index(drop=True)
     )
     series_ids = series_meta["id"].values
-    n_series   = len(series_ids)
+    n_series = len(series_ids)
 
-    last_d    = int(history_df["d_num"].max())
+    last_d = int(history_df["d_num"].max())
     start_day = last_d + 1
-    end_day   = last_d + days_out
+    end_day = last_d + days_out
 
     # Pre-compute price arrays for all forecast days (grouped by week → ~5 unique lookups)
     price_by_d = _build_price_by_day(
-        series_meta, price_lookup, cal_lookup,
-        start_day=start_day, end_day=end_day,
+        series_meta,
+        price_lookup,
+        cal_lookup,
+        start_day=start_day,
+        end_day=end_day,
     )
 
     # Sales matrix: (n_series, n_hist) — pivot history to 2-D array
@@ -182,20 +192,18 @@ def predict_horizon(
         .fillna(0.0)
         .astype(np.float32)
     )
-    day_cols  = np.array(sorted(sales_wide.columns), dtype=np.int32)   # (n_hist,)
-    sales_mat = sales_wide[day_cols].values                             # (n_series, n_hist)
+    day_cols = np.array(sorted(sales_wide.columns), dtype=np.int32)  # (n_hist,)
+    sales_mat = sales_wide[day_cols].values  # (n_series, n_hist)
 
     # Cat feature arrays (constant across steps)
-    cat_arrs = {
-        col: series_meta[col].astype(str).values for col in CAT_COLS
-    }
+    cat_arrs = {col: series_meta[col].astype(str).values for col in CAT_COLS}
 
-    preds   = np.zeros((n_series, days_out), dtype=np.float32)
+    preds = np.zeros((n_series, days_out), dtype=np.float32)
     t_total = time.time()
 
     for step in range(days_out):
         t0 = time.time()
-        d  = start_day + step
+        d = start_day + step
 
         # Lag features: exact day lookup via searchsorted
         lag_list = []
@@ -206,7 +214,7 @@ def predict_horizon(
                 lag_list.append(sales_mat[:, pos])
             else:
                 lag_list.append(np.zeros(n_series, dtype=np.float32))
-        lag_mat = np.column_stack(lag_list)   # (n_series, 4)
+        lag_mat = np.column_stack(lag_list)  # (n_series, 4)
 
         # Rolling features: mask over days in [d-w, d-1]
         roll_list = []
@@ -216,7 +224,7 @@ def predict_horizon(
             if not in_win.any():
                 roll_list += [np.zeros(n_series, np.float32)] * 4
                 continue
-            win = sales_mat[:, in_win]                      # (n_series, k)
+            win = sales_mat[:, in_win]  # (n_series, k)
             roll_list.append(win.mean(axis=1).astype(np.float32))
             if win.shape[1] > 1:
                 std_ = np.nan_to_num(win.std(axis=1, ddof=1), nan=0.0).astype(np.float32)
@@ -229,10 +237,10 @@ def predict_horizon(
 
         # Calendar (broadcast)
         cal_row = cal_lookup.loc[f"d_{d}", CAL_FEATURE_COLS].values.astype(np.float32)
-        cal_mat = np.tile(cal_row, (n_series, 1))   # (n_series, 13)
+        cal_mat = np.tile(cal_row, (n_series, 1))  # (n_series, 13)
 
         # Price (pre-computed per day)
-        price_mat = price_by_d[d]                   # (n_series, 5)
+        price_mat = price_by_d[d]  # (n_series, 5)
 
         # Assemble feature DataFrame
         num_mat = np.hstack([cal_mat, price_mat, lag_mat, roll_mat]).astype(np.float32)
@@ -251,7 +259,7 @@ def predict_horizon(
 
         # Extend sales matrix with this step's predictions
         sales_mat = np.hstack([sales_mat, step_preds.reshape(-1, 1)])
-        day_cols  = np.append(day_cols, d)
+        day_cols = np.append(day_cols, d)
 
         if verbose:
             print(f"    d_{d}  ({time.time() - t0:.1f}s)", end="  ", flush=True)

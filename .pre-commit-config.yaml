@@ -2,29 +2,56 @@
 # Install: pre-commit install
 # Run manually: pre-commit run --all-files
 
+# Archival scripts and Jupyter notebooks are excluded globally — they are
+# not subject to lint or formatting enforcement.
+exclude: |
+  (?x)^(
+    scripts/legacy/|
+    notebooks/
+  )
+
 repos:
   # ── Standard housekeeping ──────────────────────────────────────────────────
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
+        files: ^(shelfsense/|tests/|docs/|pyproject\.toml|[^/]*\.(yaml|yml|toml))
       - id: end-of-file-fixer
+        files: ^(shelfsense/|tests/|docs/|pyproject\.toml|[^/]*\.(yaml|yml|toml))
       - id: check-yaml
       - id: check-toml
       - id: check-merge-conflict
       - id: debug-statements
+        files: ^(shelfsense/|tests/)
+      - id: check-added-large-files
+        args: [--maxkb=500]
 
-  # ── Ruff (lint + isort) ────────────────────────────────────────────────────
+  # ── Ruff (lint + isort, auto-fix) ─────────────────────────────────────────
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.11
     hooks:
       - id: ruff
         args: [--fix]
+        files: ^(shelfsense/|tests/)
       - id: ruff-format
+        files: ^(shelfsense/|tests/)
 
-  # ── DVC status check ───────────────────────────────────────────────────────
+  # ── mypy (type check, lenient first pass) ─────────────────────────────────
+  # Tightened in Stage 6 polish (warn_return_any, strict_optional, etc.).
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        args:
+          - --ignore-missing-imports
+          - --no-strict-optional
+          - --allow-untyped-defs
+        files: ^shelfsense/
+
+  # ── DVC status check ──────────────────────────────────────────────────────
   # Warns if DVC-tracked files are modified but .dvc pointer not updated.
-  # Uses pre-commit's system hook (runs in the repo's own venv via dvc).
+  # Always exits 0 — informational only.
   - repo: local
     hooks:
       - id: dvc-status
@@ -33,16 +60,3 @@ repos:
         entry: bash -c 'dvc status --quiet 2>/dev/null || true'
         pass_filenames: false
         always_run: true
-
-  # ── Data validation ────────────────────────────────────────────────────────
-  # Runs shelfsense data validate if raw or feature data is present.
-  # Skipped automatically when data directories do not exist (e.g. CI).
-  - repo: local
-    hooks:
-      - id: shelfsense-data-validate
-        name: shelfsense data validate
-        language: system
-        entry: bash -c '[ -d data/raw/m5-forecasting-accuracy ] && shelfsense data validate || true'
-        pass_filenames: false
-        always_run: false
-        files: ^(data/raw/.*\.dvc|data/processed/.*\.dvc|shelfsense/data/.*)$

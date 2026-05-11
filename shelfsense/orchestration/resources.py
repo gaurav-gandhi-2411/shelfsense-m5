@@ -1,4 +1,5 @@
 """Dagster resources for the ShelfSense M5 pipeline."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -40,9 +41,7 @@ class MLflowResource(ConfigurableResource):
         """Open an MLflow run, log metrics/params/tags, close it, return run_id."""
         mlflow.set_tracking_uri(self.tracking_uri)
         exp_id = self.get_experiment()
-        with mlflow.start_run(
-            experiment_id=exp_id, run_name=run_name, tags=tags
-        ) as run:
+        with mlflow.start_run(experiment_id=exp_id, run_name=run_name, tags=tags) as run:
             if params:
                 mlflow.log_params(params)
             if metrics:
