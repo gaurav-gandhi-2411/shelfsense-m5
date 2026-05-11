@@ -43,6 +43,14 @@ pytestmark = pytest.mark.skipif(
     ),
 )
 
+# Apply @_forked only when tests will actually run (RUN_REAL_DATA_TESTS=1).
+# Avoids pytest-forked teardown corruption of session state for subsequent tests.
+_forked = (
+    pytest.mark.forked
+    if os.environ.get("RUN_REAL_DATA_TESTS") == "1"
+    else lambda f: f
+)
+
 
 def _upstream_assets():
     from shelfsense.orchestration.assets import (
@@ -93,7 +101,7 @@ def _check_mlflow_run(asset_name: str) -> None:
 # model_tvp_13
 # ---------------------------------------------------------------------------
 
-@pytest.mark.forked
+@_forked
 def test_model_tvp_13_test_mode():
     """Materialize model_tvp_13 via the full upstream chain in test_mode."""
     from dagster import materialize
@@ -128,7 +136,7 @@ def test_model_tvp_13_test_mode():
 # model_tvp_17
 # ---------------------------------------------------------------------------
 
-@pytest.mark.forked
+@_forked
 def test_model_tvp_17_test_mode():
     """Materialize model_tvp_17 via the full upstream chain in test_mode."""
     from dagster import materialize
@@ -163,7 +171,7 @@ def test_model_tvp_17_test_mode():
 # model_rmse_mh
 # ---------------------------------------------------------------------------
 
-@pytest.mark.forked
+@_forked
 def test_model_rmse_mh_test_mode():
     """Materialize model_rmse_mh via the full upstream chain in test_mode."""
     from dagster import materialize
@@ -198,7 +206,7 @@ def test_model_rmse_mh_test_mode():
 # model_store_dept
 # ---------------------------------------------------------------------------
 
-@pytest.mark.forked
+@_forked
 def test_model_store_dept_test_mode():
     """Materialize model_store_dept in test_mode (1 slice, 100-series features_test).
 
@@ -240,7 +248,7 @@ def test_model_store_dept_test_mode():
 # model_ylags
 # ---------------------------------------------------------------------------
 
-@pytest.mark.forked
+@_forked
 def test_model_ylags_test_mode():
     """Materialize model_ylags via the full upstream chain in test_mode.
 
@@ -278,7 +286,7 @@ def test_model_ylags_test_mode():
 # predictions_tvp_13
 # ---------------------------------------------------------------------------
 
-@pytest.mark.forked
+@_forked
 def test_predictions_tvp_13_test_mode():
     """Predict eval+val parquets from the cached test tvp=1.3 model."""
     from dagster import materialize
@@ -322,7 +330,7 @@ def test_predictions_tvp_13_test_mode():
 # predictions_tvp_17
 # ---------------------------------------------------------------------------
 
-@pytest.mark.forked
+@_forked
 def test_predictions_tvp_17_test_mode():
     """Predict eval+val parquets from the cached test tvp=1.7 model."""
     from dagster import materialize
@@ -360,7 +368,7 @@ def test_predictions_tvp_17_test_mode():
 # predictions_rmse_mh
 # ---------------------------------------------------------------------------
 
-@pytest.mark.forked
+@_forked
 def test_predictions_rmse_mh_test_mode():
     """Predict eval+val parquets from the cached test rmse_mh model."""
     from dagster import materialize
@@ -398,7 +406,7 @@ def test_predictions_rmse_mh_test_mode():
 # predictions_store_dept
 # ---------------------------------------------------------------------------
 
-@pytest.mark.forked
+@_forked
 def test_predictions_store_dept_test_mode():
     """Predict eval+val parquets for CA_1xFOODS_1 from the cached test model."""
     from dagster import materialize
@@ -436,7 +444,7 @@ def test_predictions_store_dept_test_mode():
 # predictions_ylags
 # ---------------------------------------------------------------------------
 
-@pytest.mark.forked
+@_forked
 def test_predictions_ylags_test_mode():
     """Predict eval+val parquets from the cached test ylags model."""
     from dagster import materialize
@@ -545,7 +553,7 @@ def _full_run_config(include_submission: bool = False) -> dict:
 
 
 @_ensemble_test_enabled
-@pytest.mark.forked
+@_forked
 def test_ensemble_test_mode():
     """Ensemble: 5-trial Optuna over tvp_13+tvp_17 val preds (test_mode)."""
     from dagster import materialize
@@ -570,7 +578,7 @@ def test_ensemble_test_mode():
 
 
 @_ensemble_test_enabled
-@pytest.mark.forked
+@_forked
 def test_submission_test_mode():
     """Submission: build Kaggle-format CSV from ensemble predictions (test_mode)."""
     from dagster import materialize

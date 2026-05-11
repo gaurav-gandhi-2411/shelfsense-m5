@@ -59,9 +59,21 @@ markers   = [
 
 [tool.coverage.run]
 source = ["shelfsense"]
-omit   = ["shelfsense/visualization/*", "scripts/*", "scripts/legacy/*"]
+omit   = [
+    # Phase-1 narrative code — not on the production inference path
+    "shelfsense/models/classical/*",
+    "shelfsense/data/dl_format_adapter.py",
+    "shelfsense/data/vram_utils.py",
+    "shelfsense/visualization/*",
+    # Dagster asset bodies (dagster.materialize calls) only run under
+    # RUN_CLI_INTEGRATION=1; unit-test coverage is structurally capped here.
+    "shelfsense/orchestration/assets.py",
+    "scripts/*",
+    "scripts/legacy/*",
+]
 
 [tool.coverage.report]
+fail_under = 60
 exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.:",
