@@ -85,6 +85,32 @@ _PREDS_DIRS: dict[bool, dict[str, str]] = {
     },
 }
 
+# All 22 asset names in topological order (raw → features → models → predictions → output).
+_ASSET_NAMES: list[str] = [
+    "raw_sales",
+    "raw_calendar",
+    "raw_prices",
+    "raw_validated",
+    "features",
+    "features_validated",
+    "model_tvp_13",
+    "model_tvp_17",
+    "model_rmse_mh",
+    "model_store_dept",
+    "model_ylags",
+    "model_per_store",
+    "model_per_dept",
+    "predictions_tvp_13",
+    "predictions_tvp_17",
+    "predictions_rmse_mh",
+    "predictions_store_dept",
+    "predictions_ylags",
+    "predictions_per_store",
+    "predictions_per_dept",
+    "ensemble",
+    "submission",
+]
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -709,6 +735,62 @@ def submit(
         typer.echo(f"✓ Submission written → {submissions_dir}/  |  MLflow: {_mlflow_uri()}")
     else:
         typer.echo("✗ Submission failed", err=True)
+        raise typer.Exit(code=1)
+
+
+# ── shelfsense materialize ────────────────────────────────────────────────────
+
+
+@app.command("materialize")
+def materialize_cmd(
+    asset: str = typer.Option(
+        "*",
+        "--asset",
+        help=(
+            "Asset name(s) to materialize. '*' materializes all 22 assets (full pipeline). "
+            "Comma-separate multiple names, e.g. 'features,model_tvp_13'."
+        ),
+    ),
+) -> None:
+    """Materialize Dagster assets by name. '--asset *' runs the full pipeline end-to-end."""
+    import shelfsense.orchestration.assets as _a
+
+    _test = _is_test_mode()
+
+    # Build the full run_config once — Dagster ignores configs for ops not in the asset list.
+    ops = _full_ops_cfg(_test)
+    ops["submission"] = {
+        "config": {
+            "submissions_dir": "submissions/test" if _test else "submissions",
+            "raw_dir": _RAW_DIR,
+            "kaggle_submit": False,
+            "test_mode": _test,
+        }
+    }
+    run_config = {"ops": ops}
+
+    asset_map: dict[str, object] = {name: getattr(_a, name) for name in _ASSET_NAMES}
+
+    if asset == "*":
+        assets_to_run = list(asset_map.values())
+        typer.echo(f"Materializing all {len(assets_to_run)} assets ...")
+    else:
+        names = [n.strip() for n in asset.split(",")]
+        unknown = [n for n in names if n not in asset_map]
+        if unknown:
+            typer.echo(
+                f"Unknown asset(s): {unknown}. Available: {sorted(asset_map)}",
+                err=True,
+            )
+            raise typer.Exit(code=1)
+        assets_to_run = [asset_map[n] for n in names]
+        typer.echo(f"Materializing {', '.join(names)} ...")
+
+    ok = _dag_run(assets_to_run, run_config)
+    if ok:
+        typer.echo(f"✓ Materialization complete  |  MLflow: {_mlflow_uri()}")
+    else:
+        typer.echo("✗ Materialization failed", err=True)
         raise typer.Exit(code=1)
 
 

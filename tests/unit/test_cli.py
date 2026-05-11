@@ -15,7 +15,7 @@ def test_root_help_exits_zero():
 
 def test_root_help_lists_top_level_commands():
     result = runner.invoke(app, ["--help"])
-    for name in ("data", "features", "train", "ensemble", "submit", "report", "version"):
+    for name in ("data", "features", "train", "ensemble", "submit", "materialize", "report", "version"):
         assert name in result.output, f"'{name}' missing from top-level --help"
 
 
@@ -67,6 +67,31 @@ def test_per_dept_train_runs_dag(monkeypatch):
     with patch("dagster.materialize", return_value=result_mock):
         result = runner.invoke(app, ["train", "per-dept"])
     assert result.exit_code == 0
+
+
+def test_materialize_help_exits_zero():
+    result = runner.invoke(app, ["materialize", "--help"])
+    assert result.exit_code == 0
+    assert "--asset" in result.output
+
+
+def test_materialize_all_assets_success(monkeypatch):
+    from unittest.mock import MagicMock, patch
+
+    monkeypatch.setenv("SHELFSENSE_TEST_MODE", "1")
+    result_mock = MagicMock()
+    result_mock.success = True
+
+    with patch("dagster.materialize", return_value=result_mock):
+        result = runner.invoke(app, ["materialize", "--asset", "*"])
+    assert result.exit_code == 0
+    assert "Materialization complete" in result.output
+
+
+def test_materialize_unknown_asset_exits_one():
+    result = runner.invoke(app, ["materialize", "--asset", "no_such_asset"])
+    assert result.exit_code == 1
+    assert "Unknown asset" in result.output
 
 
 def test_report_stub_exits_nonzero():
