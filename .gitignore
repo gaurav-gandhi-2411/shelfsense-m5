@@ -221,3 +221,4 @@ data/models/
 
 # Google Cloud service account key (never commit)
 secrets/
+data/processed/sample_1000_series.csv
