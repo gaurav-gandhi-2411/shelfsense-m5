@@ -148,7 +148,7 @@ raw_prices_schema (strict)
       │
       ▼
 feature_schema ─────────────────────── boundary 2: after feature engineering
-(strict=True; hierarchy cols must be Category dtype;                          
+(strict=True; hierarchy cols must be Category dtype;
  d_num must be ≥1 and non-null; lag/roll cols nullable float)
       │
       ▼

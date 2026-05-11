@@ -15,7 +15,16 @@ def test_root_help_exits_zero():
 
 def test_root_help_lists_top_level_commands():
     result = runner.invoke(app, ["--help"])
-    for name in ("data", "features", "train", "ensemble", "submit", "materialize", "report", "version"):
+    for name in (
+        "data",
+        "features",
+        "train",
+        "ensemble",
+        "submit",
+        "materialize",
+        "report",
+        "version",
+    ):
         assert name in result.output, f"'{name}' missing from top-level --help"
 
 
