@@ -11,7 +11,7 @@ runner = CliRunner()
 
 
 def _strip_ansi(text: str) -> str:
-    return re.sub(r'\x1b\[[0-9;]*m', '', text)
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 
 def test_root_help_exits_zero():
