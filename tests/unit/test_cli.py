@@ -1,11 +1,17 @@
 """Smoke tests for the shelfsense CLI surface."""
 
+import re
+
 from typer.testing import CliRunner
 
 import shelfsense
 from shelfsense.cli import app
 
 runner = CliRunner()
+
+
+def _strip_ansi(text: str) -> str:
+    return re.sub(r'\x1b\[[0-9;]*m', '', text)
 
 
 def test_root_help_exits_zero():
@@ -15,6 +21,7 @@ def test_root_help_exits_zero():
 
 def test_root_help_lists_top_level_commands():
     result = runner.invoke(app, ["--help"])
+    clean = _strip_ansi(result.output)
     for name in (
         "data",
         "features",
@@ -25,7 +32,7 @@ def test_root_help_lists_top_level_commands():
         "report",
         "version",
     ):
-        assert name in result.output, f"'{name}' missing from top-level --help"
+        assert name in clean, f"'{name}' missing from top-level --help"
 
 
 def test_version_prints_package_version():
@@ -37,21 +44,23 @@ def test_version_prints_package_version():
 def test_data_help_lists_subcommands():
     result = runner.invoke(app, ["data", "--help"])
     assert result.exit_code == 0
-    assert "download" in result.output
-    assert "validate" in result.output
+    clean = _strip_ansi(result.output)
+    assert "download" in clean
+    assert "validate" in clean
 
 
 def test_train_help_lists_subcommands():
     result = runner.invoke(app, ["train", "--help"])
     assert result.exit_code == 0
+    clean = _strip_ansi(result.output)
     for name in ("tweedie-mh", "store-dept", "per-store", "per-dept"):
-        assert name in result.output, f"'{name}' missing from train --help"
+        assert name in clean, f"'{name}' missing from train --help"
 
 
 def test_features_help_lists_subcommands():
     result = runner.invoke(app, ["features", "--help"])
     assert result.exit_code == 0
-    assert "build" in result.output
+    assert "build" in _strip_ansi(result.output)
 
 
 def test_per_store_train_runs_dag(monkeypatch):
@@ -81,7 +90,7 @@ def test_per_dept_train_runs_dag(monkeypatch):
 def test_materialize_help_exits_zero():
     result = runner.invoke(app, ["materialize", "--help"])
     assert result.exit_code == 0
-    assert "--asset" in result.output
+    assert "--asset" in _strip_ansi(result.output)
 
 
 def test_materialize_all_assets_success(monkeypatch):
