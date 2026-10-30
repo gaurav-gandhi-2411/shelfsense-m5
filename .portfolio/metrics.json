@@ -1,14 +1,23 @@
 {
   "version": 1,
   "project": "shelfsense",
-  "docs": "https://github.com/gaurav-gandhi-2411/gg-portfolio#autonomous-metric-refresh",
+  "docs": "https://github.com/gaurav-gandhi-2411/gg-portfolio#adding-a-future-project",
   "metrics": [
     {
       "id": "shelfsense:wrmsse",
-      "label": "WRMSSE vs. naive baseline",
-      "value": "36% reduction (0.8956 → 0.5693)",
+      "label": "WRMSSE, best private leaderboard",
+      "value": "0.5693",
       "source_file": "reports/leaderboard.md",
       "source_line": 233,
+      "commit_sha": "2cf85c6deac76665352a9217d7386a282d73888b",
+      "measured_at": "2026-05-07"
+    },
+    {
+      "id": "shelfsense:wrmsse-baseline",
+      "label": "WRMSSE, Seasonal Naive 28 reference baseline",
+      "value": "0.8956",
+      "source_file": "reports/leaderboard.md",
+      "source_line": 221,
       "commit_sha": "2cf85c6deac76665352a9217d7386a282d73888b",
       "measured_at": "2026-05-07"
     }
